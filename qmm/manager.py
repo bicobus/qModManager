@@ -6,10 +6,12 @@ from . import dialogs
 from . import widgets
 from .config import Config
 from . import filehandler
+from .common import get_config_dir
 logging.getLogger('PyQt5').setLevel(logging.WARNING)
 logging.basicConfig(
     level=logging.DEBUG,
-    format='%(levelname)s:%(name)s:%(module)s:%(funcName)s:%(message)s'
+    format='%(levelname)s:%(name)s:%(module)s:%(funcName)s:%(message)s',
+    filename=get_config_dir("error.log")
 )
 logger = logging.getLogger(__name__)
 settings = Config(
