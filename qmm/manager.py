@@ -136,7 +136,9 @@ class MainWindow(QWidget):
 
     def _initMainButtons(self):
         self._button_apply = widgets.contructButton("Apply", self._do_button_apply)
+        self._button_apply.setToolTip("Commits the changes you've made to the list.")
         self._button_discard = widgets.contructButton("Discard", self._do_button_discard)
+        self._button_discard.setToolTip("Reverts the list to the last known state.")
         self._button_settings = widgets.contructButton("Settings", self._do_button_settings)
         buttonLayout = QHBoxLayout()
         buttonLayout.addWidget(self._button_apply)
