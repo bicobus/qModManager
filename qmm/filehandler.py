@@ -262,13 +262,13 @@ class ArchiveManager:
         if file_hash not in self._files_index:
             log.error("Unable to remove an unexisting file: %s", file_hash)
 
+        filename = self._file_list[file_hash].filename
+        del(self._file_list[file_hash])
+        del(self._files_index[file_hash])
         try:
-            os.remove(self._file_list[file_hash].filename)
+            os.remove(filename)
         except OSError as e:
             log.error("Unable to remove file from drive: %s", e)
-        finally:
-            del(self._file_list[file_hash])
-            del(self._files_index[file_hash])
 
     def install_mod(self, file_hash):
         """Install the content of an archive into the game mod folder.
