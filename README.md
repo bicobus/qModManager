@@ -5,7 +5,7 @@ Simple tool to manage a set of archives.
  * Track their state
  * Unpack into a designated directory
 
-# Requirements
+## Requirements
 
 To install system wide:
 
@@ -18,7 +18,7 @@ To install in a virtual environement:
 ~$ pipenv install
 ```
 
-# Running the app
+## Running the app
 
 If you chose pipenv, you can then start the application using the following, provided you are in the same path as the main.py file.
 ```
