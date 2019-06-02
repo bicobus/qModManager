@@ -11,7 +11,7 @@ import gzip
 from codecs import getwriter
 from collections.abc import MutableMapping
 from PyQt5.QtCore import QTimer
-from .common import get_config_dir
+from .common import get_config_dir, is_windows
 log = logging.getLogger(__name__)
 
 
@@ -149,6 +149,10 @@ class Config(MutableMapping):
             log.warning("Unable to backup old settings: %s", e)
 
         try:
+            if is_windows:
+                dirname = os.path.dirname(filename)
+                if not os.path.exists(dirname):
+                    os.makedirs(os.path.dirname(filename))
             shutil.move(filename_tmp, filename)
         except IOError as e:
             log.error("Error moving new config file: %s", e)
