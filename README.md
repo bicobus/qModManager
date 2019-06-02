@@ -7,15 +7,18 @@ Simple tool to manage a set of archives.
 
 ## Requirements
 
-On a windows machine, you might need to use `python -m pip [cmd]` instead of pip. It'll depend wether or not the python binaries are present in your `%PATH%`.
+On a windows machine, you might need to use `python -m pip [cmd]` instead of pip. It'll depend whether or not the python binaries are present in your `%PATH%`.
+
+On a windows OS, you'll have to download and install the pre-compiled wheel for pylzma as the library has a C++ component to it. They are available there: https://www.lfd.uci.edu/~gohlke/pythonlibs/#pylzma
 
 To install system wide:
 
 ```
+~$ pip install name_of_wheel.whl # if your OS is windows
 ~$ pip install -r requirements.txt
 ```
 
-To install in a virtual environement:
+To install in a virtual environment:
 ```
 ~$ pipenv install
 ```
@@ -31,3 +34,7 @@ If you chose to install the dependencies system wide, you can simply start the m
 ```
 ~$ python main.py
 ```
+
+## Known issues
+
+The manager does not verify if the files to be installed already exists, it'll simply fail to install them and continue as if nothing happened.
