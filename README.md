@@ -12,7 +12,7 @@ On a windows machine, you might need to use `python -m pip [cmd]` instead of pip
 To install system wide:
 
 ```
-~$ pip -r requirements.txt
+~$ pip install -r requirements.txt
 ```
 
 To install in a virtual environement:
