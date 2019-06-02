@@ -7,6 +7,8 @@ Simple tool to manage a set of archives.
 
 ## Requirements
 
+On a windows machine, you might need to use `python -m pip [cmd]` instead of pip. It'll depend wether or not the python binaries are present in your `%PATH%`.
+
 To install system wide:
 
 ```
