@@ -114,6 +114,7 @@ class MainWindow(QWidget):
             itemDoubleClicked=self._on_list_doubleclick
         )
         self._settings_window = None
+        self._adding_files_flag = False
         layout = QVBoxLayout()
         layout.addWidget(self._fileList)
         layout.addWidget(self._initMainButtons())
@@ -181,6 +182,7 @@ class MainWindow(QWidget):
             False
         )
         widget.closeWindow()
+        self._adding_files_flag = False
 
     def _add_mod_action(self):
         settingsNotOk = areSettingsSet()
@@ -190,6 +192,9 @@ class MainWindow(QWidget):
                 informative=INFORMATIVE
             )
             return
+        if self._adding_files_flag:
+            return
+        self._adding_files_flag = True
         add_file = fileChooserWindow(callback=self._do_copy_archive)
         add_file.show()
 
