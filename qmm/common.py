@@ -21,6 +21,12 @@ def get_config_dir(filename=None):
     if not filename:
         filename = ''
 
+    try:
+        if not os.path.exists(save_config_path('qmm')):
+            os.makedirs(save_config_path('qmm'))
+    except OSError as e:
+        pass
+
     return os.path.join(save_config_path('qmm'), filename)
 
 
