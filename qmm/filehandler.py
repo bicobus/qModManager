@@ -265,7 +265,7 @@ class ArchiveManager:
         try:
             os.remove(self._file_list[file_hash].filename)
         except OSError as e:
-            log.error("Unable to remove file from drive: ", e)
+            log.error("Unable to remove file from drive: %s", e)
         finally:
             del(self._file_list[file_hash])
             del(self._files_index[file_hash])
