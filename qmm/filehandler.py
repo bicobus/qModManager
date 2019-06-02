@@ -182,6 +182,18 @@ class ArchiveHandler:
                 log.error("Something bad happened while handling the archive:\n%s", e)
                 return False
 
+    def close(self):
+        """Properly free the resource
+        """
+        try:
+            if self.filetype == "zip":
+                self._archive_object.close()
+            elif self.filetype == "7z":
+                self._archive_object._file.close()
+        except Exception:
+            log.exception("Unable to close the archive file.")
+            raise
+
     @property
     def metadata(self):
         if self._metadata:
@@ -263,6 +275,7 @@ class ArchiveManager:
             log.error("Unable to remove an unexisting file: %s", file_hash)
 
         filename = self._file_list[file_hash].filename
+        self._file_list[file_hash].close()
         del(self._file_list[file_hash])
         del(self._files_index[file_hash])
         try:
