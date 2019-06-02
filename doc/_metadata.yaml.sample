@@ -1,0 +1,12 @@
+# Lines starting with # are comments
+# YAML syntax:
+# - https://docs.ansible.com/ansible/latest/reference_appendices/YAMLSyntax.html
+# - https://pyyaml.org/wiki/PyYAMLDocumentation#yaml-syntax
+name: My Superb Mod
+author: John Doe
+description: | # use | to write mutli lines description
+  multiple lines
+  description
+category:
+  - category 1
+  - category 2
