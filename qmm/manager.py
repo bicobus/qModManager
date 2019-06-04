@@ -137,8 +137,9 @@ class MainWindow(QWidget):
                 "apply button to commit your changes. The mod will only be "
                 "installed after the apply button get clicked. The discard "
                 "button restore your mod list to its last known state.\n"
-                "The check right to your mod indicate that it is either "
-                "installed, or set to be installed."
+                "The check left of your mod indicate that it is either "
+                "installed, or set to be installed. Its absence means the "
+                "contrary."
             )
         )
         self._settings_window = None
