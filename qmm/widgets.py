@@ -110,7 +110,6 @@ class ListRowItem(QListWidgetItem):
         layout.addStretch()
         layout.setSizeConstraint(QLayout.SetFixedSize)
         self._widget.setLayout(layout)
-        self._widget.setObjectName("test_test")
         self.setSizeHint(self._widget.sizeHint())
 
     def add_to_list(self, QList):
