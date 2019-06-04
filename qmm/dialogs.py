@@ -23,6 +23,7 @@ def qInformation(message, **kwargs):
     msg = QMessageBox()
     msg.setIcon(QMessageBox.Information)
     msg.setWindowTitle("An error occured")
+    msg.setText(message)
     msg.setStandardButtons(QMessageBox.Ok)
     _do_message(msg, **kwargs)
 
