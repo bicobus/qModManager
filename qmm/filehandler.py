@@ -239,6 +239,10 @@ class ArchiveHandler:
     def hash(self, value):
         pass
 
+    @property
+    def name(self):
+        return self._metadata['name'] if self._metadata['name'] else self._metadata['filename']
+
 
 class ArchiveManager:
     """The ArchiveManager keep tracks, install and uninstall the differents

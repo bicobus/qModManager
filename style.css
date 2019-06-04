@@ -4,6 +4,35 @@ MainWindow{
     max-width: 800px;
     max-height: 600px;
 }
+
+QWidget {
+    background-color: #19191A;
+    color: #DBDCDC;
+}
+
+QWidget#topBar QLabel {
+    padding: 5px;
+    background-color: #1E1E20;
+}
+
+QWidget#topBar QPushButton#plusButton, QWidget#topBar QPushButton#minusButton {
+    padding: 0;
+}
+
+#MyList QListWidget {
+    margin-top: 5px;
+    background-color: #1E1E20;
+    selection-background-color: rgba(255, 255, 255, 50);
+}
+
+#MyList QListWidget QLabel, #MyList QListWidget QWidget { 
+    background-color: rgba(255, 255, 255, 0);
+}
+
+#HelpLabel {
+    color: #F384FF;
+}
+
 QPushButton{
 	background: #3498db;
 	color: #ffffff;
@@ -11,12 +40,13 @@ QPushButton{
     border-radius: 6px;
 }
 
-QPushButton#apply, QPushButton#discard, QPushButton#settings {
+QPushButton {
     padding: 10px 20px 10px 20px;
+    background: #3B3B3B;
 }
 
 QPushButton:hover {
-  background: #3cb0fd;
+  background: #444444;
 }
 
 QPushButton#settings {

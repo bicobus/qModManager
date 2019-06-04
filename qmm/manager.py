@@ -2,6 +2,7 @@
 # © 2019 bicobus <bicobus@keemail.me>
 import logging
 from PyQt5.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout
+from PyQt5.QtWidgets import QLabel
 from . import dialogs
 from . import widgets
 from .config import Config
@@ -11,7 +12,8 @@ logging.getLogger('PyQt5').setLevel(logging.WARNING)
 logging.basicConfig(
     level=logging.DEBUG,
     format='%(levelname)s:%(name)s:%(module)s:%(funcName)s:%(message)s',
-    filename=get_config_dir("error.log")
+    filename=get_config_dir("error.log"),
+    filemode='w'
 )
 logger = logging.getLogger(__name__)
 settings = Config(
@@ -30,6 +32,14 @@ It has to be the folder containing the game 'res' folder, <b>NOT</b> the res/mod
 INFORMATIVE = "Click on the 'settings' button on the bottom of the main window."
 
 
+def _loadStyleSheetFile(file, window):
+    try:
+        with open(file, 'r') as f:
+            window.setStyleSheet(f.read() + '\n')
+    except Exception as e:
+        logger.debug("Could not load style sheet because: %s", e)
+
+
 def areSettingsSet():
     if not settings['local_repository']:
         return LOCAL_REPO_NOT_SET
@@ -42,7 +52,8 @@ def areSettingsSet():
 class fileChooserWindow(QWidget):
     def __init__(self, callback=None):
         super().__init__()
-        self.setWindowTitle("Select an archive")
+        self.setWindowTitle("qModManager: archive selection")
+        _loadStyleSheetFile('style.css', self)
         self._fileWidget = widgets.fileChooserButton(
             label="Archive selection",
             parent=self,
@@ -68,7 +79,8 @@ class fileChooserWindow(QWidget):
 class dirChooserWindow(QWidget):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Select a directory")
+        self.setWindowTitle("qModManager: Settings")
+        _loadStyleSheetFile('style.css', self)
         self._gameFolderWidget = widgets.directoryChooserButton(
             label="Game folder",
             parent=self,
@@ -107,18 +119,33 @@ class dirChooserWindow(QWidget):
 class MainWindow(QWidget):
     def __init__(self):
         super().__init__()
-        self._loadStyleSheetFile('style.css')
+        self.setWindowTitle("qModManager")
+        _loadStyleSheetFile('style.css', self)
 
         self._fileList = widgets.CustomList(
-            label="QList",
+            label="Use the + or - button to add or remove items from the list",
             add_function=self._add_mod_action,
             remove_function=self._remove_mod_action,
             itemDoubleClicked=self._on_list_doubleclick
+        )
+        plainTextEdit = QLabel(parent=self)
+        plainTextEdit.setWordWrap(True)
+        plainTextEdit.setObjectName("HelpLabel")
+        plainTextEdit.setText(
+            (
+                "Double click an element to set it as active, then click the "
+                "apply button to commit your changes. The mod will only be "
+                "installed after the apply button get clicked. The discard "
+                "button restore your mod list to its last known state.\n"
+                "The check right to your mod indicate that it is either "
+                "installed, or set to be installed."
+            )
         )
         self._settings_window = None
         self._adding_files_flag = False
         layout = QVBoxLayout()
         layout.addWidget(self._fileList)
+        layout.addWidget(plainTextEdit)
         layout.addWidget(self._initMainButtons())
         self.setLayout(layout)
 
@@ -137,9 +164,9 @@ class MainWindow(QWidget):
             logger.debug("Could not load style sheet because: %s", e)
 
     def _initMainButtons(self):
-        self._button_apply = widgets.contructButton("Apply", self._do_button_apply)
+        self._button_apply = widgets.contructButton("Apply changes", self._do_button_apply)
         self._button_apply.setToolTip("Commits the changes you've made to the list.")
-        self._button_discard = widgets.contructButton("Discard", self._do_button_discard)
+        self._button_discard = widgets.contructButton("Discard changes", self._do_button_discard)
         self._button_discard.setToolTip("Reverts the list to the last known state.")
         self._button_settings = widgets.contructButton("Settings", self._do_button_settings)
         buttonLayout = QHBoxLayout()
@@ -153,14 +180,37 @@ class MainWindow(QWidget):
     def _do_button_apply(self):
         """Install and/or uninstalled based on the checkbox state and last known state
         """
+        installed_items, uninstalled_items = [], []
         for item in self._fileList:
             installed = self._archive_manager.get_state_by_hash(item.archive_handler.hash)
             if item.enabled:
                 if not installed:
                     self._archive_manager.install_mod(item.archive_handler.hash)
+                    installed_items.append(item.archive_handler.name)
             else:
                 if installed:
                     self._archive_manager.uninstall_mod(item.archive_handler.hash)
+                    uninstalled_items.append(item.archive_handler.name)
+
+        detail = ""
+        if installed_items:
+            message = "Your mods have properly been installed."
+            x = ", ".join(installed_items)
+            detail = f"Installed: {x}\n"
+        if uninstalled_items:
+            if installed_items:
+                message = "Your mods have successfully been installed and uninstalled."
+            else:
+                message = "Your mods have properly been uninstalled."
+            x = ", ".join(uninstalled_items)
+            detail = f"{detail}Uninstalled: {x}"
+        if not detail:
+            detail = None
+        else:
+            dialogs.qInformation(
+                message,
+                detailed=detail
+            )
 
     def _do_button_discard(self):
         """Reinitialize the list to the last known saved state.
@@ -187,6 +237,7 @@ class MainWindow(QWidget):
         )
         widget.closeWindow()
         self._adding_files_flag = False
+        dialogs.qInformation("The archive was properly installed into your list.")
 
     def _add_mod_action(self):
         settingsNotOk = areSettingsSet()

@@ -2,7 +2,6 @@
 # © 2019 bicobus <bicobus@keemail.me>
 import logging
 from . import file_from_resource_path
-from .config import Config
 from PyQt5 import uic
 from PyQt5.QtWidgets import QHBoxLayout, QWidget, QLayout, QFileDialog
 from PyQt5.QtWidgets import QSizePolicy
@@ -111,6 +110,7 @@ class ListRowItem(QListWidgetItem):
         layout.addStretch()
         layout.setSizeConstraint(QLayout.SetFixedSize)
         self._widget.setLayout(layout)
+        self._widget.setObjectName("test_test")
         self.setSizeHint(self._widget.sizeHint())
 
     def add_to_list(self, QList):
@@ -175,6 +175,9 @@ class CustomList(QWidget):
         else:
             self.plusButton.pressed.connect(self._plusFunction)
             self.minusButton.pressed.connect(self._minusFunction)
+
+        self.plusButton.setToolTip("Add an archive to your list.")
+        self.minusButton.setToolTip("Remove an archive from the list, uninstall everything if it was active.")
 
         if self.help:
             self.form.setToolTip(self.help)
