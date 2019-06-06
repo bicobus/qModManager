@@ -255,6 +255,15 @@ class MainWindow(QWidget):
         add_file.show()
 
     def _remove_mod_action(self):
+        items = self._fileList.listWidget.selectedItems()
+        if len(items) == 0:
+            return
+
+        cont = dialogs.qWarningYesNo("Do you really want to permanently remove the selected mod?")
+
+        if not cont:
+            return
+
         for item in self._fileList.listWidget.selectedItems():
             logger.info("Removal of file: %s ...", item.archive_handler.hash)
             if self._archive_manager.get_state_by_hash(item.archive_handler.hash):

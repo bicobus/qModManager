@@ -19,6 +19,16 @@ def qWarning(message, **kwargs):
     _do_message(msg, **kwargs)
 
 
+def qWarningYesNo(message, **kwargs):
+    msg = QMessageBox()
+    msg.setIcon(QMessageBox.Warning)
+    msg.setWindowTitle("Warning")
+    msg.setText(message)
+    msg.setStandardButtons(QMessageBox.Ok | QMessageBox.Cancel)
+    r = _do_message(msg, **kwargs)
+    return True if r == QMessageBox.Ok else False
+
+
 def qInformation(message, **kwargs):
     msg = QMessageBox()
     msg.setIcon(QMessageBox.Information)
@@ -34,4 +44,4 @@ def _do_message(mobject, informative=None, detailed=None):
     if detailed:
         mobject.setDetailedText(detailed)
 
-    mobject.exec_()
+    return mobject.exec_()
