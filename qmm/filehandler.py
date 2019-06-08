@@ -54,7 +54,7 @@ def _get_mod_folder(config_obj, with_file=None, has_res=False):
 
 
 class ArchiveInterface:
-    def __init__(self, filename):
+    def __init__(self, filename, config_obj):
         self.filename = filename
         if is_zipfile(filename):
             self.filetype = "zip"
@@ -63,7 +63,9 @@ class ArchiveInterface:
         else:
             raise UnrecognizedArchive("Unsupported archive: %s", filename)
 
+        self._config_obj = config_obj
         self._archive_object = None
+        self._has_res_folder = False
 
     def __exit__(self, type, value, traceback):
         self.close()
@@ -81,8 +83,31 @@ class ArchiveInterface:
             try:
                 self._archive_object = Archive7z(self._filestream)
             except ArchiveError as e:
-                log.error("Something bad happened while handling the archive:\n%s", e)
+                log.exception("Something bad happened while handling the archive:\n%s", e)
                 return False
+
+    def _check_file_exist(self, filename):
+        """Check if filename already exist in in the game mod folder.
+        """
+        return os.path.exists(os.path.join(
+            self._config_obj['game_folder'],
+            self.res_folder,
+            filename
+        ))
+
+    def _get_filename_from_member(self, member):
+        if self.filetype == "zip":
+            return member
+        elif self.filetype == "7z":
+            return member.filename
+
+    def _set_res_folder(self, member):
+        """
+        Flip the "res folder" switch. Used while extracting.
+        """
+        fname = member if self.filetype == "zip" else member.filename
+        if fname.split('/')[0] == 'res':
+            self._has_res_folder = True
 
     def namelist(self):
         """Walk through an archive and yield each member
@@ -94,18 +119,28 @@ class ArchiveInterface:
             for member in self._archive_object.getmembers():
                 yield member
 
-    def extract(self, item, destination):
+    def extract(self, member):
         """Extract one member of an archive to destination.
 
-        If item is from a Archive7z object, make sure the remote folder exists.
+        If member is from a Archive7z object, make sure the remote folder exists.
         """
-        if self.filetype == "zip":
-            self._archive_object.extract(item, destination)
-        elif self.filetype == "7z":
-            if not os.path.exists(os.path.dirname(item)):
-                os.makedirs(os.path.dirname(item))
-            with open(item, 'wb') as fp:
-                fp.write(item.read())
+        try:
+            destination = os.path.join(
+                self._config_obj['game_folder'],
+                self.res_folder
+            )
+            if self.filetype == "zip":
+                self._archive_object.extract(member, destination)
+            elif self.filetype == "7z":
+                destination = os.path.join(destination, self._get_filename_from_member(member))
+                if not os.path.exists(os.path.dirname(destination)):
+                    os.makedirs(os.path.dirname(destination))
+                with open(destination, 'wb') as fp:
+                    fp.write(member.read())
+        except IOError as e:
+            log.exception("Unable to write file to disk:\n%s", e)
+            return False
+        return True
 
     def close(self):
         """Properly free the resource
@@ -123,26 +158,23 @@ class ArchiveInterface:
             self._get_archive_object()
         return self._archive_object
 
+    @property
+    def res_folder(self):
+        return os.path.join('res', 'mods') if not self._has_res_folder else ''
+
 
 class ArchiveHandler(ArchiveInterface):
     """Handle specific archive, can unpack and return the sha256 hash"""
 
     def __init__(self, filename, config_obj):
-        super().__init__(filename)
-
-        self._config_obj = config_obj
+        super().__init__(filename, config_obj)
         self._hash = None
         self._metadata = None
 
-    def _check_file_exist(self, filename, has_res=False):
-        """Check if filename already exist in in the game mod folder.
-        """
-        return os.path.exists(_get_mod_folder(
-            config_obj=self._config_obj,
-            with_file=filename,
-            has_res=has_res))
-
     def copy_file_to_repository(self):
+        """
+        Copy an archive to the manager's repository
+        """
         if not self._config_obj['local_repository']:
             log.warning("Unable to copy archive: no local repository configured.")
             return False
@@ -179,20 +211,21 @@ class ArchiveHandler(ArchiveInterface):
 
         unpacked_files = []
         for member in self.namelist():
-            if member == '_metadata.yaml':
+            self._set_res_folder(member)
+            fname = self._get_filename_from_member(member)
+            if fname == '_metadata.yaml':
                 continue
 
-            if member.split('/')[0] == 'res':
-                has_res = True
-
-            if self._check_file_exist(member, has_res):
+            if self._check_file_exist(fname):
                 log.warning(
                     "File '%s' already exists in mod directory.",
                     member
                 )
+                # unpacked_files.append(fname)  # TODO: remove me
                 continue
-            self.extract(member, _get_mod_folder(self._config_obj, has_res=has_res))
-            unpacked_files.append(member)
+            self.extract(member)
+            unpacked_files.append(fname)
+        return unpacked_files
 
     @property
     def metadata(self):
