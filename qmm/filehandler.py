@@ -8,10 +8,15 @@ import yaml
 from io import TextIOWrapper
 from hashlib import sha256
 from zipfile import ZipFile, is_zipfile
+from collections import namedtuple
 from py7zlib import Archive7z, ArchiveError, MAGIC_7Z
 
 from .config import Config
+from .dialogs import qError
 log = logging.getLogger(__name__)
+
+
+Unpack = namedtuple('Unpack', 'file_list error')
 
 
 class UnrecognizedArchive(Exception):
@@ -210,6 +215,7 @@ class ArchiveHandler(ArchiveInterface):
             return False
 
         unpacked_files = []
+        error_list = []
         for member in self.namelist():
             self._set_res_folder(member)
             fname = self._get_filename_from_member(member)
@@ -219,13 +225,24 @@ class ArchiveHandler(ArchiveInterface):
             if self._check_file_exist(fname):
                 log.warning(
                     "File '%s' already exists in mod directory.",
-                    member
+                    fname
                 )
-                # unpacked_files.append(fname)  # TODO: remove me
+
+                lname = fname.split('/')
+                lname.remove('')
+                if (self._has_res_folder and len(lname) > 2) or not self._has_res_folder:
+                    error_list.append(fname)
+
                 continue
             self.extract(member)
             unpacked_files.append(fname)
-        return unpacked_files
+
+        if error_list:
+            detail = "Ignored files:\n\n\t{}".format("\n\t".join(error_list))
+        else:
+            detail = None
+
+        return Unpack(file_list=unpacked_files, error=detail)
 
     @property
     def metadata(self):
@@ -297,13 +314,13 @@ class ArchiveManager:
             'installed_files': []
         }
         self._file_list[file_hash] = my_file
-        # XXX: the auto-save doesn't trigger
+        # XXX: the auto-save doesn't trigger because we do not modify a first level element
         self._files_index.save()
         return file_hash
 
     def remove_file(self, file_hash):
         if file_hash not in self._files_index:
-            log.error("Unable to remove an unexisting file: %s", file_hash)
+            log.error("Unable to remove an non-existing file: %s", file_hash)
 
         filename = self._file_list[file_hash].filename
         self._file_list[file_hash].close()
@@ -320,10 +337,18 @@ class ArchiveManager:
         if file_hash not in self._files_index:
             log.error("Installation failure, hash not found: %s", file_hash)
             return
-        files = self._file_list[file_hash].unpack()
+        files, error = self._file_list[file_hash].unpack()
         self._files_index[file_hash]['installed'] = True
         self._files_index[file_hash]['installed_files'] = files
         self._files_index.save()
+
+        if error:
+            qError((
+                "One or more files could not be installed because they already "
+                "exists within the game's mods folder. They will therefore not "
+                "be managed through this mod."),
+                detailed=error
+            )
 
     def uninstall_mod(self, file_hash):
         dir_list = []
