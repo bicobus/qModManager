@@ -53,30 +53,102 @@ def _get_mod_folder(config_obj, with_file=None, has_res=False):
     return os.path.join(*path)
 
 
-class ArchiveHandler:
-    """Handle specific archive, can unpack and return the sha256 hash"""
-
-    def __init__(self, filename, config_obj):
+class ArchiveInterface:
+    def __init__(self, filename):
         self.filename = filename
-        if is_zipfile(self.filename):
+        if is_zipfile(filename):
             self.filetype = "zip"
-        elif is_7zfile(self.filename):
+        elif is_7zfile(filename):
             self.filetype = "7z"
         else:
             raise UnrecognizedArchive("Unsupported archive: %s", filename)
 
-        self.__config_obj = config_obj
-        self.__hash = None
         self._archive_object = None
+
+    def __exit__(self, type, value, traceback):
+        self.close()
+
+    def _get_archive_object(self):
+        """Initialize the file pointer and archive object
+        """
+        if self._archive_object:
+            return self._archive_object
+
+        self._filestream = open(self.filename, 'rb')
+        if self.filetype == 'zip':
+            self._archive_object = ZipFile(self._filestream)
+        elif self.filetype == '7z':
+            try:
+                self._archive_object = Archive7z(self._filestream)
+            except ArchiveError as e:
+                log.error("Something bad happened while handling the archive:\n%s", e)
+                return False
+
+    def namelist(self):
+        """Walk through an archive and yield each member
+        """
+        if self.filetype == "zip":
+            for member in self._archive_object.namelist():
+                yield member
+        elif self.filetype == "7z":
+            for member in self._archive_object.getmembers():
+                yield member
+
+    def extract(self, item, destination):
+        """Extract one member of an archive to destination.
+
+        If item is from a Archive7z object, make sure the remote folder exists.
+        """
+        if self.filetype == "zip":
+            self._archive_object.extract(item, destination)
+        elif self.filetype == "7z":
+            if not os.path.exists(os.path.dirname(item)):
+                os.makedirs(os.path.dirname(item))
+            with open(item, 'wb') as fp:
+                fp.write(item.read())
+
+    def close(self):
+        """Properly free the resource
+        """
+        try:
+            self._filestream.close()
+        except Exception:
+            log.exception("Unable to close the archive file.")
+            raise
+        self._archive_object = None
+
+    @property
+    def archive_object(self):
+        if not self._archive_object:
+            self._get_archive_object()
+        return self._archive_object
+
+
+class ArchiveHandler(ArchiveInterface):
+    """Handle specific archive, can unpack and return the sha256 hash"""
+
+    def __init__(self, filename, config_obj):
+        super().__init__(filename)
+
+        self._config_obj = config_obj
+        self._hash = None
         self._metadata = None
 
+    def _check_file_exist(self, filename, has_res=False):
+        """Check if filename already exist in in the game mod folder.
+        """
+        return os.path.exists(_get_mod_folder(
+            config_obj=self._config_obj,
+            with_file=filename,
+            has_res=has_res))
+
     def copy_file_to_repository(self):
-        if not self.__config_obj['local_repository']:
+        if not self._config_obj['local_repository']:
             log.warning("Unable to copy archive: no local repository configured.")
             return False
 
         dst_folder = os.path.join(
-            self.__config_obj['local_repository'],
+            self._config_obj['local_repository'],
             self.hash[:2]
         )
 
@@ -101,58 +173,12 @@ class ArchiveHandler:
             return True
 
     def unpack(self):
-        if not self.__config_obj['game_folder']:
+        if not self._config_obj['game_folder']:
             log.warning("Unable to unpack archive: game location is unknown.")
             return False
 
-        if self.filetype == "zip":
-            return self._unpack_zipfile()
-        elif self.filetype == "7z":
-            return self._unpack_7zfile()
-
-    def _check_file_exist(self, filename, has_res=False):
-        return os.path.exists(_get_mod_folder(
-            config_obj=self.__config_obj,
-            with_file=filename,
-            has_res=has_res))
-
-    def _unpack_7zfile(self):
         unpacked_files = []
-        try:
-            has_res = False
-            for member in self._archive_object.getmembers():
-                if member.filename == '_metadata.yaml':
-                    continue
-
-                if member.filename.split('/')[0] == 'res':
-                    has_res = True
-
-                if self._check_file_exist(member.filename, has_res):
-                    log.warning(
-                        "File '%s' already exists in mod directory.",
-                        member.filename
-                    )
-                    continue
-
-                write_to = _get_mod_folder(
-                    config_obj=self.__config_obj,
-                    with_file=member.filename,
-                    has_res=has_res)
-                if not os.path.exists(os.path.dirname(write_to)):
-                    os.makedirs(os.path.dirname(write_to))
-                with open(write_to, 'wb') as fp:
-                    fp.write(member.read())
-                unpacked_files.append(member.filename)
-        except IOError as e:
-            log.error("Unable to write file to disk:\n%s", e)
-            return False
-        else:
-            return unpacked_files
-
-    def _unpack_zipfile(self):
-        unpacked_files = []
-        has_res = False
-        for member in self._archive_object.namelist():
+        for member in self.namelist():
             if member == '_metadata.yaml':
                 continue
 
@@ -165,34 +191,8 @@ class ArchiveHandler:
                     member
                 )
                 continue
-            self._archive_object.extract(member, _get_mod_folder(self.__config_obj, has_res=has_res))
+            self.extract(member, _get_mod_folder(self._config_obj, has_res=has_res))
             unpacked_files.append(member)
-        return unpacked_files
-
-    def _get_archive_object(self):
-        if self._archive_object:
-            return self._archive_object
-
-        if self.filetype == 'zip':
-            self._archive_object = ZipFile(self.filename, 'r')
-        elif self.filetype == '7z':
-            try:
-                self._archive_object = Archive7z(open(self.filename, 'rb'))
-            except ArchiveError as e:
-                log.error("Something bad happened while handling the archive:\n%s", e)
-                return False
-
-    def close(self):
-        """Properly free the resource
-        """
-        try:
-            if self.filetype == "zip":
-                self._archive_object.close()
-            elif self.filetype == "7z":
-                self._archive_object._file.close()
-        except Exception:
-            log.exception("Unable to close the archive file.")
-            raise
 
     @property
     def metadata(self):
@@ -222,18 +222,12 @@ class ArchiveHandler:
         return self._metadata
 
     @property
-    def archive_object(self):
-        if not self._archive_object:
-            self._get_archive_object()
-        return self._archive_object
-
-    @property
     def hash(self):
-        if not self.__hash:
+        if not self._hash:
             with open(self.filename, 'rb') as fp:
                 m = sha256(fp.read())
-            self.__hash = m.hexdigest()
-        return self.__hash
+            self._hash = m.hexdigest()
+        return self._hash
 
     @hash.setter
     def hash(self, value):
