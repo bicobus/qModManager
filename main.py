@@ -6,6 +6,10 @@ from PyQt5.QtWidgets import QApplication
 from qmm.manager import MainWindow, logger
 
 if __name__ == "__main__":
+    import locale
+    # Sets locale according to $LANG variable instead of C locale
+    locale.setlocale(locale.LC_ALL, '')
+
     logger.info("Starting application")
     try:
         app = QApplication(sys.argv)

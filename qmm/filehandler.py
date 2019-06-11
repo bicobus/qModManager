@@ -9,6 +9,7 @@ from io import TextIOWrapper
 from hashlib import sha256
 from zipfile import ZipFile, is_zipfile
 from collections import namedtuple
+from time import time
 from py7zlib import Archive7z, ArchiveError, MAGIC_7Z
 
 from .config import Config
@@ -303,20 +304,26 @@ class ArchiveManager:
         """Adds a file to the repository.
         """
         my_file = ArchiveHandler(filename, self._config_obj)
+
         if my_file.hash in self._files_index:
             log.warning("Duplicate archive, ignored: %s", my_file.filename)
             return False
+
         my_file.copy_file_to_repository()
-        file_hash = my_file.hash
-        self._files_index[file_hash] = {
+
+        self._files_index[my_file.hash] = {
             'filename': my_file.filename,
             'installed': False,
-            'installed_files': []
+            'installed_files': [],
+            'file_added': time(),
+            'archive_installed': None
         }
-        self._file_list[file_hash] = my_file
+        self._file_list[my_file.hash] = my_file
+
         # XXX: the auto-save doesn't trigger because we do not modify a first level element
-        self._files_index.save()
-        return file_hash
+        self._files_index.delayed_save()
+
+        return my_file.hash
 
     def remove_file(self, file_hash):
         if file_hash not in self._files_index:
@@ -337,10 +344,14 @@ class ArchiveManager:
         if file_hash not in self._files_index:
             log.error("Installation failure, hash not found: %s", file_hash)
             return
+
         files, error = self._file_list[file_hash].unpack()
-        self._files_index[file_hash]['installed'] = True
-        self._files_index[file_hash]['installed_files'] = files
-        self._files_index.save()
+        self._files_index[file_hash].update({
+            'installed': True,
+            'installed_files': files,
+            'archive_installed': time()
+        })
+        self._files_index.delayed_save()
 
         if error:
             qError((
@@ -364,6 +375,8 @@ class ArchiveManager:
                 except OSError as e:
                     log.error("Unable to remove file %s: %s", item, e)
 
+        # NOTE: reverse put the longest string first, since we aim to remove a
+        #       directory tree, this sort should be sufficient
         dir_list.sort(reverse=True)
         for item in dir_list:
             try:
@@ -374,7 +387,8 @@ class ArchiveManager:
 
         self._files_index[file_hash].update({
             'installed': False,
-            'installed_files': []
+            'installed_files': [],
+            'archive_installed': None
         })
         self._files_index.delayed_save()
 
@@ -391,8 +405,17 @@ class ArchiveManager:
         for file_hash, file in self._file_list.items():
             yield file
 
-    def get_file(self, file_hash):
+    def get_file_by_hash(self, file_hash):
+        if file_hash not in self._file_list.keys():
+            return None
         return self._file_list[file_hash]
 
     def get_state_by_hash(self, file_hash):
+        if file_hash not in self._files_index.keys():
+            return None
         return self._files_index[file_hash]['installed']
+
+    def get_fileinfo_by_hash(self, file_hash):
+        if file_hash not in self._files_index.keys():
+            return None
+        return self._files_index[file_hash]

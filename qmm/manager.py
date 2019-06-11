@@ -151,10 +151,12 @@ class MainWindow(QWidget):
         self.setLayout(layout)
 
         self._archive_manager = filehandler.ArchiveManager(settings)
+        # Load all known archives into the list
         for item in self._archive_manager.get_files():
             self._fileList += widgets.ListRowItem(
                 item,
-                self._archive_manager.get_state_by_hash(file_hash=item.hash)
+                self._archive_manager.get_state_by_hash(file_hash=item.hash),
+                self._archive_manager.get_fileinfo_by_hash(file_hash=item.hash)
             )
 
     def _loadStyleSheetFile(self, file):
@@ -188,11 +190,14 @@ class MainWindow(QWidget):
                 if not installed:
                     self._archive_manager.install_mod(item.archive_handler.hash)
                     installed_items.append(item.archive_handler.name)
+                    item.refresh_fdata()
             else:
                 if installed:
                     self._archive_manager.uninstall_mod(item.archive_handler.hash)
                     uninstalled_items.append(item.archive_handler.name)
+                    item.refresh_fdata()
 
+        # Gui Stuff
         detail = ""
         if installed_items:
             message = "Your mods have properly been installed."
@@ -233,7 +238,7 @@ class MainWindow(QWidget):
     def _do_copy_archive(self, file, widget):
         file_hash = self._archive_manager.add_file(file)
         self._fileList += widgets.ListRowItem(
-            self._archive_manager.get_file(file_hash),
+            self._archive_manager.get_file_by_hash(file_hash),
             False
         )
         widget.closeWindow()

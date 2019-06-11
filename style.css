@@ -2,7 +2,6 @@ MainWindow{
     min-width: 600px;
     min-height: 480px;
     max-width: 800px;
-    max-height: 600px;
 }
 
 QWidget {
@@ -40,6 +39,14 @@ QWidget#topBar QPushButton#plusButton, QWidget#topBar QPushButton#minusButton {
     border-width: 2px;
     border-style: solid;
     border-color: black;
+}
+
+QWidget[cname=extra_info] QLabel {
+    font-size: 10px;
+    font-style: italic;
+    color: #F384FF;
+    padding: 0;
+    margin: 0;
 }
 
 QPushButton{

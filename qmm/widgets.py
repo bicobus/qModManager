@@ -1,24 +1,28 @@
 # Licensed under the EUPL v1.2
 # © 2019 bicobus <bicobus@keemail.me>
 import logging
+from datetime import datetime
 from . import file_from_resource_path
 from PyQt5 import uic
-from PyQt5.QtWidgets import QHBoxLayout, QWidget, QLayout, QFileDialog
-from PyQt5.QtWidgets import QSizePolicy
-from PyQt5.QtWidgets import QListWidgetItem, QCheckBox, QLabel, QPushButton
+from PyQt5 import QtWidgets
 from PyQt5.QtGui import QIcon
 logger = logging.getLogger(__name__)
 
 
 def contructButton(label=None, callback=None):
-    button = QPushButton()
+    button = QtWidgets.QPushButton()
     if label:
         button.setText(label)
         button.setObjectName(label.lower())
     if callback:
         button.clicked.connect(callback)
-    button.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
+    button.setSizePolicy(QtWidgets.QSizePolicy.Minimum,
+                         QtWidgets.QSizePolicy.Fixed)
     return button
+
+
+def timestampToString(timestamp):
+    return datetime.strftime(datetime.fromtimestamp(timestamp), "%c")
 
 
 class fileWidgetAbstract:
@@ -47,14 +51,14 @@ class fileWidgetAbstract:
         self._value = value
 
 
-class directoryChooserButton(QWidget, fileWidgetAbstract):
+class directoryChooserButton(QtWidgets.QWidget, fileWidgetAbstract):
     def __init__(self, label, parent, default, callback=None):
         super().__init__(parent=parent, label=label, callback=callback)
         if default:
             self.value = default
 
     def click(self):
-        value = QFileDialog.getExistingDirectory(
+        value = QtWidgets.QFileDialog.getExistingDirectory(
             parent=self,
             caption=self.label,
             directory=self.value
@@ -68,14 +72,14 @@ class directoryChooserButton(QWidget, fileWidgetAbstract):
         logger.debug("On selection:", file)
 
 
-class fileChooserButton(QWidget, fileWidgetAbstract):
+class fileChooserButton(QtWidgets.QWidget, fileWidgetAbstract):
     def __init__(self, label, parent, default=None, callback=None):
         super().__init__(parent=parent, label=label, callback=callback)
         if default:
             self.value = default
 
     def click(self):
-        qd = QFileDialog(self)
+        qd = QtWidgets.QFileDialog(self)
         filters = ["Archives (*.7z *.zip)"]
         qd.setNameFilters(filters)
         qd.selectNameFilter(filters[0])
@@ -90,8 +94,63 @@ class fileChooserButton(QWidget, fileWidgetAbstract):
                 self.callback(file)
 
 
-class ListRowItem(QListWidgetItem):
-    def __init__(self, archive_handler, enabled):
+class ExtraInfoLabel(QtWidgets.QWidget):
+    """Create a VBoxLayout filled with two labels
+    """
+
+    def __init__(self, parentWgt, installed, added):
+        super().__init__()
+        self.setProperty('cname', 'extra_info')
+
+        self._installedStr = None
+        self._addedStr = None
+        self._installedLabel = None
+        self._addedLabel = None
+        self.installed = installed
+        self.added = added
+
+        layout = QtWidgets.QVBoxLayout()
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(1)
+        layout.addWidget(self._installedLabel)
+        layout.addWidget(self._addedLabel)
+        self.setLayout(layout)
+
+    @property
+    def installed(self):
+        return self._installedStr
+
+    @installed.setter
+    def installed(self, value):
+        if not self._installedLabel:
+            self._installedLabel = QtWidgets.QLabel(parent=self)
+
+        self._installedStr = f"Installed to game: {value}"
+        self._installedLabel.setText(self._installedStr)
+
+    @property
+    def added(self):
+        return self._addedStr
+
+    @added.setter
+    def added(self, value):
+        if not self._addedLabel:
+            self._addedLabel = QtWidgets.QLabel(parent=self)
+
+        self._addedStr = f"Added to list: {value}"
+        self._addedLabel.setText(self._addedStr)
+
+
+class ListRowItem(QtWidgets.QListWidgetItem):
+    """Represent a managed archive to be inserted into a QtListView.
+    """
+
+    def __init__(self, archive_handler, enabled, file_data):
+        """
+        archive_handler: Must be an instance of filehandler.ArchiveHandler
+        enabled (bool): pre-tick the checkbox
+        file_data: copy of the extended information about the managed archive
+        """
         super().__init__()
         self.archive_handler = archive_handler
         if self.archive_handler.metadata['name'] == '':
@@ -99,18 +158,55 @@ class ListRowItem(QListWidgetItem):
         else:
             self._name = self.archive_handler.metadata['name']
 
-        self._widget = QWidget()
-        self._enabled = QCheckBox()
-        label = QLabel(self.name)
+        self._ref_fdata = file_data
+        self.refresh_fdata(True)
+
+        self._widget = QtWidgets.QWidget()
+        self._enabled = QtWidgets.QCheckBox()
+        label = QtWidgets.QLabel(self.name)
         self._enabled.setChecked(enabled)
-        layout = QHBoxLayout()
+        self._extraInfo = ExtraInfoLabel(
+            self,
+            installed=self.file_data['archive_installed'],
+            added=self.file_data['file_added']
+        )
+        layout = QtWidgets.QHBoxLayout()
         # add different widgets to the row
         layout.addWidget(self._enabled)
-        layout.addWidget(label)
+        layout.addWidget(label, stretch=1)
+        layout.addWidget(self._extraInfo)
         layout.addStretch()
-        layout.setSizeConstraint(QLayout.SetFixedSize)
+        # layout.setSizeConstraint(QLayout.SetFixedSize)
         self._widget.setLayout(layout)
         self.setSizeHint(self._widget.sizeHint())
+
+    def _decode_fdata(self, file_data):
+        if ('archive_installed' not in file_data.keys() or
+                not file_data['archive_installed']):
+            string = "Never"
+        else:
+            string = timestampToString(file_data['archive_installed'])
+        file_data['archive_installed'] = string
+
+        if ('file_added' not in file_data.keys() or
+                not file_data['file_added']):
+            logger.warning(
+                "'file_added' key for file %s was not set or not initialized.",
+                file_data['filename']
+            )
+            string = datetime.today()
+        else:
+            string = timestampToString(file_data['file_added'])
+
+        file_data['file_added'] = string
+
+        return file_data
+
+    def refresh_fdata(self, init=None):
+        self.file_data = self._decode_fdata(self._ref_fdata.copy())
+        if not init:
+            self._extraInfo.installed = self.file_data['archive_installed']
+            self._extraInfo.added = self.file_data['file_added']
 
     def add_to_list(self, QList):
         QList.addItem(self)
@@ -133,9 +229,9 @@ class ListRowItem(QListWidgetItem):
         self._name = value
 
 
-class CustomList(QWidget):
+class CustomList(QtWidgets.QWidget):
     def __init__(self, *args, **kwargs):
-        QWidget.__init__(self)
+        QtWidgets.QWidget.__init__(self)
 
         self._plusFunction = kwargs.get('add_function', None)
         self._minusFunction = kwargs.get('remove_function', None)
@@ -146,7 +242,8 @@ class CustomList(QWidget):
         self.init_form()
 
         self.autoscroll = kwargs.get('autoscroll', True)
-        self.itemDoubleClicked = kwargs.get('itemDoubleClicked', self.itemDoubleClicked)
+        self.itemDoubleClicked = kwargs.get(
+            'itemDoubleClicked', self.itemDoubleClicked)
 
     def __repr__(self):
         return "MyList ".format(str(self._value))
@@ -176,7 +273,9 @@ class CustomList(QWidget):
             self.minusButton.pressed.connect(self._minusFunction)
 
         self.plusButton.setToolTip("Add an archive to your list.")
-        self.minusButton.setToolTip("Remove an archive from the list, uninstall everything if it was active.")
+        self.minusButton.setToolTip((
+            "Remove an archive from the list, uninstall everything if it "
+            "was active."))
 
         if self.help:
             self.form.setToolTip(self.help)
@@ -189,7 +288,8 @@ class CustomList(QWidget):
     def __add__(self, item):
         item.add_to_list(self.listWidget)
         if self.autoscroll:
-            self.listWidget.scrollToItem(self.listWidget.item(self.listWidget.count() - 1))
+            item = self.listWidget.item(self.listWidget.count() - 1)
+            self.listWidget.scrollToItem(item)
         return self
 
     def __sub__(self, item):
