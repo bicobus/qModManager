@@ -245,9 +245,6 @@ class CustomList(QtWidgets.QWidget):
         self.itemDoubleClicked = kwargs.get(
             'itemDoubleClicked', self.itemDoubleClicked)
 
-    def __repr__(self):
-        return "MyList ".format(str(self._value))
-
     def init_form(self):
         """
         Load the control UI and initiate all the events.
