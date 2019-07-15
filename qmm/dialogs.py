@@ -1,3 +1,5 @@
+# Licensed under the EUPL v1.2
+# © 2019 bicobus <bicobus@keemail.me>
 from PyQt5.QtWidgets import QMessageBox
 
 
