@@ -4,10 +4,11 @@ import logging
 from PyQt5.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout
 from PyQt5.QtWidgets import QLabel
 from . import dialogs
+from . import settings
 from . import widgets
-from .config import Config
 from . import filehandler
 from .common import get_config_dir
+from .common import loadQtStyleSheetFile
 logging.getLogger('PyQt5').setLevel(logging.WARNING)
 logging.basicConfig(
     level=logging.DEBUG,
@@ -16,71 +17,13 @@ logging.basicConfig(
     filemode='w'
 )
 logger = logging.getLogger(__name__)
-settings = Config(
-    filename="settings.json",
-    defaults={
-        "local_repository": None,
-        "game_folder": None
-    }
-)
-LOCAL_REPO_NOT_SET = """The location of your local repository of archives is unknown.
-
-That folder will be used to store the different archives."""
-GAME_FOLDER_NOT_SET = """The location of your game folder is unknown.
-
-It has to be the folder containing the game 'res' folder, <b>NOT</b> the res/mods folder."""
-INFORMATIVE = "Click on the 'settings' button on the bottom of the main window."
-
-
-def _loadStyleSheetFile(file, window):
-    try:
-        with open(file, 'r') as f:
-            window.setStyleSheet(f.read() + '\n')
-    except Exception as e:
-        logger.debug("Could not load style sheet because: %s", e)
-
-
-def areSettingsSet():
-    if not settings['local_repository']:
-        return LOCAL_REPO_NOT_SET
-    elif not settings['game_folder']:
-        return GAME_FOLDER_NOT_SET
-    else:
-        return False
-
-
-class fileChooserWindow(QWidget):
-    def __init__(self, callback=None):
-        super().__init__()
-        self.setWindowTitle("qModManager: archive selection")
-        _loadStyleSheetFile('style.css', self)
-        self._fileWidget = widgets.fileChooserButton(
-            label="Archive selection",
-            parent=self,
-            callback=self._on_file_selected
-        )
-        layout = QVBoxLayout()
-        layout.addWidget(self._fileWidget.widgets)
-        self.setLayout(layout)
-        self._callback = callback
-
-    def _on_file_selected(self, file):
-        logger.debug("Installing mod to local repository: %s", file)
-        if self._callback:
-            self._callback(file, self)
-
-    def closeWindow(self):
-        """
-        Contrarian to its name, this method just hides the window
-        """
-        self.close()
 
 
 class dirChooserWindow(QWidget):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("qModManager: Settings")
-        _loadStyleSheetFile('style.css', self)
+        loadQtStyleSheetFile('style.css', self)
         self._gameFolderWidget = widgets.directoryChooserButton(
             label="Game folder",
             parent=self,
@@ -120,14 +63,15 @@ class MainWindow(QWidget):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("qModManager")
-        _loadStyleSheetFile('style.css', self)
+        loadQtStyleSheetFile('style.css', self)
 
+        self._archive_manager = filehandler.ArchiveManager(settings)
         self._fileList = widgets.CustomList(
-            label="Use the + or - button to add or remove items from the list",
-            add_function=self._add_mod_action,
-            remove_function=self._remove_mod_action,
-            itemDoubleClicked=self._on_list_doubleclick
+            parent=self,
+            label="Use the + or - button to add or remove items from the list"
         )
+        self._settings_window = None
+
         plainTextEdit = QLabel(parent=self)
         plainTextEdit.setWordWrap(True)
         plainTextEdit.setObjectName("HelpLabel")
@@ -142,29 +86,19 @@ class MainWindow(QWidget):
                 "contrary."
             )
         )
-        self._settings_window = None
-        self._adding_files_flag = False
         layout = QVBoxLayout()
         layout.addWidget(self._fileList)
         layout.addWidget(plainTextEdit)
         layout.addWidget(self._initMainButtons())
         self.setLayout(layout)
 
-        self._archive_manager = filehandler.ArchiveManager(settings)
         # Load all known archives into the list
         for item in self._archive_manager.get_files():
-            self._fileList += widgets.ListRowItem(
+            self._fileList.create_and_add_item(
                 item,
                 self._archive_manager.get_state_by_hash(file_hash=item.hash),
                 self._archive_manager.get_fileinfo_by_hash(file_hash=item.hash)
             )
-
-    def _loadStyleSheetFile(self, file):
-        try:
-            with open(file, 'r') as f:
-                self.setStyleSheet(f.read() + '\n')
-        except Exception as e:
-            logger.debug("Could not load style sheet because: %s", e)
 
     def _initMainButtons(self):
         self._button_apply = widgets.contructButton("Apply changes", self._do_button_apply)
@@ -185,16 +119,16 @@ class MainWindow(QWidget):
         """
         installed_items, uninstalled_items = [], []
         for item in self._fileList:
-            installed = self._archive_manager.get_state_by_hash(item.archive_handler.hash)
+            installed = self._archive_manager.get_state_by_hash(item.hash)
             if item.enabled:
                 if not installed:
-                    self._archive_manager.install_mod(item.archive_handler.hash)
-                    installed_items.append(item.archive_handler.name)
+                    self._archive_manager.install_mod(item.hash)
+                    installed_items.append(item.name)
                     item.refresh_fdata()
             else:
                 if installed:
-                    self._archive_manager.uninstall_mod(item.archive_handler.hash)
-                    uninstalled_items.append(item.archive_handler.name)
+                    self._archive_manager.uninstall_mod(item.hash)
+                    uninstalled_items.append(item.name)
                     item.refresh_fdata()
 
         # Gui Stuff
@@ -234,52 +168,3 @@ class MainWindow(QWidget):
         else:
             self._settings_window = dirChooserWindow()
             self._settings_window.show()
-
-    def _do_copy_archive(self, file, widget):
-        file_hash = self._archive_manager.add_file(file)
-        self._fileList += widgets.ListRowItem(
-            self._archive_manager.get_file_by_hash(file_hash),
-            False
-        )
-        widget.closeWindow()
-        self._adding_files_flag = False
-        dialogs.qInformation("The archive was properly installed into your list.")
-
-    def _add_mod_action(self):
-        settingsNotOk = areSettingsSet()
-        if settingsNotOk:
-            dialogs.qWarning(
-                settingsNotOk,
-                informative=INFORMATIVE
-            )
-            return
-        if self._adding_files_flag:
-            return
-        self._adding_files_flag = True
-        add_file = fileChooserWindow(callback=self._do_copy_archive)
-        add_file.show()
-
-    def _remove_mod_action(self):
-        items = self._fileList.listWidget.selectedItems()
-        if len(items) == 0:
-            return
-
-        cont = dialogs.qWarningYesNo("Do you really want to permanently remove the selected mod?")
-
-        if not cont:
-            return
-
-        for item in self._fileList.listWidget.selectedItems():
-            logger.info("Removal of file: %s ...", item.archive_handler.hash)
-            if self._archive_manager.get_state_by_hash(item.archive_handler.hash):
-                logger.info("Uninstalling file: %s ...", item.archive_handler.hash)
-                self._archive_manager.uninstall_mod(item.archive_handler.hash)
-            self._fileList -= item
-            self._archive_manager.remove_file(item.archive_handler.hash)
-            logger.info("Removal done for: %s", item.archive_handler.hash)
-
-    def _on_list_doubleclick(self, item, *args):
-        if item.enabled:
-            item.enabled = False
-        else:
-            item.enabled = True

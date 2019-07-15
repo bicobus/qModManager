@@ -71,6 +71,7 @@ class ArchiveInterface:
 
         self._config_obj = config_obj
         self._archive_object = None
+        self._filestream = None
         self._has_res_folder = False
 
     def __exit__(self, type, value, traceback):
@@ -274,10 +275,14 @@ class ArchiveHandler(ArchiveInterface):
 
     @property
     def hash(self):
+        """Returns the 256 hash of the managed archive.
+        """
         if not self._hash:
-            with open(self.filename, 'rb') as fp:
-                m = sha256(fp.read())
-            self._hash = m.hexdigest()
+            if hasattr(self._filestream, 'read'):
+                self._hash = sha256(self._filestream.read()).hexdigest()
+            else:
+                with open(self.filename, 'rb') as fp:
+                    self._hash = sha256(fp.read()).hexdigest()
         return self._hash
 
     @hash.setter
@@ -303,27 +308,27 @@ class ArchiveManager:
     def add_file(self, filename):
         """Adds a file to the repository.
         """
-        my_file = ArchiveHandler(filename, self._config_obj)
+        file_ArHandler = ArchiveHandler(filename, self._config_obj)
 
-        if my_file.hash in self._files_index:
-            log.warning("Duplicate archive, ignored: %s", my_file.filename)
+        if file_ArHandler.hash in self._files_index:
+            log.warning("Duplicate archive, ignored: %s", file_ArHandler.filename)
             return False
 
-        my_file.copy_file_to_repository()
+        file_ArHandler.copy_file_to_repository()
 
-        self._files_index[my_file.hash] = {
-            'filename': my_file.filename,
+        self._files_index[file_ArHandler.hash] = {
+            'filename': file_ArHandler.filename,
             'installed': False,
             'installed_files': [],
             'file_added': time(),
             'archive_installed': None
         }
-        self._file_list[my_file.hash] = my_file
+        self._file_list[file_ArHandler.hash] = file_ArHandler
 
         # XXX: the auto-save doesn't trigger because we do not modify a first level element
         self._files_index.delayed_save()
 
-        return my_file.hash
+        return file_ArHandler.hash
 
     def remove_file(self, file_hash):
         if file_hash not in self._files_index:

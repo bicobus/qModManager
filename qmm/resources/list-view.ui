@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>MyList</class>
- <widget class="QWidget" name="MyList">
+ <class>CustomList</class>
+ <widget class="QWidget" name="CustomList">
   <property name="enabled">
    <bool>true</bool>
   </property>
@@ -24,9 +24,6 @@
     <width>0</width>
     <height>0</height>
    </size>
-  </property>
-  <property name="windowTitle">
-   <string>Form</string>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <property name="spacing">
@@ -95,7 +92,7 @@
          </size>
         </property>
         <property name="text">
-         <string>TextLabel</string>
+         <string>Use the + or - button to add or remove items from the list</string>
         </property>
         <property name="alignment">
          <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
@@ -195,7 +192,11 @@
     </widget>
    </item>
    <item>
-    <widget class="QListWidget" name="listWidget"/>
+    <widget class="QListWidget" name="listWidget">
+     <property name="resizeMode">
+      <enum>QListView::Adjust</enum>
+     </property>
+    </widget>
    </item>
   </layout>
  </widget>

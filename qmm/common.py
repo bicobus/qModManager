@@ -2,8 +2,10 @@
 # © 2019 bicobus <bicobus@keemail.me>
 import os
 import platform
+import logging
 
 
+logger = logging.getLogger(__name__)
 is_windows = platform.system() in ('Windows', 'Microsoft')
 is_linux = platform.system() == 'Linux'
 
@@ -32,3 +34,11 @@ def get_config_dir(filename=None):
 
 def resources_directory():
     return os.path.realpath("qmm/resources/")
+
+
+def loadQtStyleSheetFile(file, window):
+    try:
+        with open(file, 'r') as f:
+            window.setStyleSheet(f.read() + '\n')
+    except Exception as e:
+        logger.debug("Could not load style sheet because: %s", e)

@@ -18,7 +18,7 @@ QWidget#topBar QPushButton#plusButton, QWidget#topBar QPushButton#minusButton {
     padding: 0;
 }
 
-#MyList QListWidget {
+#CustomList QListWidget {
     margin-top: 5px;
     background-color: #1E1E20;
     selection-background-color: rgba(255, 255, 255, 50);
@@ -27,7 +27,7 @@ QWidget#topBar QPushButton#plusButton, QWidget#topBar QPushButton#minusButton {
 }
 
 /* List elements */
-#MyList QListWidget QLabel, #MyList QListWidget QWidget { 
+#CustomList QListWidget QLabel, #CustomList QListWidget QWidget { 
     background-color: rgba(255, 255, 255, 0);
 }
 

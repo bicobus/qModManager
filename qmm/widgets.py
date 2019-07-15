@@ -2,10 +2,15 @@
 # © 2019 bicobus <bicobus@keemail.me>
 import logging
 from datetime import datetime
-from . import file_from_resource_path
+from . import file_from_resource_path, areSettingsSet, INFORMATIVE
+from . import dialogs
+from .common import loadQtStyleSheetFile
+from .ui_customlist import Ui_CustomList
 from PyQt5 import uic
 from PyQt5 import QtWidgets
 from PyQt5.QtGui import QIcon
+from PyQt5.QtCore import pyqtSlot
+
 logger = logging.getLogger(__name__)
 
 
@@ -125,7 +130,7 @@ class ExtraInfoLabel(QtWidgets.QWidget):
         if not self._installedLabel:
             self._installedLabel = QtWidgets.QLabel(parent=self)
 
-        self._installedStr = f"Installed to game: {value}"
+        self._installedStr = f"Installed on the: {value}"
         self._installedLabel.setText(self._installedStr)
 
     @property
@@ -139,6 +144,41 @@ class ExtraInfoLabel(QtWidgets.QWidget):
 
         self._addedStr = f"Added to list: {value}"
         self._addedLabel.setText(self._addedStr)
+
+
+class fileChooserWindow(QtWidgets.QWidget):
+    def __init__(self, callback=None):
+        super().__init__()
+        self.setWindowTitle("qModManager: archive selection")
+        loadQtStyleSheetFile('style.css', self)
+        self._fileWidget = fileChooserButton(
+            label="Archive selection",
+            parent=self,
+            callback=self._on_file_selected
+        )
+        layout = QtWidgets.QVBoxLayout()
+        layout.addWidget(self._fileWidget.widgets)
+        self.setLayout(layout)
+        self._callback = callback
+
+    def _on_file_selected(self, file):
+        logger.debug("Installing mod to local repository: %s", file)
+        if self._callback:
+            self._callback(file, self)
+
+    def closeWindow(self):
+        """
+        Contrarian to its name, this method just hides the window
+        """
+        self.close()
+
+    def closeEvent(self, event):
+        """
+        Tell callback that the user closed the window without doing anything
+        """
+        if self._callback:
+            self._callback(None, None)
+        super().closeEvent(event)
 
 
 class ListRowItem(QtWidgets.QListWidgetItem):
@@ -228,96 +268,124 @@ class ListRowItem(QtWidgets.QListWidgetItem):
     def name(self, value):
         self._name = value
 
+    @property
+    def hash(self):
+        """Proxy for ArchiveHandler.hash
+        returns the sha256 hash of the file.
+        """
+        return self.archive_handler.hash
+
 
 class CustomList(QtWidgets.QWidget):
-    def __init__(self, *args, **kwargs):
-        QtWidgets.QWidget.__init__(self)
+    def __init__(self, parent=None, label=None, *args, **kwargs):
+        super(CustomList, self).__init__(parent)
 
-        self._plusFunction = kwargs.get('add_function', None)
-        self._minusFunction = kwargs.get('remove_function', None)
-        self._label = kwargs.get('label', args[0] if len(args) > 0 else '')
-        self._style = kwargs.get('style', None)
-        self._value = kwargs.get('default', None)
-        self._help = kwargs.get('helptext', None)
-        self.init_form()
+        self._archive_manager = parent._archive_manager
+        self._adding_files_flag = False
+        self.ui = Ui_CustomList()
+        self.ui.setupUi(self)
 
+        self.ui.labelWidget.setText("Use the + or - button to add or remove items from the list")
         self.autoscroll = kwargs.get('autoscroll', True)
-        self.itemDoubleClicked = kwargs.get(
-            'itemDoubleClicked', self.itemDoubleClicked)
-
-    def init_form(self):
-        """
-        Load the control UI and initiate all the events.
-        """
-        uic.loadUi(file_from_resource_path("list-view.ui"), self)
-        self.label = self._label
-
-        self.listWidget.itemDoubleClicked.connect(self._listItemDoubleClicked)
-        self.listWidget.setResizeMode(self.listWidget.Adjust)
-        self.listWidget.installEventFilter(self)
-
-        if self._plusFunction is None and self._minusFunction is None:
-            self.plusButton.hide()
-            self.minusButton.hide()
-        elif self._plusFunction is None:
-            self.plusButton.hide()
-            self.minusButton.pressed.connect(self._minusFunction)
-        elif self._minusFunction is None:
-            self.minusButton.hide()
-            self.plusButton.pressed.connect(self._plusFunction)
-        else:
-            self.plusButton.pressed.connect(self._plusFunction)
-            self.minusButton.pressed.connect(self._minusFunction)
-
-        self.plusButton.setToolTip("Add an archive to your list.")
-        self.minusButton.setToolTip((
-            "Remove an archive from the list, uninstall everything if it "
-            "was active."))
-
-        if self.help:
-            self.form.setToolTip(self.help)
-        if self._style:
-            self.form.setStyleSheet(self._style)
 
     def clear(self):
-        self.listWidget.clear()
+        self.ui.listWidget.clear()
 
-    def __add__(self, item):
-        item.add_to_list(self.listWidget)
+    @pyqtSlot(bool)
+    def on_minusButton_clicked(self):
+        items = self.ui.listWidget.selectedItems()
+        if len(items) == 0:
+            return
+        else:
+            print(repr(items))
+
+        cont = dialogs.qWarningYesNo("Do you really want to permanently remove the selected mod?")
+
+        if not cont:
+            return
+
+        for item in self.ui.listWidget.selectedItems():
+            logger.info("Removal of file: %s ...", item.hash)
+            if self._archive_manager.get_state_by_hash(item.hash):
+                logger.info("Uninstalling file: %s ...", item.hash)
+                self._archive_manager.uninstall_mod(item.hash)
+            self.remove_widget_from_list(item)
+            self._archive_manager.remove_file(item.hash)
+            logger.info("Removal done for: %s", item.hash)
+
+    @pyqtSlot(bool)
+    def on_plusButton_clicked(self):
+        settingsNotOk = areSettingsSet()
+        if settingsNotOk:
+            dialogs.qWarning(
+                settingsNotOk,
+                informative=INFORMATIVE
+            )
+            return
+        if self._adding_files_flag:
+            return
+        self._adding_files_flag = True
+        add_file = fileChooserWindow(callback=self._do_copy_archive)
+        add_file.show()
+
+    @pyqtSlot(QtWidgets.QListWidgetItem)
+    def on_listWidget_itemDoubleClicked(self, item):
+        if item.enabled:
+            item.enabled = False
+        else:
+            item.enabled = True
+
+    def _do_copy_archive(self, file, widget):
+        if not file:
+            self._adding_files_flag = False
+        else:
+            file_hash = self._archive_manager.add_file(file)
+            self.create_and_add_item(
+                self._archive_manager.get_file_by_hash(file_hash),
+                False,
+                self._archive_manager.get_fileinfo_by_hash(file_hash)
+            )
+            widget.closeWindow()
+            self._adding_files_flag = False
+            dialogs.qInformation("The archive was properly installed into your list.")
+
+    def create_and_add_item(self, archive_handler, state, data):
+        item = ListRowItem(archive_handler, state, data)
+        self.add_item_to_list(item)
+
+    def add_item_to_list(self, item):
+        if not hasattr(item, 'add_to_list'):
+            logger.exception("Trying to add an item that isn't a ListRowItem")
+            return False
+
+        item.add_to_list(self.ui.listWidget)
         if self.autoscroll:
-            item = self.listWidget.item(self.listWidget.count() - 1)
-            self.listWidget.scrollToItem(item)
-        return self
+            item = self.ui.listWidget.item(self.ui.listWidget.count() - 1)
+            self.ui.listWidget.scrollToItem(item)
+        return True
 
-    def __sub__(self, item):
-        if isinstance(item, ListRowItem):
-            idx = self.listWidget.indexFromItem(item).row()
-            self.listWidget.takeItem(idx)
-        return self
+    def remove_widget_from_list(self, item):
+        if not isinstance(item, ListRowItem):
+            logger.exception("Trying to remove an invalid item from the list.")
+            return False
+
+        idx = self.ui.listWidget.indexFromItem(item).row()
+        self.ui.listWidget.takeItem(idx)
+        return True
 
     def __len__(self):
-        return self.listWidget.count()
+        return self.ui.listWidget.count()
 
     def __getitem__(self, key):
-        if len(self.listWidget) == 0 or len(self.listWidget) == key:
+        if len(self.ui.listWidget) == 0 or len(self.ui.listWidget) == key:
             raise StopIteration
-        return self.listWidget.item(key)
-
-    def _listItemDoubleClicked(self, row):
-        self.itemDoubleClicked(row)
-
-    def itemDoubleClicked(self, row):
-        pass
+        return self.ui.listWidget.item(key)
 
     def findItems(self, text):
-        for item in self:
+        for item in self.ui.listWidget:
             if item.name.find(text) != -1:
                 return item
         return False
-
-    @property
-    def form(self):
-        return self
 
     @property
     def autoscroll(self):
@@ -326,43 +394,3 @@ class CustomList(QtWidgets.QWidget):
     @autoscroll.setter
     def autoscroll(self, value):
         self._autoscroll = value
-
-    @property
-    def value(self):
-        """
-        This property returns or set what the control should manage or store.
-        """
-        if hasattr(self, 'listWidget'):
-            results = []
-            for row in range(self.listWidget.count()):
-                try:
-                    results.append(self.listWidget.item(row))
-                except Exception as e:
-                    logger.debug("Couldn't return value because: %s", e)
-                    results.append("")
-            return results
-        return self._value
-
-    @value.setter
-    def value(self, value):
-        self.clear()
-        for row in value:
-            self += row
-
-    @property
-    def help(self):
-        """
-        Returns or set the tip box of the control.
-        """
-        return self._help if self._help else ''
-
-    @property
-    def label(self):
-        return self.labelWidget.getText()
-
-    @label.setter
-    def label(self, value):
-        if value.strip() != '':
-            self.labelWidget.setText(value)
-        else:
-            self.labelWidget.hide()
