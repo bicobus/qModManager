@@ -221,7 +221,8 @@ class ArchiveHandler(ArchiveInterface):
         for member in self.namelist():
             self._set_res_folder(member)
             fname = self._get_filename_from_member(member)
-            if fname == '_metadata.yaml':
+            # This should pass all path starting with _metadata
+            if fname.startswith('_metadata'):
                 continue
 
             if self._check_file_exist(fname):
