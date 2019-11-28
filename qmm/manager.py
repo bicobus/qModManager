@@ -1,14 +1,15 @@
 # Licensed under the EUPL v1.2
 # © 2019 bicobus <bicobus@keemail.me>
+import os
 import logging
-from PyQt5.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout
-from PyQt5.QtWidgets import QLabel
-from . import dialogs
-from . import settings
-from . import widgets
-from . import filehandler
-from .common import get_config_dir
-from .common import loadQtStyleSheetFile
+from PyQt5.QtCore import pyqtSlot
+from PyQt5.QtWidgets import QMainWindow, QFileDialog
+from PyQt5 import QtGui
+from . import dialogs, widgets, filehandler
+from .ui_mainwindow import Ui_MainWindow
+from .config import get_config_dir
+from .common import dirChooserWindow, settings_are_set, settings
+
 logging.getLogger('PyQt5').setLevel(logging.WARNING)
 logging.basicConfig(
     level=logging.DEBUG,
@@ -19,101 +20,181 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-class dirChooserWindow(QWidget):
+class MainWindow(QMainWindow, Ui_MainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("qModManager: Settings")
-        loadQtStyleSheetFile('style.css', self)
-        self._gameFolderWidget = widgets.directoryChooserButton(
-            label="Game folder",
-            parent=self,
-            callback=self.on_game_selected,
-            default=settings['game_folder']
-        )
-        self._localRepositoryWidget = widgets.directoryChooserButton(
-            label="Local repository",
-            parent=self,
-            callback=self.on_repo_selected,
-            default=settings['local_repository']
-        )
-        self._doneButton = widgets.contructButton("Done", callback=self.closeWindow)
-
-        layout = QVBoxLayout()
-        layout.addWidget(self._gameFolderWidget.widgets)
-        layout.addWidget(self._localRepositoryWidget.widgets)
-        layout.addWidget(self._doneButton)
-        self.setLayout(layout)
-
-    def on_game_selected(self, file):
-        settings['game_folder'] = file
-        # settings.save()
-
-    def on_repo_selected(self, file):
-        settings['local_repository'] = file
-        # settings.save()
-
-    def closeWindow(self):
-        """
-        Contrarian to its name, this method just hides the window
-        """
-        self.hide()
-
-
-class MainWindow(QWidget):
-    def __init__(self):
-        super().__init__()
+        self.setupUi(self)
         self.setWindowTitle("qModManager")
-        loadQtStyleSheetFile('style.css', self)
+        # Will do style using QT, see TODO file
+        # loadQtStyleSheetFile('style.css', self)
 
-        self._archive_manager = filehandler.ArchiveManager(settings)
-        self._fileList = widgets.CustomList(
-            parent=self,
-            label="Use the + or - button to add or remove items from the list"
-        )
+        self._adding_files_flag = False
         self._settings_window = None
+        self._qc = {}
 
-        plainTextEdit = QLabel(parent=self)
-        plainTextEdit.setWordWrap(True)
-        plainTextEdit.setObjectName("HelpLabel")
-        plainTextEdit.setText(
-            (
-                "Double click an element to set it as active, then click the "
-                "apply button to commit your changes. The mod will only be "
-                "installed after the apply button get clicked. The discard "
-                "button restore your mod list to its last known state.\n"
-                "The check left of your mod indicate that it is either "
-                "installed, or set to be installed. Its absence means the "
-                "contrary."
-            )
+        pDialog = dialogs.qProgress(
+            parent=self, title="Computing data",
+            message="Please wait for the software to initialize it's data."
         )
-        layout = QVBoxLayout()
-        layout.addWidget(self._fileList)
-        layout.addWidget(plainTextEdit)
-        layout.addWidget(self._initMainButtons())
-        self.setLayout(layout)
+        pDialog.show()
 
-        # Load all known archives into the list
-        for item in self._archive_manager.get_files():
-            self._fileList.create_and_add_item(
-                item,
-                self._archive_manager.get_state_by_hash(file_hash=item.hash),
-                self._archive_manager.get_fileinfo_by_hash(file_hash=item.hash)
+        filehandler.build_game_files_crc32(pDialog.progress)
+        filehandler.build_loose_files_crc32(pDialog.progress)
+        self.managed_archives = filehandler.ArchivesCollection()
+        self.managed_archives.build_archives_list(pDialog.progress)
+        pDialog.done()
+
+        filehandler.detect_conflicts_between_archives(self.managed_archives)
+
+        # self.ui.listWidget
+        for archive_name in self.managed_archives.keys():
+            item = widgets.neoListRowItem(
+                filename=archive_name,
+                data=filehandler.missing_matched_mismatched(self.managed_archives[archive_name]),
+                stat=self.managed_archives._stat[archive_name],
+                hashsum=self.managed_archives._hashsums[archive_name]
             )
+            self._add_item_to_list(item)
 
-    def _initMainButtons(self):
-        self._button_apply = widgets.contructButton("Apply changes", self._do_button_apply)
-        self._button_apply.setToolTip("Commits the changes you've made to the list.")
-        self._button_discard = widgets.contructButton("Discard changes", self._do_button_discard)
-        self._button_discard.setToolTip("Reverts the list to the last known state.")
-        self._button_settings = widgets.contructButton("Settings", self._do_button_settings)
-        buttonLayout = QHBoxLayout()
-        buttonLayout.addWidget(self._button_apply)
-        buttonLayout.addWidget(self._button_discard)
-        buttonLayout.addWidget(self._button_settings)
-        buttonWidget = QWidget()
-        buttonWidget.setLayout(buttonLayout)
-        return buttonWidget
+    def _add_item_to_list(self, item):
+        self.listWidget.addItem(item)
+        # Sets the widget to be displayed in the given item .
+        # self.ui.listWidget.setItemWidget(item, item._widget)
 
+    def do_settings(self):
+        if self._settings_window:
+            self._settings_window.show()
+        else:
+            self._settings_window = dirChooserWindow()
+            self._settings_window.show()
+
+    def set_tab_color(self, index, color=None):
+        if index not in self._qc.keys():  # Cache default color
+            self._qc[index] = self.tabWidget.tabBar().tabTextColor(index)
+
+        if not color:
+            self.tabWidget.tabBar().setTabTextColor(index, self._qc[index])
+        else:
+            assert isinstance(color, QtGui.QColor), type(color)
+            self.tabWidget.tabBar().setTabTextColor(index, color)
+
+    @pyqtSlot()
+    def on_listWidget_itemSelectionChanged(self):
+        """
+        rgb(135, 33, 39) # redish
+        rgb(78, 33, 135) # blueish
+        rgb(91, 135, 33) # greenish
+        """
+        items = self.listWidget.selectedItems()
+        if len(items) == 0:
+            return
+        else:
+            item = items[0]
+        self.content_name.setText(item.name)
+        self.content_added.setText(item.added)
+        self.content_hashsum.setText(item.hashsum)
+
+        self.tab_files_content.setPlainText(item.files)
+
+        matched_idx = self.tabWidget.indexOf(self.tab_matched)
+        if item.has_matched:
+            self.set_tab_color(matched_idx, QtGui.QColor(91, 135, 33))
+        else:
+            self.set_tab_color(matched_idx)
+        self.tab_matched_content.setPlainText(item.matched)
+
+        mismatched_idx = self.tabWidget.indexOf(self.tab_mismatched)
+        if item.has_mismatched:
+            self.set_tab_color(mismatched_idx, QtGui.QColor(78, 33, 135))
+        else:
+            self.set_tab_color(mismatched_idx)
+        self.tab_mismatched_content.setPlainText(item.mismatched)
+
+        self.tab_missing_content.setPlainText(item.missing)
+
+        self.tab_skipped_content.setPlainText(item.skipped)
+
+        conflict_idx = self.tabWidget.indexOf(self.tab_conflicts)
+        if item.has_conflicts:
+            self.set_tab_color(conflict_idx, QtGui.QColor(135, 33, 39))
+        else:
+            self.set_tab_color(conflict_idx)
+        self.tab_conflicts_content.setPlainText(item.conflicts)
+
+    @pyqtSlot()
+    def on_actionOpen_triggered(self):
+        if self._adding_files_flag:  # TODO find a way to make a blocking window
+            return
+        else:
+            self._adding_files_flag = True
+
+        if not settings_are_set():
+            dialogs.qWarning(
+                "You must set your game folder location."
+            )
+            return
+
+        qfd = QFileDialog(self)
+        filters = ["Archives (*.7z *.zip, *.rar)"]
+        qfd.setNameFilters(filters)
+        qfd.selectNameFilter(filters[0])
+        qfd.fileSelected.connect(self._on_actionOpen_done)
+        qfd.exec_()
+
+    @pyqtSlot()
+    def on_actionRemove_file_triggered(self):
+        items = self.listWidget.selectedItems()
+        if len(items) == 0:
+            return
+
+        for item in items:
+            if item.key in filehandler.managed_archives.keys():
+                filehandler.delete_archive(item.key)
+
+    @pyqtSlot()
+    def on_actionInstall_Mod_triggered(self):
+        items = self.listWidget.selectedItems()
+        if len(items) == 0:
+            return
+
+        for item in items:
+            filehandler.install_archive(item.filename)
+
+    @pyqtSlot()
+    def on_actionUninstall_Mod_triggered(self):
+        pass
+
+    @pyqtSlot()
+    def on_actionSettings_triggered(self):
+        self.do_settings()
+
+    def _on_actionOpen_done(self, filename):
+        """Callback to QFileDialog once a file is selected.
+        """
+        if not filename:
+            self._adding_files_flag = False
+            return
+        hashsum = filehandler._hash(filename)
+        if not self.managed_archives.find(hashsum=hashsum):
+            archive_name = filehandler.copy_archive_to_repository(filename)
+
+            item = widgets.neoListRowItem(
+                filename=archive_name,
+                data=filehandler.missing_matched_mismatched(self.managed_archives[archive_name]),
+                stat=self.managed_archives._stat[archive_name],
+                hashsum=self.managed_archives._hashsums[archive_name]
+            )
+            self._add_item_to_list(item)
+            self._adding_files_flag = False
+            self.listWidget.scrollToItem(item)
+            return True
+        else:
+            dialogs.qWarning("The selected archive is already managed.")
+            self._adding_files_flag = False
+            return False
+
+    # TODO double click to install instead of appy
+    # TODO remove me
     def _do_button_apply(self):
         """Install and/or uninstalled based on the checkbox state and last known state
         """
@@ -151,20 +232,3 @@ class MainWindow(QWidget):
                 message,
                 detailed=detail
             )
-
-    def _do_button_discard(self):
-        """Reinitialize the list to the last known saved state.
-        """
-        for item in self._fileList:
-            installed = self._archive_manager.get_state_by_hash(item.archive_handler.hash)
-            if item.enabled and not installed:
-                item.enabled = False
-            elif not item.enabled and installed:
-                item.enabled = True
-
-    def _do_button_settings(self):
-        if self._settings_window:
-            self._settings_window.show()
-        else:
-            self._settings_window = dirChooserWindow()
-            self._settings_window.show()

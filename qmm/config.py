@@ -11,8 +11,36 @@ import gzip
 from codecs import getwriter
 from collections.abc import MutableMapping
 from PyQt5.QtCore import QTimer
-from .common import get_config_dir, is_windows
+from . import is_windows
 log = logging.getLogger(__name__)
+
+
+if is_windows:
+    def save_config_path(*resource):
+        """Similar in feature than pyxdg's save_config_path
+        """
+        appdata_path = os.environ.get('APPDATA')
+        if not appdata_path:
+            raise UserWarning("I'm on windows but APPDATA is empty.", os.environ.values())
+        assert not resource.startwith('/')
+        path = os.path.join(appdata_path, resource)
+        if not os.isdir(path):
+            os.makedirs(path, 0o700)
+        return path
+else:
+    from xdg.BaseDirectory import save_config_path
+
+
+def get_config_dir(filename=None, extraDirectories=None):
+    config_path = ['qmm']
+    if extraDirectories and isinstance(extraDirectories, list):
+        config_path.extend(extraDirectories)
+    path = save_config_path(*config_path)
+
+    if filename:
+        return os.path.join(path, filename)
+    else:
+        return path
 
 
 class Config(MutableMapping):
@@ -100,7 +128,7 @@ class Config(MutableMapping):
         log.debug("Loading information from settings file: %s", filename)
         data = self._get_data_from_file(filename)
         if data:
-            self._data.update(self._get_data_from_file(filename))
+            self._data.update(data)
 
     def delayed_save(self, msec=5000):
         if not self._save_timer:

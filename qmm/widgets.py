@@ -1,20 +1,28 @@
 # Licensed under the EUPL v1.2
 # © 2019 bicobus <bicobus@keemail.me>
 import logging
-from datetime import datetime
-from . import file_from_resource_path, areSettingsSet, INFORMATIVE
-from . import dialogs
-from .common import loadQtStyleSheetFile
-from .ui_customlist import Ui_CustomList
+from os import path
+from collections import deque
+from . import file_from_resource_path
+from .common import timestampToString
+from .filehandler import (FILE_MISSING, FILE_MATCHED, FILE_MISMATCHED,
+                          FILE_IGNORED)
+from .conflictbucket import ConflictBucket
+from .ui_detailedview import Ui_DetailedView
 from PyQt5 import uic
 from PyQt5 import QtWidgets
 from PyQt5.QtGui import QIcon
-from PyQt5.QtCore import pyqtSlot
+
+# from PyQt5.QtGui import QIcon, QPixmap
+# _detailViewButton = QtWidgets.QPushButton()
+# icon = QIcon()
+# icon.addPixmap(QPixmap(":/icons/info.svg"), QIcon.Normal, QIcon.Off)
+# _detailViewButton.setIcon(icon)
 
 logger = logging.getLogger(__name__)
 
 
-def contructButton(label=None, callback=None):
+def constructButton(label=None, callback=None):
     button = QtWidgets.QPushButton()
     if label:
         button.setText(label)
@@ -24,10 +32,6 @@ def contructButton(label=None, callback=None):
     button.setSizePolicy(QtWidgets.QSizePolicy.Minimum,
                          QtWidgets.QSizePolicy.Fixed)
     return button
-
-
-def timestampToString(timestamp):
-    return datetime.strftime(datetime.fromtimestamp(timestamp), "%c")
 
 
 class fileWidgetAbstract:
@@ -99,298 +103,251 @@ class fileChooserButton(QtWidgets.QWidget, fileWidgetAbstract):
                 self.callback(file)
 
 
-class ExtraInfoLabel(QtWidgets.QWidget):
-    """Create a VBoxLayout filled with two labels
-    """
+# widgets name:
+#  * content_name
+#  * content_author
+#  * content_version
+#  * content_url
+#  * content_description
+#  * content_tags
+#  * filetreeWidget
+class DetailedView(QtWidgets.QWidget):
+    def __init__(self, parent=None):
+        super(DetailedView, self).__init__(parent)
+        self.ui = Ui_DetailedView()
+        self.ui.setupUi(self)
+        self.ui.button_hide.hide()
+        self.ui.filetreeWidget.hide()
 
-    def __init__(self, parentWgt, installed, added):
-        super().__init__()
-        self.setProperty('cname', 'extra_info')
-
-        self._installedStr = None
-        self._addedStr = None
-        self._installedLabel = None
-        self._addedLabel = None
-        self.installed = installed
-        self.added = added
-
-        layout = QtWidgets.QVBoxLayout()
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(1)
-        layout.addWidget(self._installedLabel)
-        layout.addWidget(self._addedLabel)
-        self.setLayout(layout)
-
-    @property
-    def installed(self):
-        return self._installedStr
-
-    @installed.setter
-    def installed(self, value):
-        if not self._installedLabel:
-            self._installedLabel = QtWidgets.QLabel(parent=self)
-
-        self._installedStr = f"Installed on the: {value}"
-        self._installedLabel.setText(self._installedStr)
-
-    @property
-    def added(self):
-        return self._addedStr
-
-    @added.setter
-    def added(self, value):
-        if not self._addedLabel:
-            self._addedLabel = QtWidgets.QLabel(parent=self)
-
-        self._addedStr = f"Added to list: {value}"
-        self._addedLabel.setText(self._addedStr)
-
-
-class fileChooserWindow(QtWidgets.QWidget):
-    def __init__(self, callback=None):
-        super().__init__()
-        self.setWindowTitle("qModManager: archive selection")
-        loadQtStyleSheetFile('style.css', self)
-        self._fileWidget = fileChooserButton(
-            label="Archive selection",
-            parent=self,
-            callback=self._on_file_selected
+    def prepare_directoryList(self, directories):
+        """Returns a dict of lists of files indexed on a tuple of directories.
+        Example: dict(
+         ('res/TheShyGuy995/', 'weapons', 'Fire Emblem'): ['/Sheathed Sword.svg', '/Sword.xml']
         )
-        layout = QtWidgets.QVBoxLayout()
-        layout.addWidget(self._fileWidget.widgets)
-        self.setLayout(layout)
-        self._callback = callback
-
-    def _on_file_selected(self, file):
-        logger.debug("Installing mod to local repository: %s", file)
-        if self._callback:
-            self._callback(file, self)
-
-    def closeWindow(self):
         """
-        Contrarian to its name, this method just hides the window
-        """
-        self.close()
+        dlist = list()
+        for file in directories:
+            dirname, filename = path.split(file)
+            if dirname not in dlist and "/" in dirname:
+                dlist.append(dirname)
+
+        prefix = path.commonpath(dlist)
+        if "/" in prefix:
+            prefix = prefix.split("/")
+
+        ddir = dict()
+        for dirname in dlist:
+            sdir = dirname.split('/')
+            if isinstance(prefix, list):
+                for p in prefix:
+                    sdir.remove(p)
+            else:
+                sdir.remove(prefix)
+            dir_str = "/".join(sdir)
+
+            for ofile in directories:
+                if dir_str in ofile:
+                    start, tmp, cfile = ofile.partition(dir_str)
+                    path_to_file = tmp.split("/")
+                    pfile = list()
+                    pfile.append(start)
+                    pfile.extend(path_to_file)
+                    pfile = tuple(pfile)
+                    if pfile not in ddir.keys():
+                        ddir[pfile] = deque()
+                    ddir[pfile].append(cfile)
+
+        return ddir
+
+    def build_dirlist(self, pathAndFiles):
+        dir_map = dict()
+        for directories, files in pathAndFiles.items():
+            for directory in directories:
+                if directory not in dir_map.keys():
+                    index = directories.index(directory)
+                    if index > 0:
+                        previous = directories[index - 1]
+                    else:
+                        previous = self.ui.filetreeWidget
+
+                dir_map[directory] = QtWidgets.QTreeWidgetItem(previous, directory)
+
+            for file in files:
+                dir_map[directory].addChild(QtWidgets.QTreeWidgetItem(None, file.strip('/')))
 
     def closeEvent(self, event):
+        """Ignore the close event and hide the widget instead
+
+        If the window gets closed, Qt will prune its data and renders it
+        unavailable for further usage.
         """
-        Tell callback that the user closed the window without doing anything
-        """
-        if self._callback:
-            self._callback(None, None)
-        super().closeEvent(event)
+        self.hide()
+        event.ignore()
 
 
-class ListRowItem(QtWidgets.QListWidgetItem):
-    """Represent a managed archive to be inserted into a QtListView.
+class neoListRowItem(QtWidgets.QListWidgetItem):
+    """ListWidgetItem representing one single archive.
+    Needs to retrieve metadata and provide a facility to access it.
     """
 
-    def __init__(self, archive_handler, enabled, file_data):
-        """
-        archive_handler: Must be an instance of filehandler.ArchiveHandler
-        enabled (bool): pre-tick the checkbox
-        file_data: copy of the extended information about the managed archive
-        """
+    def __init__(self, filename, data, stat, hashsum):
         super().__init__()
-        self.archive_handler = archive_handler
-        if self.archive_handler.metadata['name'] == '':
-            self._name = self.archive_handler.metadata['filename']
-        else:
-            self._name = self.archive_handler.metadata['name']
+        self._key = path.basename(filename)
+        self._data = data
+        self._stat = stat
+        self._name = None
+        self._added = None
+        self._hashsum = hashsum
 
-        self._ref_fdata = file_data
-        self.refresh_fdata(True)
+        self._matched = []
+        self._matched_str = None
+        self._missing = []
+        self._missing_str = None
+        self._mismatched = []
+        self._mismatched_str = None
+        self._ignored = []
+        self._ignored_str = None
+        self._conflicts = {}
+        self._conflicts_str = None
 
-        self._widget = QtWidgets.QWidget()
-        self._enabled = QtWidgets.QCheckBox()
-        label = QtWidgets.QLabel(self.name)
-        self._enabled.setChecked(enabled)
-        self._extraInfo = ExtraInfoLabel(
-            self,
-            installed=self.file_data['archive_installed'],
-            added=self.file_data['file_added']
-        )
-        layout = QtWidgets.QHBoxLayout()
-        # add different widgets to the row
-        layout.addWidget(self._enabled)
-        layout.addWidget(label, stretch=1)
-        layout.addWidget(self._extraInfo)
-        layout.addStretch()
-        # layout.setSizeConstraint(QLayout.SetFixedSize)
-        self._widget.setLayout(layout)
-        self.setSizeHint(self._widget.sizeHint())
-
-    def _decode_fdata(self, file_data):
-        if ('archive_installed' not in file_data.keys() or
-                not file_data['archive_installed']):
-            string = "Never"
-        else:
-            string = timestampToString(file_data['archive_installed'])
-        file_data['archive_installed'] = string
-
-        if ('file_added' not in file_data.keys() or
-                not file_data['file_added']):
-            logger.warning(
-                "'file_added' key for file %s was not set or not initialized.",
-                file_data['filename']
-            )
-            string = datetime.today()
-        else:
-            string = timestampToString(file_data['file_added'])
-
-        file_data['file_added'] = string
-
-        return file_data
-
-    def refresh_fdata(self, init=None):
-        self.file_data = self._decode_fdata(self._ref_fdata.copy())
-        if not init:
-            self._extraInfo.installed = self.file_data['archive_installed']
-            self._extraInfo.added = self.file_data['file_added']
-
-    def add_to_list(self, QList):
-        QList.addItem(self)
-        QList.setItemWidget(self, self._widget)
-
-    @property
-    def enabled(self):
-        return self._enabled.isChecked()
-
-    @enabled.setter
-    def enabled(self, enabled=False):
-        return self._enabled.setChecked(enabled)
+        self.setText(self.filename)
 
     @property
     def name(self):
+        if not self._name:
+            self._name = self._key.replace('_', ' ')
         return self._name
 
-    @name.setter
-    def name(self, value):
-        self._name = value
+    @property
+    def filename(self):
+        return self._key
 
     @property
-    def hash(self):
-        """Proxy for ArchiveHandler.hash
-        returns the sha256 hash of the file.
-        """
-        return self.archive_handler.hash
+    def added(self):
+        if not self._added:
+            self._added = timestampToString(self._stat.st_mtime)
+        return self._added
 
+    @property
+    def hashsum(self):
+        if self._hashsum:
+            return self._hashsum
+        return ""
 
-class CustomList(QtWidgets.QWidget):
-    def __init__(self, parent=None, label=None, *args, **kwargs):
-        super(CustomList, self).__init__(parent)
+    @property
+    def files(self):
+        top = []
+        strings = ["== Archive's content:\n"]
+        for item, status in self._data:
+            if status == FILE_MATCHED:
+                self._matched.append(item)
+            elif status == FILE_MISMATCHED:
+                self._mismatched.append(item)
+            elif status == FILE_MISSING:
+                self._missing.append(item)
+            elif status == FILE_IGNORED:
+                self._ignored.append(item)
+            else:
+                top.append("ERR: Following file has unknown status")
 
-        self._archive_manager = parent._archive_manager
-        self._adding_files_flag = False
-        self.ui = Ui_CustomList()
-        self.ui.setupUi(self)
+            c = []
+            if item.Path in ConflictBucket().conflicts.keys():
+                c.extend(ConflictBucket().conflicts[item.Path])
+            if item.CRC in ConflictBucket().looseconflicts.keys():
+                c.extend(ConflictBucket().looseconflicts[item.CRC])
+            if (item.Path in ConflictBucket().gamefiles.values()
+                    or item.CRC in ConflictBucket().gamefiles.keys()):
+                c.append(ConflictBucket().gamefiles[item.CRC])
+            if c:
+                self._conflicts[item.Path] = c
+            if 'D' not in item.Attributes:
+                strings.append(f"   - {item.Path}\n")
 
-        self.ui.labelWidget.setText("Use the + or - button to add or remove items from the list")
-        self.autoscroll = kwargs.get('autoscroll', True)
+        rstr = ""
+        if top:
+            rstr = "".join(top) + "\n\n"
+        rstr += "".join(strings)
 
-    def clear(self):
-        self.ui.listWidget.clear()
+        return rstr
 
-    @pyqtSlot(bool)
-    def on_minusButton_clicked(self):
-        items = self.ui.listWidget.selectedItems()
-        if len(items) == 0:
-            return
-        else:
-            print(repr(items))
+    @property
+    def matched(self):
+        if not self._matched_str:
+            self._matched_str = self._format(
+                title="Files installed",
+                items=self._matched)
+        return self._matched_str
 
-        cont = dialogs.qWarningYesNo("Do you really want to permanently remove the selected mod?")
-
-        if not cont:
-            return
-
-        for item in self.ui.listWidget.selectedItems():
-            logger.info("Removal of file: %s ...", item.hash)
-            if self._archive_manager.get_state_by_hash(item.hash):
-                logger.info("Uninstalling file: %s ...", item.hash)
-                self._archive_manager.uninstall_mod(item.hash)
-            self.remove_widget_from_list(item)
-            self._archive_manager.remove_file(item.hash)
-            logger.info("Removal done for: %s", item.hash)
-
-    @pyqtSlot(bool)
-    def on_plusButton_clicked(self):
-        settingsNotOk = areSettingsSet()
-        if settingsNotOk:
-            dialogs.qWarning(
-                settingsNotOk,
-                informative=INFORMATIVE
-            )
-            return
-        if self._adding_files_flag:
-            return
-        self._adding_files_flag = True
-        add_file = fileChooserWindow(callback=self._do_copy_archive)
-        add_file.show()
-
-    @pyqtSlot(QtWidgets.QListWidgetItem)
-    def on_listWidget_itemDoubleClicked(self, item):
-        if item.enabled:
-            item.enabled = False
-        else:
-            item.enabled = True
-
-    def _do_copy_archive(self, file, widget):
-        if not file:
-            self._adding_files_flag = False
-        else:
-            file_hash = self._archive_manager.add_file(file)
-            self.create_and_add_item(
-                self._archive_manager.get_file_by_hash(file_hash),
-                False,
-                self._archive_manager.get_fileinfo_by_hash(file_hash)
-            )
-            widget.closeWindow()
-            self._adding_files_flag = False
-            dialogs.qInformation("The archive was properly installed into your list.")
-
-    def create_and_add_item(self, archive_handler, state, data):
-        item = ListRowItem(archive_handler, state, data)
-        self.add_item_to_list(item)
-
-    def add_item_to_list(self, item):
-        if not hasattr(item, 'add_to_list'):
-            logger.exception("Trying to add an item that isn't a ListRowItem")
-            return False
-
-        item.add_to_list(self.ui.listWidget)
-        if self.autoscroll:
-            item = self.ui.listWidget.item(self.ui.listWidget.count() - 1)
-            self.ui.listWidget.scrollToItem(item)
-        return True
-
-    def remove_widget_from_list(self, item):
-        if not isinstance(item, ListRowItem):
-            logger.exception("Trying to remove an invalid item from the list.")
-            return False
-
-        idx = self.ui.listWidget.indexFromItem(item).row()
-        self.ui.listWidget.takeItem(idx)
-        return True
-
-    def __len__(self):
-        return self.ui.listWidget.count()
-
-    def __getitem__(self, key):
-        if len(self.ui.listWidget) == 0 or len(self.ui.listWidget) == key:
-            raise StopIteration
-        return self.ui.listWidget.item(key)
-
-    def findItems(self, text):
-        for item in self.ui.listWidget:
-            if item.name.find(text) != -1:
-                return item
+    @property
+    def has_matched(self):
+        if self._matched:
+            return True
         return False
 
     @property
-    def autoscroll(self):
-        return self._autoscroll
+    def missing(self):
+        if not self._missing_str:
+            self._missing_str = self._format(
+                title="Missing from the game folder",
+                items=self._missing)
+        return self._missing_str
 
-    @autoscroll.setter
-    def autoscroll(self, value):
-        self._autoscroll = value
+    @property
+    def has_missing(self):
+        if self._missing:
+            return True
+        return False
+
+    @property
+    def mismatched(self):
+        if not self._mismatched_str:
+            self._mismatched_str = self._format(
+                title="Same name and different CRC or same CRC with different names",
+                items=self._mismatched)
+        return self._mismatched_str
+
+    @property
+    def has_mismatched(self):
+        if self._mismatched:
+            return True
+        return False
+
+    @property
+    def conflicts(self):
+        if not self._conflicts_str:
+            strings = [f"== Conflicting files between archives:\n"]
+            for filepath, archives in self._conflicts.items():
+                strings.append(f"  - {filepath}\n        -> ")
+                strings.append("\n        -> ".join(archives) + "\n")
+            self._conflicts_str = "".join(strings)
+        return self._conflicts_str
+
+    @property
+    def has_conflicts(self):
+        if self._conflicts:
+            return True
+        return False
+
+    @property
+    def skipped(self):
+        if not self._ignored_str:
+            self._ignored_str = self._format(
+                title="Files present in the archive but ignored",
+                items=self._ignored)
+        return self._ignored_str
+
+    @property
+    def has_skipped(self):
+        if self._ignored:
+            return True
+        return False
+
+    def _format(self, title, items):
+        strings = [f"== {title}:\n"]
+        for item in items:
+            if 'D' in item.Attributes:
+                continue
+            crc = hex(item.CRC)
+            strings.append(f"  - {item.Path} ({crc})\n")
+        strings.append("\n")
+        return "".join(strings)

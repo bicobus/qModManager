@@ -3,425 +3,489 @@
 import os
 import logging
 import shutil
-import yaml
+import subprocess
+import re
+import pathlib
 
-from io import TextIOWrapper
+from zlib import crc32
 from hashlib import sha256
-from zipfile import ZipFile, is_zipfile
 from collections import namedtuple
-from time import time
-from py7zlib import Archive7z, ArchiveError, MAGIC_7Z
+from collections import MutableMapping
+from tempfile import TemporaryDirectory
 
-from .config import Config
-from .dialogs import qError
+from . import is_windows
+from .common import tools_path, settings, settings_are_set
+from .conflictbucket import ConflictBucket
 log = logging.getLogger(__name__)
 
+# this shit: https://docs.microsoft.com/en-us/windows/win32/api/processthreadsapi/ns-processthreadsapi-startupinfoa
+# Internet wisdom tells me STARTF_USESHOWWINDOW is used to hide the would be console
+startupinfo = None
+if is_windows:
+    startupinfo = subprocess.STARTUPINFO()
+    startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+    pathObject = pathlib.PureWindowsPath
+else:
+    pathObject = pathlib.PurePosixPath
 
-Unpack = namedtuple('Unpack', 'file_list error')
+# Mods directory structure
+first_level_dir = ('items', 'outfits')
+second_level_dir = ('weapons', 'clothing', 'tattoos')
+# --
+reListMatch = re.compile(
+    r"""^(Path|Modified|Attributes|CRC)\s=\s(.*)$""").match
+reExtractMatch = re.compile(r'- (.+)$').match
+reErrorMatch = re.compile(r"""^(
+    Error:.+|
+    .+\s{5}Data\sError?|
+    Sub\sitems\sErrors:.+
+)""", re.X | re.I).match
+
+UnpackList = namedtuple('UnpackList', 'file_list error')
+FileMetadata = namedtuple('FileMetadata', 'Path Attributes CRC Modified')
+ArchiveStruct = namedtuple(
+    'ArchiveStruct', 'valid mismatched missing conflict ignored')
 
 
-class UnrecognizedArchive(Exception):
-    pass
+class ArchiveException(Exception):
+    def __init__(self, message):
+        self.message = message
 
 
-def _check_7zfile(fp):
-    try:
-        if fp.read(len(MAGIC_7Z)) == MAGIC_7Z:
-            return True
-    except OSError:
-        pass
-    return False
+class UnrecognizedArchive(ArchiveException):
+    def __init__(self, message=None):
+        super().__init__(message)
 
 
-def is_7zfile(filename):
-    """Check the magic number of a file and ensure it is a 7z archive.
+def ignore_patterns(sevenFlag=False):
+    if sevenFlag:
+        return ('-xr!*.DS_Store', '-x!__MACOSX', '-xr!*Thumbs.db')
+    else:
+        return ('.DS_Store', '__MACOSX', 'Thumbs.db')
 
-    The filename argument can be an IO stream or a string
+
+def extract7z(file_archive, outputpath, progress=None):
+    filepath = os.path.abspath(file_archive)
+    outputpath = os.path.abspath(outputpath)
+    cmd = [
+        tools_path(
+        ), 'x', f'{filepath}', f'-o{outputpath}', '-ba', '-bb1', '-y',
+        '-scsUTF-8', '-sccUTF-8'
+    ]
+    cmd.extend(ignore_patterns(True))
+
+    proc = subprocess.Popen(
+        cmd, startupinfo=startupinfo, stdout=subprocess.PIPE,
+        stdin=subprocess.PIPE, stderr=subprocess.STDOUT)
+
+    fList = []
+    errstring = ""
+    with proc.stdout as out:
+        for line in iter(out.readline, b''):
+            line = line.decode('utf-8')
+
+            err = reErrorMatch(line)
+            if err:
+                errstring = line + b''.join(out).decode("utf-8")
+                break
+
+            extract = reExtractMatch(line)
+            if extract:
+                path = extract.group(1).strip()
+                fList.append(FileMetadata(Attributes=None, Path=path,
+                                          CRC=None, Modified=None))
+                if progress:
+                    progress(f'Extracting {path}...')
+
+    returncode = proc.wait()
+    if returncode != 0 or errstring:
+        raise ArchiveException((
+            f"{filepath}: Extraction failed with error code {returncode} "
+            f"and message:\n{errstring}"))
+
+    return fList
+
+
+def list7z(filepath, progress=None):
+    filepath = os.path.abspath(filepath)
+
+    if progress:
+        progress(f'Processing {filepath}...')
+
+    cmd = [
+        tools_path(
+        ), 'l', f'{filepath}', '-ba', '-scsUTF-8', '-sccUTF-8', '-slt'
+    ]
+
+    proc = subprocess.Popen(
+        cmd, startupinfo=startupinfo, stdout=subprocess.PIPE,
+        stdin=subprocess.PIPE, stderr=subprocess.STDOUT)
+
+    fList = []
+    model = {
+        'Path': None,
+        'Modified': None,
+        'Attributes': None,
+        'CRC': None
+    }
+    errstring = ""
+    with proc.stdout as out:
+        for line in iter(out.readline, b''):
+            line = line.decode('utf-8')
+
+            errData = reErrorMatch(line)
+            if errData:
+                errstring = line + b''.join(out).decode('utf-8')
+                break
+
+            fileData = reListMatch(line)
+            if fileData:
+                fdg = fileData.group(1).strip()
+                if fdg == 'Path':
+                    tmpData = model.copy()
+                if fdg in ('Path', 'Modified', 'Attributes', 'CRC'):
+                    tmpData[fdg] = fileData.group(2).strip()
+                if fdg == 'CRC':
+                    if 'D' not in tmpData['Attributes']:
+                        tmpData[fdg] = int(tmpData[fdg], 16)
+                    fList.append(FileMetadata(**tmpData))
+
+    returncode = proc.wait()
+    if returncode != 0 or errstring:
+        raise ArchiveException((
+            f"{filepath}: listing failed with error code {returncode} "
+            f"and message:\n{errstring}"))
+
+    return fList
+
+
+def _sha256hash(filename):
+    """Returns the 256 hash of the managed archive.
     """
-    result = False
     try:
-        if hasattr(filename, "read"):
-            result = _check_7zfile(fp=filename)
+        if hasattr(filename, 'read'):
+            result = sha256(filename.read).hexdigest()
         else:
-            with open(filename, "rb") as fp:
-                result = _check_7zfile(fp)
+            with open(filename, 'rb') as fp:
+                result = sha256(fp.read()).hexdigest()
     except OSError:
         pass
+
     return result
 
 
-def _get_mod_folder(config_obj, with_file=None, has_res=False):
-    path = [config_obj['game_folder']]
-    if not has_res:
-        path.extend(['res', 'mods'])
+class ArchivesCollection(MutableMapping):
+    def __init__(self):
+        super().__init__()
+        self._data = {}
+        self._hashsums = {}
+        self._stat = {}
+
+    def build_archives_list(self, progress, rebuild=False):
+        if not settings_are_set:
+            return False
+
+        if len(self._data) > 0 and not rebuild:
+            return False
+
+        patterns = ['rar', 'zip', '7z']
+        with os.scandir(settings['local_repository']) as it:
+            for entry in it:
+                if entry.is_file() and any(entry.name.endswith(x) for x in patterns):
+                    filename = os.path.join(
+                        settings['local_repository'], entry.name)
+                    self[entry.name] = list7z(filename, progress=progress)
+                    self._stat[entry.name] = pathlib.Path(
+                        pathObject(filename)).stat()
+                    self._hashsums[entry.name] = _sha256hash(filename)
+
+    def find(self, archiveName=None, hashsum=None):
+        if archiveName and archiveName in self._data.keys():
+            return self._data[archiveName]
+        if hashsum and hashsum in self._hashsums:
+            for key, item in self._hashsums:
+                if item == hashsum:
+                    return self._hashsums[key]
+        return False
+
+    def __len__(self):
+        return len(self._data)
+
+    def __iter__(self):
+        return iter(self._data)
+
+    def __getitem__(self, key):
+        return self._data[key]
+
+    def __setitem__(self, key, value):
+        if key not in self._data or self._data[key] != value:
+            assert isinstance(value, list), type(value)
+            assert all(isinstance(x, FileMetadata) for x in value)
+            self._data[key] = value
+
+    def __delitem__(self, key):
+        del(self._data[key])
+
+
+def _ignored_part_in_path(path):
+    for item in path:
+        if item in ignore_patterns():
+            return True
+    return False
+
+
+def _get_mod_folder(with_file=None, force_build=False):
+    path = [settings['game_folder']]
+    mods_path = ['res', 'mods']
     if with_file:
+        # XXX Removes the check, res/mods is supposed to not be present
+        if with_file.split('/')[0] != 'res':
+            path.extend(mods_path)
         path.append(with_file)
+    elif force_build:
+        path.extend(mods_path)
     return os.path.join(*path)
 
 
-class ArchiveInterface:
-    def __init__(self, filename, config_obj):
-        self.filename = filename
-        if is_zipfile(filename):
-            self.filetype = "zip"
-        elif is_7zfile(filename):
-            self.filetype = "7z"
-        else:
-            raise UnrecognizedArchive("Unsupported archive: %s", filename)
+def _compute_files_crc32(folder, partition=('res', 'mods')):
+    for root, dirs, files in os.walk(folder):
+        if len(files) == 0:
+            continue
+        # We want to build a path that is similar to the one present in an
+        # archive. To do so we need to remove anything that is before, and
+        # including the "partition" folder.
+        path = root.partition(os.path.join(*partition) + os.path.sep)[2]
 
-        self._config_obj = config_obj
-        self._archive_object = None
-        self._filestream = None
-        self._has_res_folder = False
-
-    def __exit__(self, type, value, traceback):
-        self.close()
-
-    def _get_archive_object(self):
-        """Initialize the file pointer and archive object
-        """
-        if self._archive_object:
-            return self._archive_object
-
-        self._filestream = open(self.filename, 'rb')
-        if self.filetype == 'zip':
-            self._archive_object = ZipFile(self._filestream)
-        elif self.filetype == '7z':
-            try:
-                self._archive_object = Archive7z(self._filestream)
-            except ArchiveError as e:
-                log.exception("Something bad happened while handling the archive:\n%s", e)
-                return False
-
-    def _check_file_exist(self, filename):
-        """Check if filename already exist in in the game mod folder.
-        """
-        return os.path.exists(os.path.join(
-            self._config_obj['game_folder'],
-            self.res_folder,
-            filename
-        ))
-
-    def _get_filename_from_member(self, member):
-        if self.filetype == "zip":
-            return member
-        elif self.filetype == "7z":
-            return member.filename
-
-    def _set_res_folder(self, member):
-        """
-        Flip the "res folder" switch. Used while extracting.
-        """
-        fname = member if self.filetype == "zip" else member.filename
-        if fname.split('/')[0] == 'res':
-            self._has_res_folder = True
-
-    def namelist(self):
-        """Walk through an archive and yield each member
-        """
-        if self.filetype == "zip":
-            for member in self._archive_object.namelist():
-                yield member
-        elif self.filetype == "7z":
-            for member in self._archive_object.getmembers():
-                yield member
-
-    def extract(self, member):
-        """Extract one member of an archive to destination.
-
-        If member is from a Archive7z object, make sure the remote folder exists.
-        """
-        try:
-            destination = os.path.join(
-                self._config_obj['game_folder'],
-                self.res_folder
-            )
-            if self.filetype == "zip":
-                self._archive_object.extract(member, destination)
-            elif self.filetype == "7z":
-                destination = os.path.join(destination, self._get_filename_from_member(member))
-                if not os.path.exists(os.path.dirname(destination)):
-                    os.makedirs(os.path.dirname(destination))
-                with open(destination, 'wb') as fp:
-                    fp.write(member.read())
-        except IOError as e:
-            log.exception("Unable to write file to disk:\n%s", e)
-            return False
-        return True
-
-    def close(self):
-        """Properly free the resource
-        """
-        try:
-            self._filestream.close()
-        except Exception:
-            log.exception("Unable to close the archive file.")
-            raise
-        self._archive_object = None
-
-    @property
-    def archive_object(self):
-        if not self._archive_object:
-            self._get_archive_object()
-        return self._archive_object
-
-    @property
-    def res_folder(self):
-        return os.path.join('res', 'mods') if not self._has_res_folder else ''
+        for file in files:
+            key = pathObject(os.path.join(path, file)).as_posix()
+            with open(os.path.join(root, file), 'rb') as fp:
+                yield (key, crc32(fp.read()))
 
 
-class ArchiveHandler(ArchiveInterface):
-    """Handle specific archive, can unpack and return the sha256 hash"""
+# The paths returned by this function are non-existent due to a difference
+# between the mods and the game folder structure.
+def build_game_files_crc32(progress=None):
+    target_folder = os.path.join(settings['game_folder'], 'res')
+    scan_theses = ('clothing', 'outfits', 'tattoos', 'weapons')
 
-    def __init__(self, filename, config_obj):
-        super().__init__(filename, config_obj)
-        self._hash = None
-        self._metadata = None
-
-    def copy_file_to_repository(self):
-        """
-        Copy an archive to the manager's repository
-        """
-        if not self._config_obj['local_repository']:
-            log.warning("Unable to copy archive: no local repository configured.")
-            return False
-
-        dst_folder = os.path.join(
-            self._config_obj['local_repository'],
-            self.hash[:2]
-        )
-
-        new_filename = os.path.join(
-            dst_folder,
-            os.path.basename(self.filename)
-        )
-
-        if os.path.exists(new_filename):
-            log.error("Unable to copy archive, a file with a similar name already exists.")
-            return False
-
-        try:
-            if not os.path.exists(dst_folder):
-                os.makedirs(dst_folder)
-            shutil.copy(self.filename, dst_folder)
-        except IOError as e:
-            log.error("Error copying archive: %s", e)
-            return False
-        else:
-            self.filename = new_filename
-            return True
-
-    def unpack(self):
-        if not self._config_obj['game_folder']:
-            log.warning("Unable to unpack archive: game location is unknown.")
-            return False
-
-        unpacked_files = []
-        error_list = []
-        for member in self.namelist():
-            self._set_res_folder(member)
-            fname = self._get_filename_from_member(member)
-            # This should pass all path starting with _metadata
-            if fname.startswith('_metadata'):
-                continue
-
-            if self._check_file_exist(fname):
-                log.warning(
-                    "File '%s' already exists in mod directory.",
-                    fname
-                )
-
-                lname = fname.split('/')
-                lname.remove('')
-                if (self._has_res_folder and len(lname) > 2) or not self._has_res_folder:
-                    error_list.append(fname)
-
-                continue
-            self.extract(member)
-            unpacked_files.append(fname)
-
-        if error_list:
-            detail = "Ignored files:\n\n\t{}".format("\n\t".join(error_list))
-        else:
-            detail = None
-
-        return Unpack(file_list=unpacked_files, error=detail)
-
-    @property
-    def metadata(self):
-        if self._metadata:
-            return self._metadata
-
-        mdata_filename = '_metadata.yaml'
-        if self.filetype == 'zip':
-            if mdata_filename in self.archive_object.namelist():
-                x = TextIOWrapper(self.archive_object.open(mdata_filename))
-                self._metadata = yaml.load(x.read())
-        elif self.filetype == '7z':
-            if mdata_filename in self.archive_object.getnames():
-                x = self.archive_object.getmember(mdata_filename)
-                self._metadata = yaml.load(x.read().decode('utf-8'))
-
-        if not self._metadata:
-            self._metadata = {
-                'name': '',
-                'author': '',
-                'description': '',
-                'category': []
-            }
-
-        self._metadata['filename'] = os.path.basename(self.filename)
-
-        return self._metadata
-
-    @property
-    def hash(self):
-        """Returns the 256 hash of the managed archive.
-        """
-        if not self._hash:
-            if hasattr(self._filestream, 'read'):
-                self._hash = sha256(self._filestream.read()).hexdigest()
+    crc_dict = {}
+    for p_folder in scan_theses:
+        folder = os.path.join(target_folder, p_folder)
+        for key, crc in _compute_files_crc32(folder, partition=('res',)):
+            # normalize path: category/namespace/... -> namespace/category/...
+            k_parts = key.split(os.path.sep)
+            n_parts = []
+            category = k_parts.pop(0)  # category
+            namespace = k_parts.pop(0)  # namespace
+            # Those are under the 'items' folder: namespace/items/category/...
+            if category in ('clothing', 'weapons', 'tattoos'):
+                n_parts.extend([namespace, 'items'])
             else:
-                with open(self.filename, 'rb') as fp:
-                    self._hash = sha256(fp.read()).hexdigest()
-        return self._hash
+                n_parts.append(namespace)
+            n_parts.append(category)
+            n_parts.extend(k_parts)
+            key = os.path.join(*n_parts)
+            progress(f"Computing {key}...")
+            if crc in crc_dict.keys():
+                log.error(f"Game has duplicate file or we found a CRC collision: {crc}")
+            crc_dict[crc] = key
 
-    @hash.setter
-    def hash(self, value):
-        pass
-
-    @property
-    def name(self):
-        return self._metadata['name'] if self._metadata['name'] else self._metadata['filename']
+    ConflictBucket.gamefiles = crc_dict
+    return crc_dict
 
 
-class ArchiveManager:
-    """The ArchiveManager keep tracks, install and uninstall the differents
-    archives of the repository.
+# Returns a dict indexed on the files
+def build_loose_files_crc32(progress=None):
+    mod_folder = _get_mod_folder(force_build=True)
+    crc_dict = {}
+    for key, crc in _compute_files_crc32(mod_folder):
+        progress(f"Computing {key}...")
+        crc_dict[crc] = key
+
+    ConflictBucket.loosefiles = crc_dict
+    return crc_dict
+
+
+def _filter_list_on_exclude(archives_list, list_to_exclude):
+    for archive_name, items in archives_list.items():
+        if archive_name not in list_to_exclude:
+            yield (archive_name, items)
+
+
+def file_in_other_archives(file, archives, ignore):
+    """Returns a list of archives in which file is found if the number of said
+    archive is above 1. Otherwise returns False.
+
+    file: file to be found
+    archives: instance of ArchivesCollections
+    ignore: list of archives to ignore, for instance already parsed archives
     """
+    def _ofile(v):
+        return (v.CRC, v.Path)
 
-    def __init__(self, config_obj):
-        self._config_obj = config_obj
-        self._files_index = Config("files_index.json", compress=True)
-        self._file_list = dict()
-        self.load()
+    found = []
+    for ck, items in _filter_list_on_exclude(archives, ignore):
+        for crc, other_file_path in map(_ofile, items):
+            if ('D' not in file.Attributes
+                    and file.Path == other_file_path
+                    and file.CRC != crc):
+                found.append(ck)
 
-    def add_file(self, filename):
-        """Adds a file to the repository.
-        """
-        file_ArHandler = ArchiveHandler(filename, self._config_obj)
+    return found
 
-        if file_ArHandler.hash in self._files_index:
-            log.warning("Duplicate archive, ignored: %s", file_ArHandler.filename)
-            return False
 
-        file_ArHandler.copy_file_to_repository()
+# archives_list: output of build_managed_archives_crc32
+# check against loose files first, then
+def detect_conflicts_between_archives(archives_lists):
+    assert isinstance(archives_lists, ArchivesCollection), type(archives_lists)
+    list_done = []  # (sha256, filepath) of already processed archives
+    conflicts = ConflictBucket().conflicts
+    for archive_name, archive_content in archives_lists.items():
+        for file in archive_content:
 
-        self._files_index[file_ArHandler.hash] = {
-            'filename': file_ArHandler.filename,
-            'installed': False,
-            'installed_files': [],
-            'file_added': time(),
-            'archive_installed': None
-        }
-        self._file_list[file_ArHandler.hash] = file_ArHandler
+            if file.CRC in ConflictBucket().loosefiles.keys():
+                ConflictBucket().has_loose_conflicts(file)
 
-        # XXX: the auto-save doesn't trigger because we do not modify a first level element
-        self._files_index.delayed_save()
+            if file.Path in conflicts.keys():
+                continue
 
-        return file_ArHandler.hash
+            bad_archives = file_in_other_archives(
+                file=file,
+                archives=archives_lists,
+                ignore=list_done)
 
-    def remove_file(self, file_hash):
-        if file_hash not in self._files_index:
-            log.error("Unable to remove an non-existing file: %s", file_hash)
+            if bad_archives:
+                bad_archives.append(archive_name)
+                conflicts.setdefault(file.Path, [])
+                conflicts[file.Path].extend(bad_archives)
+        list_done.append(archive_name)
 
-        filename = self._file_list[file_hash].filename
-        self._file_list[file_hash].close()
-        del(self._file_list[file_hash])
-        del(self._files_index[file_hash])
-        try:
-            os.remove(filename)
-        except OSError as e:
-            log.error("Unable to remove file from drive: %s", e)
+    return conflicts
 
-    def install_mod(self, file_hash):
-        """Install the content of an archive into the game mod folder.
-        """
-        if file_hash not in self._files_index:
-            log.error("Installation failure, hash not found: %s", file_hash)
-            return
 
-        files, error = self._file_list[file_hash].unpack()
-        self._files_index[file_hash].update({
-            'installed': True,
-            'installed_files': files,
-            'archive_installed': time()
-        })
-        self._files_index.delayed_save()
+FILE_MATCHED = 1
+FILE_MISSING = 2
+FILE_MISMATCHED = 3
+FILE_IGNORED = 4
 
-        if error:
-            qError((
-                "One or more files could not be installed because they already "
-                "exists within the game's mods folder. They will therefore not "
-                "be managed through this mod."),
-                detailed=error
-            )
 
-    def uninstall_mod(self, file_hash):
-        dir_list = []
-        for item in self._files_index[file_hash]['installed_files']:
-            has_res = (item.split('/')[0] == 'res')
-            filename = _get_mod_folder(self._config_obj, with_file=item, has_res=has_res)
-            log.debug("Trying to delete file: %s", filename)
-            if os.path.isdir(filename):
-                dir_list.append(filename)
-            else:
-                try:
-                    os.remove(filename)
-                except OSError as e:
-                    log.error("Unable to remove file %s: %s", item, e)
+def file_in_loose_files(file):
+    cBucket = ConflictBucket().loosefiles
+    if os.path.basename(file.Path) in ignore_patterns():
+        return FILE_IGNORED
+    if file.CRC in cBucket.keys() and cBucket[file.CRC] == file.Path:
+        return FILE_MATCHED
+    if file.Path in cBucket.values() and file.CRC not in cBucket.keys():
+        return FILE_MISMATCHED
+    return FILE_MISSING
 
-        # NOTE: reverse put the longest string first, since we aim to remove a
-        #       directory tree, this sort should be sufficient
-        dir_list.sort(reverse=True)
-        for item in dir_list:
+
+def missing_matched_mismatched(file_list):
+    new_list = []
+    for file in file_list:
+        new_list.append((file, file_in_loose_files(file)))
+    return new_list
+
+
+def copy_archive_to_repository(filename):
+    """
+    Copy an archive to the manager's repository
+    """
+    if not settings['local_repository']:
+        log.warning("Unable to copy archive: no local repository configured.")
+        return False
+
+    new_filename = os.path.join(
+        settings['local_repository'],
+        os.path.basename(filename)
+    )
+
+    if os.path.exists(new_filename):
+        log.error(
+            "Unable to copy archive, a file with a similar name already exists.")
+        return False
+
+    try:
+        if not os.path.exists(settings['local_repository']):
+            os.makedirs(settings['local_repository'])
+        shutil.copy(filename, settings['local_repository'])
+    except IOError as e:
+        log.error("Error copying archive: %s", e)
+        return False
+    else:
+        return os.path.basename(new_filename)
+
+
+def install_archive(fileToCopy):
+    """Install the content of an archive into the game mod folder.
+    """
+    if not settings['game_folder']:
+        log.warning("Unable to unpack archive: game location is unknown.")
+        return False
+
+    fileToCopy = os.path.join(settings['local_repository'], fileToCopy)
+
+    try:
+        with TemporaryDirectory(prefix="qmm-") as td:
+            files = extract7z(fileToCopy, td)
+            for file in files:
+                src = os.path.join(td, file.Path)
+                if os.path.isdir(src):
+                    continue
+                dst = _get_mod_folder(file.Path)
+                os.makedirs(dst, mode=0o644, exist_ok=True)
+                shutil.copy2(src, dst)
+    except ArchiveException as e:
+        log.exception(e)
+        return False
+    return files
+
+
+def uninstall_archive(hashsum):
+    dir_list = []
+    for item in managed_archives_db[hashsum]['installed_files']:
+        filename = _get_mod_folder(settings, with_file=item)
+        log.debug("Trying to delete file: %s", filename)
+        if os.path.isdir(filename):
+            dir_list.append(filename)
+        else:
             try:
-                os.rmdir(item)
+                os.remove(filename)
             except OSError as e:
-                log.debug("Directory not removed because: %s", e)
-                log.warning("Ignoring non-empty directory: %s", item)
+                log.error("Unable to remove file %s: %s", item, e)
 
-        self._files_index[file_hash].update({
-            'installed': False,
-            'installed_files': [],
-            'archive_installed': None
-        })
-        self._files_index.delayed_save()
+    # NOTE: reverse put the longest string first, since we aim to remove a
+    #       directory tree, this sort should be sufficient
+    dir_list.sort(reverse=True)
+    for item in dir_list:
+        try:
+            os.rmdir(item)
+        except OSError as e:
+            log.debug("Directory not removed because: %s", e)
+            log.warning("Ignoring non-empty directory: %s", item)
 
-    def load(self):
-        """Builds the internal list of files
-        """
-        if len(self._files_index) == 0 or len(self._file_list) > 0:
-            return False
+    managed_archives_db[hashsum].update({
+        'installed': False,
+        'installed_files': [],
+        'archive_installed': None
+    })
+    managed_archives_db.delayed_save()
 
-        for file_hash, data in self._files_index.items():
-            self._file_list[file_hash] = ArchiveHandler(data['filename'], self._config_obj)
 
-    def get_files(self):
-        for file_hash, file in self._file_list.items():
-            yield file
+def delete_archive(hashsum):
+    """Removes a file from the repository, and delete it from the filesystem
+    """
+    if hashsum not in managed_archives_db:
+        log.error("Unable to remove an non-existing file: %s", hashsum)
 
-    def get_file_by_hash(self, file_hash):
-        if file_hash not in self._file_list.keys():
-            return None
-        return self._file_list[file_hash]
+    if managed_archives_db[hashsum]['installed']:
+        uninstall_archive(hashsum)
 
-    def get_state_by_hash(self, file_hash):
-        if file_hash not in self._files_index.keys():
-            return None
-        return self._files_index[file_hash]['installed']
-
-    def get_fileinfo_by_hash(self, file_hash):
-        if file_hash not in self._files_index.keys():
-            return None
-        return self._files_index[file_hash]
+    filename = managed_archives_db[hashsum]['filename']
+    del(managed_archives_db[hashsum])
+    try:
+        os.remove(filename)
+    except OSError as e:
+        log.error("Unable to remove file from drive: %s", e)
+    finally:
+        managed_archives_db.delayed_save()
