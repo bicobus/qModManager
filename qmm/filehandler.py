@@ -10,7 +10,7 @@ import pathlib
 from zlib import crc32
 from hashlib import sha256
 from collections import namedtuple
-from collections import MutableMapping
+from collections.abc import MutableMapping
 from tempfile import TemporaryDirectory
 
 from . import is_windows
