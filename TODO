@@ -1,0 +1,38 @@
+Implement basic UI:
+   [ ] Stylesheet: implement something like https://github.com/gmarull/qtmodern/blob/master/qtmodern/styles.py
+   [ ] Populate the list of managed mods
+   [ ] Populate tabs appropriately
+
+Toolbar:
+  [x] actionOpen @done (20-10-19 10:40)
+    Adds an archive to the list
+    [ ] actionOpen_done (callback)
+        Check if file isn't already in the list, both name and hashsum
+  [x] actionRemove_file @done (20-10-19 10:47)
+  [ ] actionHelp
+  [x] actionAdd_Archive(clone of actionOpen) @done (20-10-19 10:41)
+  [ ] actionAbout
+  [ ] actionSettings
+  [x] actionInstall_Mod @done (20-10-19 10:47)
+  [ ] actionUninstall_Mod
+  [x] actionQuit(handled natively) @done (20-10-19 10:41)
+  [ ] Double click to install/uninstall
+
+Filehandler:
+  Related to listing, extracting and parsing archives.
+  [ ] Have a way to build a list of files to extract from an archive. @high
+      We need to only extract files recognized by the game. Currently .xml and .svg files. The remaining files should be set into a ignored list.
+      The list of files to extract needs to be passed down to filehandler.extract7z, or have that function request the list by itself.
+      [ ] Build a list of ignored files from the archive
+  [x] Changes mod storage so that it isn't nested, see set_archive_as_managed @high @done (15-11-19 16:56)
+  [ ] Allow standard folders instead of archives. @low
+  [x] Refactor install_archive @done (28-11-19 18:57)
+  [x] Refactor uninstall_archive @done (07-12-19 14:52)
+  [x] Refactor delete_archive @done (07-12-19 14:52)
+  [ ] Refactor copy_archive_to_repository
+
+Metadata:
+  [-] Unpack and store the metadata subfolder in the local repository. @high @cancelled (09-11-19 10:46)
+      create a folder with the name of the archive, and in it a file whose name is the hashsum of said archive. If the hashsum changes, a new one will have to be created.
+  [-] Provide a tool to the users for editing some metadata. @cancelled (09-11-19 10:46)
+  [-] Garbage collect of old hash files @low @cancelled (09-11-19 10:46)
