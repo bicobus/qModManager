@@ -29,7 +29,7 @@ else:
     pathObject = pathlib.PurePosixPath
 
 # Mods directory structure
-first_level_dir = ('items', 'outfits')
+first_level_dir = ('items', 'outfits')  # outfits aren't supported in mods
 second_level_dir = ('weapons', 'clothing', 'tattoos')
 # --
 reListMatch = re.compile(
@@ -45,6 +45,10 @@ UnpackList = namedtuple('UnpackList', 'file_list error')
 FileMetadata = namedtuple('FileMetadata', 'Path Attributes CRC Modified')
 ArchiveStruct = namedtuple(
     'ArchiveStruct', 'valid mismatched missing conflict ignored')
+
+
+class FileHandlerException(Exception):
+    pass
 
 
 class ArchiveException(Exception):
@@ -64,7 +68,7 @@ def ignore_patterns(sevenFlag=False):
         return ('.DS_Store', '__MACOSX', 'Thumbs.db')
 
 
-def extract7z(file_archive, outputpath, progress=None):
+def extract7z(file_archive, outputpath, excludeList=None, progress=None):
     filepath = os.path.abspath(file_archive)
     outputpath = os.path.abspath(outputpath)
     cmd = [
@@ -73,6 +77,9 @@ def extract7z(file_archive, outputpath, progress=None):
         '-scsUTF-8', '-sccUTF-8'
     ]
     cmd.extend(ignore_patterns(True))
+    if excludeList:
+        assert isinstance(excludeList, list)
+        cmd.extend(excludeList)
 
     proc = subprocess.Popen(
         cmd, startupinfo=startupinfo, stdout=subprocess.PIPE,
@@ -160,8 +167,7 @@ def list7z(filepath, progress=None):
 
 
 def _sha256hash(filename):
-    """Returns the 256 hash of the managed archive.
-    """
+    """Returns the 256 hash of the managed archive."""
     try:
         if hasattr(filename, 'read'):
             result = sha256(filename.read).hexdigest()
@@ -195,18 +201,47 @@ class ArchivesCollection(MutableMapping):
                     filename = os.path.join(
                         settings['local_repository'], entry.name)
                     self[entry.name] = list7z(filename, progress=progress)
-                    self._stat[entry.name] = pathlib.Path(
-                        pathObject(filename)).stat()
-                    self._hashsums[entry.name] = _sha256hash(filename)
+                    self.stat[entry.name] = pathlib.Path(filename)
+                    self.hashsums[entry.name] = _sha256hash(filename)
 
     def find(self, archiveName=None, hashsum=None):
+        """Try to find a member, then returns its object, either through the name
+        of the archive and/or the sha256sum of the file.
+
+        If archiveName is not None, will check if archiveName exists in the
+        keys of the collection.
+        If hashsum is not None, will check if the value exists in the
+        self._hashsums dict.
+        If all checks fails, returns False.
+
+        Keywords arguments:
+        archiveName -- filename of the archive, suffix included (default None)
+        hashsum -- sha256sum of the file (default None)
+        """
         if archiveName and archiveName in self._data.keys():
             return self._data[archiveName]
         if hashsum and hashsum in self._hashsums:
             for key, item in self._hashsums:
                 if item == hashsum:
-                    return self._hashsums[key]
+                    return self._data[key]
         return False
+
+    @property
+    def stat(self, key):
+        return self._stat[key]
+
+    @stat.setter
+    def stat(self, key, value):
+        assert isinstance(value, pathlib.Path)
+        self._stat[key] = value.stat()
+
+    @property
+    def hashsums(self, key):
+        return self._hashsums[key]
+
+    @hashsums.setter
+    def hashsums(self, key, value):
+        self._hashsums[key] = value
 
     def __len__(self):
         return len(self._data)
@@ -225,6 +260,8 @@ class ArchivesCollection(MutableMapping):
 
     def __delitem__(self, key):
         del(self._data[key])
+        del(self._stat[key])
+        del(self._hashsums[key])
 
 
 def _ignored_part_in_path(path):
@@ -371,7 +408,10 @@ FILE_IGNORED = 4
 
 def file_in_loose_files(file):
     cBucket = ConflictBucket().loosefiles
-    if os.path.basename(file.Path) in ignore_patterns():
+    path = pathObject(file.Path)
+    if (path.name in ignore_patterns()
+            or not any(path.parts[0] == x for x in first_level_dir)
+            or path.suffix not in ('.xml', '.svg')):
         return FILE_IGNORED
     if file.CRC in cBucket.keys() and cBucket[file.CRC] == file.Path:
         return FILE_MATCHED
@@ -416,18 +456,19 @@ def copy_archive_to_repository(filename):
         return os.path.basename(new_filename)
 
 
-def install_archive(fileToCopy):
+def install_archive(fileToExtract, ignoreList):
     """Install the content of an archive into the game mod folder.
     """
     if not settings['game_folder']:
         log.warning("Unable to unpack archive: game location is unknown.")
         return False
 
-    fileToCopy = os.path.join(settings['local_repository'], fileToCopy)
+    fileToExtract = os.path.join(settings['local_repository'], fileToExtract)
+    ignoreList = ["-x!{}".format(path.as_posix()) for path in ignoreList]
 
     try:
         with TemporaryDirectory(prefix="qmm-") as td:
-            files = extract7z(fileToCopy, td)
+            files = extract7z(fileToExtract, td, excludeList=ignoreList)
             for file in files:
                 src = os.path.join(td, file.Path)
                 if os.path.isdir(src):
@@ -441,7 +482,10 @@ def install_archive(fileToCopy):
     return files
 
 
-def uninstall_archive(hashsum):
+def uninstall_archive(filename, managed):
+    if filename not in managed.keys():
+        return False
+    #  XXX Work on this
     dir_list = []
     for item in managed_archives_db[hashsum]['installed_files']:
         filename = _get_mod_folder(settings, with_file=item)

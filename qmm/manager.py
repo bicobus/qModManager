@@ -1,6 +1,6 @@
 # Licensed under the EUPL v1.2
 # © 2019 bicobus <bicobus@keemail.me>
-import os
+
 import logging
 from PyQt5.QtCore import pyqtSlot
 from PyQt5.QtWidgets import QMainWindow, QFileDialog
@@ -48,7 +48,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         # self.ui.listWidget
         for archive_name in self.managed_archives.keys():
-            item = widgets.neoListRowItem(
+            item = widgets.listRowItem(
                 filename=archive_name,
                 data=filehandler.missing_matched_mismatched(self.managed_archives[archive_name]),
                 stat=self.managed_archives._stat[archive_name],
@@ -162,7 +162,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     @pyqtSlot()
     def on_actionUninstall_Mod_triggered(self):
-        pass
+        items = self.listWidget.selectedItems()
+        if len(items) == 0:
+            return
+
+        for item in items:
+            filehandler.uninstall_archive(item.filename)
 
     @pyqtSlot()
     def on_actionSettings_triggered(self):
@@ -178,7 +183,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if not self.managed_archives.find(hashsum=hashsum):
             archive_name = filehandler.copy_archive_to_repository(filename)
 
-            item = widgets.neoListRowItem(
+            item = widgets.listRowItem(
                 filename=archive_name,
                 data=filehandler.missing_matched_mismatched(self.managed_archives[archive_name]),
                 stat=self.managed_archives._stat[archive_name],
@@ -192,43 +197,3 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             dialogs.qWarning("The selected archive is already managed.")
             self._adding_files_flag = False
             return False
-
-    # TODO double click to install instead of appy
-    # TODO remove me
-    def _do_button_apply(self):
-        """Install and/or uninstalled based on the checkbox state and last known state
-        """
-        installed_items, uninstalled_items = [], []
-        for item in self._fileList:
-            installed = self._archive_manager.get_state_by_hash(item.hash)
-            if item.enabled:
-                if not installed:
-                    self._archive_manager.install_mod(item.hash)
-                    installed_items.append(item.name)
-                    item.refresh_fdata()
-            else:
-                if installed:
-                    self._archive_manager.uninstall_mod(item.hash)
-                    uninstalled_items.append(item.name)
-                    item.refresh_fdata()
-
-        # Gui Stuff
-        detail = ""
-        if installed_items:
-            message = "Your mods have properly been installed."
-            x = ", ".join(installed_items)
-            detail = f"Installed: {x}\n"
-        if uninstalled_items:
-            if installed_items:
-                message = "Your mods have successfully been installed and uninstalled."
-            else:
-                message = "Your mods have properly been uninstalled."
-            x = ", ".join(uninstalled_items)
-            detail = f"{detail}Uninstalled: {x}"
-        if not detail:
-            detail = None
-        else:
-            dialogs.qInformation(
-                message,
-                detailed=detail
-            )

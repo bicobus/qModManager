@@ -185,7 +185,7 @@ class DetailedView(QtWidgets.QWidget):
         event.ignore()
 
 
-class neoListRowItem(QtWidgets.QListWidgetItem):
+class listRowItem(QtWidgets.QListWidgetItem):
     """ListWidgetItem representing one single archive.
     Needs to retrieve metadata and provide a facility to access it.
     """
