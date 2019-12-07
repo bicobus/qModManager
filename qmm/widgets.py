@@ -47,7 +47,7 @@ class fileWidgetAbstract:
         self._value = None
 
     def click(self):
-        raise NotImplemented("click() must be overriden")
+        raise NotImplementedError("click() must be overriden")
 
     @property
     def value(self):
