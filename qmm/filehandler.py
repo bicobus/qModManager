@@ -483,6 +483,7 @@ def install_archive(fileToExtract, ignoreList):
 
 
 def uninstall_files(fileList):
+    """Removes a list of files and directory from the filesystem."""
     assert isinstance(fileList, list)
 
     dlist = []
@@ -506,20 +507,17 @@ def uninstall_files(fileList):
             log.debug("Unable to remove directory %s: %s", directory, e)
 
 
-def delete_archive(hashsum):
-    """Removes a file from the repository, and delete it from the filesystem
-    """
-    if hashsum not in managed_archives_db:
-        log.error("Unable to remove an non-existing file: %s", hashsum)
+def delete_archive(filepath):
+    """Delete an archive from the filesystem."""
+    if not isinstance(filepath, pathlib.Path):
+        filepath = pathlib.Path(filepath)
 
-    if managed_archives_db[hashsum]['installed']:
-        uninstall_archive(hashsum)
-
-    filename = managed_archives_db[hashsum]['filename']
-    del(managed_archives_db[hashsum])
-    try:
-        os.remove(filename)
-    except OSError as e:
-        log.error("Unable to remove file from drive: %s", e)
-    finally:
-        managed_archives_db.delayed_save()
+    if filepath.exists():
+        try:
+            filepath.unlink()
+        except OSError as e:
+            log.error("Unable to remove file from drive: %s", e)
+            return False
+    else:
+        log.error("Unable to remove an non-existing file: %s", filepath)
+    return True
