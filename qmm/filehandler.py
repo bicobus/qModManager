@@ -482,38 +482,28 @@ def install_archive(fileToExtract, ignoreList):
     return files
 
 
-def uninstall_archive(filename, managed):
-    if filename not in managed.keys():
-        return False
-    #  XXX Work on this
-    dir_list = []
-    for item in managed_archives_db[hashsum]['installed_files']:
-        filename = _get_mod_folder(settings, with_file=item)
-        log.debug("Trying to delete file: %s", filename)
-        if os.path.isdir(filename):
-            dir_list.append(filename)
-        else:
+def uninstall_files(fileList):
+    assert isinstance(fileList, list)
+
+    dlist = []
+    for item in fileList:
+        assert isinstance(item, pathlib.PurePath)
+        i = pathlib.Path(item)
+        log.debug("Trying to delete file: %s", item.Path)
+        if not i.is_dir():
             try:
-                os.remove(filename)
+                i.unlink()
             except OSError as e:
                 log.error("Unable to remove file %s: %s", item, e)
+        else:
+            dlist.append(i)
 
-    # NOTE: reverse put the longest string first, since we aim to remove a
-    #       directory tree, this sort should be sufficient
-    dir_list.sort(reverse=True)
-    for item in dir_list:
+    dlist.sort(reverse=True)
+    for directory in dlist:
         try:
-            os.rmdir(item)
-        except OSError as e:
-            log.debug("Directory not removed because: %s", e)
-            log.warning("Ignoring non-empty directory: %s", item)
-
-    managed_archives_db[hashsum].update({
-        'installed': False,
-        'installed_files': [],
-        'archive_installed': None
-    })
-    managed_archives_db.delayed_save()
+            directory.rmdir()
+        except OSError as e:  # Probably due to not being empty
+            log.debug("Unable to remove directory %s: %s", directory, e)
 
 
 def delete_archive(hashsum):
