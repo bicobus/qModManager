@@ -9,15 +9,16 @@ __email__ = "bicobus@keemail.me"
 __status__ = "Development"
 
 import os
-from .config import Config
+import platform
 
-settings = Config(
-    filename="settings.json",
-    defaults={
-        "local_repository": None,
-        "game_folder": None
-    }
-)
+is_windows = platform.system() in ('Windows', 'Microsoft')
+is_linux = platform.system() == 'Linux'
+
+
+SETTINGS_HELP = """Some settings are required to be set for you to be able to use this tool.
+The game folder entry should point towards the location of the jar file.
+Your local mod repository can be set wherever you want.
+"""
 LOCAL_REPO_NOT_SET = """The location of your local repository of archives is unknown.
 
 That folder will be used to store the different archives."""
@@ -31,12 +32,3 @@ resource_path = os.path.join(os.path.dirname(__file__), 'resources')
 
 def file_from_resource_path(file):
     return os.path.join(resource_path, file)
-
-
-def areSettingsSet():
-    if not settings['local_repository']:
-        return LOCAL_REPO_NOT_SET
-    elif not settings['game_folder']:
-        return GAME_FOLDER_NOT_SET
-    else:
-        return False

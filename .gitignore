@@ -2,6 +2,10 @@
 *.sublime-workspace
 *.sublime-project
 
+# Qt generated
+*_rc.py
+ui_*.py
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
