@@ -212,6 +212,34 @@ class listRowItem(QtWidgets.QListWidgetItem):
 
         self.setText(self.filename)
 
+    def _set_item_status(self, item, status):
+        if status == FILE_MATCHED:
+            self._matched.append(item)
+        elif status == FILE_MISMATCHED:
+            self._mismatched.append(item)
+        elif status == FILE_MISSING:
+            self._missing.append(item)
+        elif status == FILE_IGNORED:
+            self._ignored.append(item)
+        else:
+            return False
+        return True
+
+    def _conflict_triage(self, item):
+        c = []
+        # Check other archives
+        if item.Path in ConflictBucket().conflicts.keys():
+            c.extend(ConflictBucket().conflicts[item.Path])
+        # Check against existing files
+        if item.CRC in ConflictBucket().looseconflicts.keys():
+            c.extend(ConflictBucket().looseconflicts[item.CRC])
+        # Check against game files (Path and CRC)
+        if (item.Path in ConflictBucket().gamefiles.values()
+                or item.CRC in ConflictBucket().gamefiles.keys()):
+            c.append(ConflictBucket().gamefiles[item.CRC])
+        if c:
+            self._conflicts[item.Path] = c
+
     @property
     def name(self):
         if not self._name:
@@ -238,28 +266,14 @@ class listRowItem(QtWidgets.QListWidgetItem):
     def files(self):
         top = []
         strings = ["== Archive's content:\n"]
+        errstring = "ERR: Following file has unknown status → {}"
         for item, status in self._data:
-            if status == FILE_MATCHED:
-                self._matched.append(item)
-            elif status == FILE_MISMATCHED:
-                self._mismatched.append(item)
-            elif status == FILE_MISSING:
-                self._missing.append(item)
-            elif status == FILE_IGNORED:
-                self._ignored.append(item)
-            else:
-                top.append("ERR: Following file has unknown status")
+            if not self._set_item_status(item, status):
+                top.append(errstring.format(item.Path))
 
-            c = []
-            if item.Path in ConflictBucket().conflicts.keys():
-                c.extend(ConflictBucket().conflicts[item.Path])
-            if item.CRC in ConflictBucket().looseconflicts.keys():
-                c.extend(ConflictBucket().looseconflicts[item.CRC])
-            if (item.Path in ConflictBucket().gamefiles.values()
-                    or item.CRC in ConflictBucket().gamefiles.keys()):
-                c.append(ConflictBucket().gamefiles[item.CRC])
-            if c:
-                self._conflicts[item.Path] = c
+            self.__conflict_triage(item)
+
+            # Add only files to avoid clutter
             if 'D' not in item.Attributes:
                 strings.append(f"   - {item.Path}\n")
 
