@@ -91,12 +91,12 @@ class dirChooserWindow(QWidget):
         self.setLayout(layout)
 
     @staticmethod
-    def on_game_selected(self, file):
+    def on_game_selected(file):
         settings['game_folder'] = file
         # settings.save()
 
     @staticmethod
-    def on_repo_selected(self, file):
+    def on_repo_selected(file):
         settings['local_repository'] = file
         # settings.save()
 

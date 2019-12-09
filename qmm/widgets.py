@@ -360,7 +360,7 @@ class listRowItem(QtWidgets.QListWidgetItem):
 
     # staticmethod used for methods that do not use their bound instances (self)
     @staticmethod
-    def _format(self, title, items):
+    def _format(title, items):
         strings = [f"== {title}:\n"]
         for item in items:
             if 'D' in item.Attributes:
