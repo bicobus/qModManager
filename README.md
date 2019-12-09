@@ -1,5 +1,7 @@
 # qModManager
 
+[![DeepSource](https://static.deepsource.io/deepsource-badge-light.svg)](https://deepsource.io/gh/bicobus/qModManager/?ref=repository-badge)
+
 Simple tool to manage a set of archives. Written to manage mods available for
 [Lilith's Throne](https://github.com/Innoxia/liliths-throne-public)
 
