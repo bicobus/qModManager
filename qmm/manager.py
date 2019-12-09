@@ -178,25 +178,35 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def on_actionSettings_triggered(self):
         self.do_settings()
 
+    def _refresh_list_item_strings(self):
+        for idx in range(0, self.listWidget.count() - 1):
+            self.listWidget.item(idx).refresh_strings()
+
     def _on_actionOpen_done(self, filename):
-        """Callback to QFileDialog once a file is selected.
-        """
+        """Callback to QFileDialog once a file is selected."""
         if not filename:
             self._adding_files_flag = False
             return
 
-        hashsum = filehandler._hash(filename)
+        hashsum = filehandler._sha256hash(filename)
 
         if not self.managed_archives.find(hashsum=hashsum):
             archive_name = filehandler.copy_archive_to_repository(filename)
+            self.managed_archives.add_archive(filename, hashsum)
+            filehandler.conflicts_process_files(
+                files=self.managed_archives[archive_name],
+                archives_list=self.managed_archives,
+                current_archive=archive_name,
+                processed=None)
 
             item = widgets.ListRowItem(
                 filename=archive_name,
                 data=filehandler.missing_matched_mismatched(self.managed_archives[archive_name]),
                 stat=self.managed_archives._stat[archive_name],
-                hashsum=self.managed_archives._hashsums[archive_name]
-            )
+                hashsum=self.managed_archives._hashsums[archive_name])
+
             self._add_item_to_list(item)
+            self._refresh_list_item_strings()
             self._adding_files_flag = False
             self.listWidget.scrollToItem(item)
             return True

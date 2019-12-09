@@ -6,7 +6,7 @@ Implement basic UI:
 Toolbar:
   [x] actionOpen @done (20-10-19 10:40)
     Adds an archive to the list
-    [ ] actionOpen_done (callback)
+    [x] actionOpen_done (callback) @done (09-12-19 12:57)
         Check if file isn't already in the list, both name and hashsum
   [x] actionRemove_file @done (20-10-19 10:47)
   [ ] actionHelp

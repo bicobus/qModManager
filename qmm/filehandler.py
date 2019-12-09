@@ -187,15 +187,24 @@ class ArchivesCollection(MutableMapping):
         if self._data and not rebuild:
             return False
 
-        patterns = ['rar', 'zip', '7z']
-        with os.scandir(settings['local_repository']) as it:
-            for entry in it:
-                if entry.is_file() and any(entry.name.endswith(x) for x in patterns):
-                    filename = os.path.join(
-                        settings['local_repository'], entry.name)
-                    self[entry.name] = list7z(filename, progress=progress)
-                    self._set_stat(entry.name, pathlib.Path(filename))
-                    self._set_hashsums(entry.name, _sha256hash(filename))
+        suffixes = ['.rar', '.zip', '.7z']
+        repo = pathlib.Path(settings['local_repository'])
+        for entry in repo.glob("*.*"):
+            if entry.is_file() and entry.suffix in suffixes:
+                self.add_archive(entry)
+            else:
+                print(entry.suffix)
+
+    def add_archive(self, path, hashsum=None):
+        if not isinstance(path, pathlib.Path):
+            path = pathlib.Path(os.path.join(settings['local_repository'], path))
+        if not path.is_file():
+            return
+        if not hashsum:
+            hashsum = _sha256hash(path)
+        self[path.name] = list7z(path)
+        self._set_stat(path.name, path)
+        self._set_hashsums(path.name, hashsum)
 
     def find(self, archiveName=None, hashsum=None):
         """Try to find a member, then returns its object, either through the name
@@ -336,7 +345,7 @@ def build_loose_files_crc32(progress=None):
 
 def _filter_list_on_exclude(archives_list, list_to_exclude):
     for archive_name, items in archives_list.items():
-        if archive_name not in list_to_exclude:
+        if not list_to_exclude or archive_name not in list_to_exclude:
             yield (archive_name, items)
 
 
@@ -362,30 +371,31 @@ def file_in_other_archives(file, archives, ignore):
     return found
 
 
-# archives_list: output of build_managed_archives_crc32
-# check against loose files first, then
+def conflicts_process_files(files, archives_list, current_archive, processed):
+    for file in files:
+        if file.CRC in ConflictBucket().loosefiles.keys():
+            ConflictBucket().has_loose_conflicts(file)
+
+        if file.Path in ConflictBucket().conflicts.keys():
+            continue
+
+        bad_archives = file_in_other_archives(
+            file=file,
+            archives=archives_list,
+            ignore=processed)
+
+        if bad_archives:
+            bad_archives.append(current_archive)
+            ConflictBucket().conflicts.setdefault(file.Path, [])
+            ConflictBucket().conflicts[file.Path].extend(bad_archives)
+
+
 def detect_conflicts_between_archives(archives_lists):
     assert isinstance(archives_lists, ArchivesCollection), type(archives_lists)
     list_done = []  # (sha256, filepath) of already processed archives
     conflicts = ConflictBucket().conflicts
     for archive_name, archive_content in archives_lists.items():
-        for file in archive_content:
-
-            if file.CRC in ConflictBucket().loosefiles.keys():
-                ConflictBucket().has_loose_conflicts(file)
-
-            if file.Path in conflicts.keys():
-                continue
-
-            bad_archives = file_in_other_archives(
-                file=file,
-                archives=archives_lists,
-                ignore=list_done)
-
-            if bad_archives:
-                bad_archives.append(archive_name)
-                conflicts.setdefault(file.Path, [])
-                conflicts[file.Path].extend(bad_archives)
+        conflicts_process_files(archive_content, archives_lists, archive_name, list_done)
         list_done.append(archive_name)
 
     return conflicts

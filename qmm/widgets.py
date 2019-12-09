@@ -113,84 +113,82 @@ class fileChooserButton(QtWidgets.QWidget, fileWidgetAbstract):
 #  * filetreeWidget
 #
 #  FIXME: Unfinished, will need to be revisited
-class DetailedView(QtWidgets.QWidget):
-    def __init__(self, parent=None):
-        super(DetailedView, self).__init__(parent)
-        self.ui = Ui_DetailedView()
-        self.ui.setupUi(self)
-        self.ui.button_hide.hide()
-        self.ui.filetreeWidget.hide()
+# class DetailedView(QtWidgets.QWidget):
+#     def __init__(self, parent=None):
+#         super(DetailedView, self).__init__(parent)
+#         self.ui = Ui_DetailedView()
+#         self.ui.setupUi(self)
+#         self.ui.button_hide.hide()
+#         self.ui.filetreeWidget.hide()
 
-    def prepare_directoryList(self, directories):
-        """Returns a dict of lists of files indexed on a tuple of directories.
-        Example: dict(
-         ('res/TheShyGuy995/', 'weapons', 'Fire Emblem'): ['/Sheathed Sword.svg', '/Sword.xml']
-        )
-        """
-        dlist = list()
-        for file in directories:
-            dirname, _ = path.split(file)
-            if dirname not in dlist and "/" in dirname:
-                dlist.append(dirname)
+#     def prepare_directoryList(self, directories):
+#         """Returns a dict of lists of files indexed on a tuple of directories.
+#         Example: dict(
+#          ('res/TheShyGuy995/', 'weapons', 'Fire Emblem'): ['/Sheathed Sword.svg', '/Sword.xml']
+#         )
+#         """
+#         dlist = list()
+#         for file in directories:
+#             dirname, _ = path.split(file)
+#             if dirname not in dlist and "/" in dirname:
+#                 dlist.append(dirname)
 
-        prefix = path.commonpath(dlist)
-        if "/" in prefix:
-            prefix = prefix.split("/")
+#         prefix = path.commonpath(dlist)
+#         if "/" in prefix:
+#             prefix = prefix.split("/")
 
-        ddir = dict()
-        for dirname in dlist:
-            sdir = dirname.split('/')
-            if isinstance(prefix, list):
-                for p in prefix:
-                    sdir.remove(p)
-            else:
-                sdir.remove(prefix)
-            dir_str = "/".join(sdir)
+#         ddir = dict()
+#         for dirname in dlist:
+#             sdir = dirname.split('/')
+#             if isinstance(prefix, list):
+#                 for p in prefix:
+#                     sdir.remove(p)
+#             else:
+#                 sdir.remove(prefix)
+#             dir_str = "/".join(sdir)
 
-            for ofile in directories:
-                if dir_str in ofile:
-                    start, tmp, cfile = ofile.partition(dir_str)
-                    path_to_file = tmp.split("/")
-                    pfile = list()
-                    pfile.append(start)
-                    pfile.extend(path_to_file)
-                    pfile = tuple(pfile)
-                    if pfile not in ddir.keys():
-                        ddir[pfile] = deque()
-                    ddir[pfile].append(cfile)
+#             for ofile in directories:
+#                 if dir_str in ofile:
+#                     start, tmp, cfile = ofile.partition(dir_str)
+#                     path_to_file = tmp.split("/")
+#                     pfile = list()
+#                     pfile.append(start)
+#                     pfile.extend(path_to_file)
+#                     pfile = tuple(pfile)
+#                     if pfile not in ddir.keys():
+#                         ddir[pfile] = deque()
+#                     ddir[pfile].append(cfile)
 
-        return ddir
+#         return ddir
 
-    def build_dirlist(self, pathAndFiles):
-        dir_map = dict()
-        for directories, files in pathAndFiles.items():
-            for directory in directories:
-                if directory not in dir_map.keys():
-                    index = directories.index(directory)
-                    if index > 0:
-                        previous = directories[index - 1]
-                    else:
-                        previous = self.ui.filetreeWidget
+#     def build_dirlist(self, pathAndFiles):
+#         dir_map = dict()
+#         for directories, files in pathAndFiles.items():
+#             for directory in directories:
+#                 if directory not in dir_map.keys():
+#                     index = directories.index(directory)
+#                     if index > 0:
+#                         previous = directories[index - 1]
+#                     else:
+#                         previous = self.ui.filetreeWidget
 
-                dir_map[directory] = QtWidgets.QTreeWidgetItem(previous, directory)
+#                 dir_map[directory] = QtWidgets.QTreeWidgetItem(previous, directory)
 
-            for file in files:
-                dir_map[directory].addChild(QtWidgets.QTreeWidgetItem(None, file.strip('/')))
+#             for file in files:
+#                 dir_map[directory].addChild(QtWidgets.QTreeWidgetItem(None, file.strip('/')))
 
-    def closeEvent(self, event):
-        """Ignore the close event and hide the widget instead
+#     def closeEvent(self, event):
+#         """Ignore the close event and hide the widget instead
 
-        If the window gets closed, Qt will prune its data and renders it
-        unavailable for further usage.
-        """
-        self.hide()
-        event.ignore()
+#         If the window gets closed, Qt will prune its data and renders it
+#         unavailable for further usage.
+#         """
+#         self.hide()
+#         event.ignore()
 
 
 class ListRowItem(QtWidgets.QListWidgetItem):
-    """ListWidgetItem representing one single archive.
-    Needs to retrieve metadata and provide a facility to access it.
-    """
+    """ListWidgetItem representing one single archive."""
 
     def __init__(self, filename, data, stat, hashsum):
         super().__init__()
@@ -211,6 +209,9 @@ class ListRowItem(QtWidgets.QListWidgetItem):
         self._ignored_str = None
         self._conflicts = {}
         self._conflicts_str = None
+        self._build_strings = [
+            "matched", "missing", "mismatched", "ignored", "conflicts"
+        ]
 
         self.setText(self.filename)
 
@@ -241,6 +242,29 @@ class ListRowItem(QtWidgets.QListWidgetItem):
             c.append(ConflictBucket().gamefiles[item.CRC])
         if c:
             self._conflicts[item.Path] = c
+
+    def _format_strings(self):
+        self._matched_str = _format_regular(
+            title="Files installed",
+            items=self._matched)
+        self._missing_str = _format_regular(
+            title="Missing from the game folder",
+            items=self._missing)
+        self._mismatched_str = _format_regular(
+            title="Same name and different CRC or same CRC with different names",
+            items=self._mismatched)
+        self._conflicts_str = _format_conflicts(
+            title="Conflicting files between archives",
+            items=self._conflicts.items())
+        self._ignored_str = _format_regular(
+            title="Files present in the archive but ignored",
+            items=self._ignored)
+
+    def refresh_strings(self):
+        self._conflicts = {}
+        for item, _ in self._data:
+            self._conflict_triage(item)
+        self._format_strings()
 
     @property
     def name(self):
@@ -279,6 +303,7 @@ class ListRowItem(QtWidgets.QListWidgetItem):
             if 'D' not in item.Attributes:
                 strings.append(f"   - {item.Path}\n")
 
+        self._format_strings()
         rstr = ""
         if top:
             rstr = "".join(top) + "\n\n"
@@ -288,10 +313,6 @@ class ListRowItem(QtWidgets.QListWidgetItem):
 
     @property
     def matched(self):
-        if not self._matched_str:
-            self._matched_str = self._format(
-                title="Files installed",
-                items=self._matched)
         return self._matched_str
 
     @property
@@ -302,10 +323,6 @@ class ListRowItem(QtWidgets.QListWidgetItem):
 
     @property
     def missing(self):
-        if not self._missing_str:
-            self._missing_str = self._format(
-                title="Missing from the game folder",
-                items=self._missing)
         return self._missing_str
 
     @property
@@ -316,10 +333,6 @@ class ListRowItem(QtWidgets.QListWidgetItem):
 
     @property
     def mismatched(self):
-        if not self._mismatched_str:
-            self._mismatched_str = self._format(
-                title="Same name and different CRC or same CRC with different names",
-                items=self._mismatched)
         return self._mismatched_str
 
     @property
@@ -330,12 +343,6 @@ class ListRowItem(QtWidgets.QListWidgetItem):
 
     @property
     def conflicts(self):
-        if not self._conflicts_str:
-            strings = [f"== Conflicting files between archives:\n"]
-            for filepath, archives in self._conflicts.items():
-                strings.append(f"  - {filepath}\n        -> ")
-                strings.append("\n        -> ".join(archives) + "\n")
-            self._conflicts_str = "".join(strings)
         return self._conflicts_str
 
     @property
@@ -346,10 +353,6 @@ class ListRowItem(QtWidgets.QListWidgetItem):
 
     @property
     def skipped(self):
-        if not self._ignored_str:
-            self._ignored_str = self._format(
-                title="Files present in the archive but ignored",
-                items=self._ignored)
         return self._ignored_str
 
     @property
@@ -358,14 +361,21 @@ class ListRowItem(QtWidgets.QListWidgetItem):
             return True
         return False
 
-    # staticmethod used for methods that do not use their bound instances (self)
-    @staticmethod
-    def _format(title, items):
-        strings = [f"== {title}:\n"]
-        for item in items:
-            if 'D' in item.Attributes:
-                continue
-            crc = hex(item.CRC)
-            strings.append(f"  - {item.Path} ({crc})\n")
-        strings.append("\n")
-        return "".join(strings)
+
+def _format_regular(title, items):
+    strings = [f"== {title}:\n"]
+    for item in items:
+        if 'D' in item.Attributes:
+            continue
+        crc = hex(item.CRC)
+        strings.append(f"  - {item.Path} ({crc})\n")
+    strings.append("\n")
+    return "".join(strings)
+
+
+def _format_conflicts(title, items):
+    strings = [f"== {title}:\n"]
+    for filepath, archives in items:
+        strings.append(f"  - {filepath}\n        -> ")
+        strings.append("\n        -> ".join(archives) + "\n")
+    return "".join(strings)
