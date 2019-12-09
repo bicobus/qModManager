@@ -17,12 +17,12 @@ log = logging.getLogger(__name__)
 
 if is_windows:
     def save_config_path(*resource):
-        """Similar in feature than pyxdg's save_config_path
-        """
+        """Similar in feature than pyxdg's save_config_path"""
         appdata_path = os.environ.get('APPDATA')
         if not appdata_path:
             raise UserWarning("I'm on windows but APPDATA is empty.", os.environ.values())
-        assert not resource.startwith('/')
+        resource = os.path.join(*resource)
+        assert not resource.startswith('/')
         path = os.path.join(appdata_path, resource)
         if not os.isdir(path):
             os.makedirs(path, 0o700)
