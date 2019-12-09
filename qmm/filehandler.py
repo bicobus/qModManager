@@ -191,18 +191,18 @@ class ArchivesCollection(MutableMapping):
         repo = pathlib.Path(settings['local_repository'])
         for entry in repo.glob("*.*"):
             if entry.is_file() and entry.suffix in suffixes:
-                self.add_archive(entry)
+                self.add_archive(entry, progress=progress)
             else:
                 print(entry.suffix)
 
-    def add_archive(self, path, hashsum=None):
+    def add_archive(self, path, hashsum=None, progress=None):
         if not isinstance(path, pathlib.Path):
             path = pathlib.Path(os.path.join(settings['local_repository'], path))
         if not path.is_file():
             return
         if not hashsum:
             hashsum = _sha256hash(path)
-        self[path.name] = list7z(path)
+        self[path.name] = list7z(path, progress)
         self._set_stat(path.name, path)
         self._set_hashsums(path.name, hashsum)
 

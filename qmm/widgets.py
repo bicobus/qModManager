@@ -2,13 +2,13 @@
 # © 2019 bicobus <bicobus@keemail.me>
 import logging
 from os import path
-from collections import deque
+# from collections import deque # DetailView
 from . import file_from_resource_path
 from .common import timestampToString
 from .filehandler import (FILE_MISSING, FILE_MATCHED, FILE_MISMATCHED,
                           FILE_IGNORED)
 from .conflictbucket import ConflictBucket
-from .ui_detailedview import Ui_DetailedView
+# from .ui_detailedview import Ui_DetailedView # DetailView
 from PyQt5 import uic
 from PyQt5 import QtWidgets
 from PyQt5.QtGui import QIcon
