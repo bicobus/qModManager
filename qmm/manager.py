@@ -8,7 +8,7 @@ from PyQt5 import QtGui
 from . import dialogs, widgets, filehandler
 from .ui_mainwindow import Ui_MainWindow
 from .config import get_config_dir
-from .common import dirChooserWindow, settings_are_set, settings
+from .common import dirChooserWindow, settings_are_set
 
 logging.getLogger('PyQt5').setLevel(logging.WARNING)
 logging.basicConfig(
@@ -48,7 +48,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         # self.ui.listWidget
         for archive_name in self.managed_archives.keys():
-            item = widgets.listRowItem(
+            item = widgets.ListRowItem(
                 filename=archive_name,
                 data=filehandler.missing_matched_mismatched(self.managed_archives[archive_name]),
                 stat=self.managed_archives._stat[archive_name],
@@ -112,6 +112,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         self.tab_missing_content.setPlainText(item.missing)
 
+        skipped_idx = self.tabWidget.indexOf(self.tab_skipped)
+        if item.has_skipped:
+            self.set_tab_color(skipped_idx, QtGui.QColor(135, 33, 39))
+        else:
+            self.set_tab_color(skipped_idx)
         self.tab_skipped_content.setPlainText(item.skipped)
 
         conflict_idx = self.tabWidget.indexOf(self.tab_conflicts)
@@ -135,7 +140,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             return
 
         qfd = QFileDialog(self)
-        filters = ["Archives (*.7z *.zip, *.rar)"]
+        filters = ["Archives (*.7z *.zip *.rar)"]
         qfd.setNameFilters(filters)
         qfd.selectNameFilter(filters[0])
         qfd.fileSelected.connect(self._on_actionOpen_done)
@@ -185,7 +190,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if not self.managed_archives.find(hashsum=hashsum):
             archive_name = filehandler.copy_archive_to_repository(filename)
 
-            item = widgets.listRowItem(
+            item = widgets.ListRowItem(
                 filename=archive_name,
                 data=filehandler.missing_matched_mismatched(self.managed_archives[archive_name]),
                 stat=self.managed_archives._stat[archive_name],

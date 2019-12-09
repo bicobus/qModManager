@@ -58,8 +58,7 @@ class ArchiveException(FileHandlerException):
 def ignore_patterns(sevenFlag=False):
     if sevenFlag:
         return ('-xr!*.DS_Store', '-x!__MACOSX', '-xr!*Thumbs.db')
-    else:
-        return ('.DS_Store', '__MACOSX', 'Thumbs.db')
+    return ('.DS_Store', '__MACOSX', 'Thumbs.db')
 
 
 def extract7z(file_archive, outputpath, excludeList=None, progress=None):
@@ -402,8 +401,11 @@ def file_in_loose_files(file):
     cBucket = ConflictBucket().loosefiles
     path = pathObject(file.Path)
     if (path.name in ignore_patterns()
-            or not any(path.parts[0] == x for x in first_level_dir)
-            or path.suffix not in ('.xml', '.svg')):
+        or (not path.suffix
+            and len(path.parts) > 1
+            and not any(path.parts[1] == x for x in first_level_dir))
+        or (path.suffix
+            and path.suffix not in ('.xml', '.svg'))):
         return FILE_IGNORED
     if file.CRC in cBucket.keys() and cBucket[file.CRC] == file.Path:
         return FILE_MATCHED
