@@ -4,7 +4,7 @@ RDIR=qmm/resources
 LDIR=qmm
 QRC=$(RDIR)/icons.qrc
 #DEPS=$(RDIR)/ui_customlist.ui $(RDIR)/ui_detailedview.ui $(QRC)
-PUI=$(LDIR)/ui_customlist.py $(LDIR)/ui_detailedview.py $(LDIR)/icons_rc.py\
+PUI=$(LDIR)/icons_rc.py\
 	$(LDIR)/ui_mainwindow.py
 
 $(LDIR)/ui_%.py: $(RDIR)/ui_%.ui
