@@ -88,8 +88,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         items = self.listWidget.selectedItems()
         if len(items) == 0:
             return
-        else:
-            item = items[0]
+
+        item = items[0]
         self.content_name.setText(item.name)
         self.content_added.setText(item.added)
         self.content_hashsum.setText(item.hashsum)
@@ -125,8 +125,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def on_actionOpen_triggered(self):
         if self._adding_files_flag:  # TODO find a way to make a blocking window
             return
-        else:
-            self._adding_files_flag = True
+
+        self._adding_files_flag = True
 
         if not settings_are_set():
             dialogs.qWarning(
@@ -158,7 +158,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             return
 
         for item in items:
-            filehandler.install_archive(item.filename)
+            filehandler.install_archive(item.filename, item._ignored)
 
     @pyqtSlot()
     def on_actionUninstall_Mod_triggered(self):
@@ -179,7 +179,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if not filename:
             self._adding_files_flag = False
             return
+
         hashsum = filehandler._hash(filename)
+
         if not self.managed_archives.find(hashsum=hashsum):
             archive_name = filehandler.copy_archive_to_repository(filename)
 
@@ -193,7 +195,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self._adding_files_flag = False
             self.listWidget.scrollToItem(item)
             return True
-        else:
-            dialogs.qWarning("The selected archive is already managed.")
-            self._adding_files_flag = False
-            return False
+
+        dialogs.qWarning("The selected archive is already managed.")
+        self._adding_files_flag = False
+        return False
