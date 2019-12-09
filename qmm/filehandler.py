@@ -51,14 +51,8 @@ class FileHandlerException(Exception):
     pass
 
 
-class ArchiveException(Exception):
-    def __init__(self, message):
-        self.message = message
-
-
-class UnrecognizedArchive(ArchiveException):
-    def __init__(self, message=None):
-        super().__init__(message)
+class ArchiveException(FileHandlerException):
+    pass
 
 
 def ignore_patterns(sevenFlag=False):
