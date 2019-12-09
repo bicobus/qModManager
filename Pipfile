@@ -10,7 +10,6 @@ pyinstaller = "*"
 
 [packages]
 pyxdg = "*"
-pyyaml = "*"
 "pyqt5" = ">=5.13"
 
 [requires]
