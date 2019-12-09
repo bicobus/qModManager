@@ -73,7 +73,7 @@ class directoryChooserButton(QtWidgets.QWidget, fileWidgetAbstract):
             directory=self.value
         )
         logger.debug("File selected: %s", value)
-        if value and len(value) > 0:
+        if value:
             self.value = value
             self.callback(value)
 
@@ -97,7 +97,7 @@ class fileChooserButton(QtWidgets.QWidget, fileWidgetAbstract):
 
     def _set_value(self, file):
         logger.debug(file)
-        if file and len(file) > 0:
+        if file:
             self.value = file
             if self.callback:
                 self.callback(file)

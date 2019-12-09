@@ -191,7 +191,7 @@ class ArchivesCollection(MutableMapping):
         if not settings_are_set:
             return False
 
-        if len(self._data) > 0 and not rebuild:
+        if self._data and not rebuild:
             return False
 
         patterns = ['rar', 'zip', '7z']
@@ -284,7 +284,7 @@ def _get_mod_folder(with_file=None, force_build=False):
 
 def _compute_files_crc32(folder, partition=('res', 'mods')):
     for root, dirs, files in os.walk(folder):
-        if len(files) == 0:
+        if not files:
             continue
         # We want to build a path that is similar to the one present in an
         # archive. To do so we need to remove anything that is before, and

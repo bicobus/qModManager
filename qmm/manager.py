@@ -86,7 +86,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         rgb(91, 135, 33) # greenish
         """
         items = self.listWidget.selectedItems()
-        if len(items) == 0:
+        if not items:
             return
 
         item = items[0]
@@ -144,7 +144,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     @pyqtSlot()
     def on_actionRemove_file_triggered(self):
         items = self.listWidget.selectedItems()
-        if len(items) == 0:
+        if not items:
             return
 
         for item in items:
@@ -154,7 +154,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     @pyqtSlot()
     def on_actionInstall_Mod_triggered(self):
         items = self.listWidget.selectedItems()
-        if len(items) == 0:
+        if not items:
             return
 
         for item in items:
@@ -163,7 +163,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     @pyqtSlot()
     def on_actionUninstall_Mod_triggered(self):
         items = self.listWidget.selectedItems()
-        if len(items) == 0:
+        if not items:
             return
 
         for item in items:
