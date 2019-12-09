@@ -111,6 +111,8 @@ class fileChooserButton(QtWidgets.QWidget, fileWidgetAbstract):
 #  * content_description
 #  * content_tags
 #  * filetreeWidget
+#
+#  FIXME: Unfinished, will need to be revisited
 class DetailedView(QtWidgets.QWidget):
     def __init__(self, parent=None):
         super(DetailedView, self).__init__(parent)
@@ -127,7 +129,7 @@ class DetailedView(QtWidgets.QWidget):
         """
         dlist = list()
         for file in directories:
-            dirname, filename = path.split(file)
+            dirname, _ = path.split(file)
             if dirname not in dlist and "/" in dirname:
                 dlist.append(dirname)
 
@@ -356,6 +358,8 @@ class listRowItem(QtWidgets.QListWidgetItem):
             return True
         return False
 
+    # staticmethod used for methods that do not use their bound instances (self)
+    @staticmethod
     def _format(self, title, items):
         strings = [f"== {title}:\n"]
         for item in items:

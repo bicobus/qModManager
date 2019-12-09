@@ -277,7 +277,7 @@ def _get_mod_folder(with_file=None, force_build=False):
 
 
 def _compute_files_crc32(folder, partition=('res', 'mods')):
-    for root, dirs, files in os.walk(folder):
+    for root, _, files in os.walk(folder):
         if not files:
             continue
         # We want to build a path that is similar to the one present in an
