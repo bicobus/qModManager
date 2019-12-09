@@ -1,0 +1,43 @@
+branches:
+  # whitelist
+  only:
+    - production
+
+# Do not build on tags
+skip_tags: true
+skip_branch_with_pr: true
+
+# Don't know if needed
+# image: Visual Studio 2015
+
+# fetch repository as zip archive
+# shallow_clone: true
+
+# set clone depth, clone entire history if not defined
+clone_depth: 5
+
+environment:
+  matrix:
+    - PYTHON: "C:\\Python37-x64"
+
+install:
+  - "%PYTHON%\\python.exe -m pip install --disable-pip-version-check --upgrade pip"
+  - "%PYTHON%\\python.exe -m pip install pyinstaller"
+  - "%PYTHON%\\python.exe -m pip install -r requirements.txt"
+
+build_script:
+  - "%PYTHON%\\python.exe -m pyinstaller -F main.py"
+
+# Disable automatic builds
+# build: off
+
+artifacts:
+   - path: dist\*
+
+# clean up pip cache, might not be needed
+on_finish:
+  - C:\cygwin\bin\find "%LOCALAPPDATA%\pip" -type f -mtime +360 -delete
+  - C:\cygwin\bin\find "%LOCALAPPDATA%\pip" -type f -size +10M -delete
+  - C:\cygwin\bin\find "%LOCALAPPDATA%\pip" -empty -delete
+  - C:\cygwin\bin\du -hs "%LOCALAPPDATA%\pip\Cache"
+
