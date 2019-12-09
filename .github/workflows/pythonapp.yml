@@ -5,6 +5,8 @@ on:
     branches: 
       - master
   push:
+    paths:
+      - '**.py'
     branches:
       - master
 
