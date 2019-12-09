@@ -201,8 +201,8 @@ class ArchivesCollection(MutableMapping):
                     filename = os.path.join(
                         settings['local_repository'], entry.name)
                     self[entry.name] = list7z(filename, progress=progress)
-                    self.stat[entry.name] = pathlib.Path(filename)
-                    self.hashsums[entry.name] = _sha256hash(filename)
+                    self._set_stat(entry.name, pathlib.Path(filename))
+                    self._set_hashsums(entry.name, _sha256hash(filename))
 
     def find(self, archiveName=None, hashsum=None):
         """Try to find a member, then returns its object, either through the name
@@ -230,8 +230,7 @@ class ArchivesCollection(MutableMapping):
     def stat(self, key):
         return self._stat[key]
 
-    @stat.setter
-    def stat(self, key, value):
+    def _set_stat(self, key, value):
         assert isinstance(value, pathlib.Path)
         self._stat[key] = value.stat()
 
@@ -239,8 +238,7 @@ class ArchivesCollection(MutableMapping):
     def hashsums(self, key):
         return self._hashsums[key]
 
-    @hashsums.setter
-    def hashsums(self, key, value):
+    def _set_hashsums(self, key, value):
         self._hashsums[key] = value
 
     def __len__(self):

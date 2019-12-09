@@ -271,7 +271,7 @@ class listRowItem(QtWidgets.QListWidgetItem):
             if not self._set_item_status(item, status):
                 top.append(errstring.format(item.Path))
 
-            self.__conflict_triage(item)
+            self._conflict_triage(item)
 
             # Add only files to avoid clutter
             if 'D' not in item.Attributes:
