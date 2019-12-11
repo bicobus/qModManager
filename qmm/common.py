@@ -25,10 +25,6 @@ def settings_are_set():
         return True
 
 
-def areSettingsSet():
-    return settings_are_set()
-
-
 def tools_path():
     if is_windows:
         return os.path.join(os.path.dirname(__file__), 'tools', '7z.exe')
@@ -40,15 +36,7 @@ def resources_directory():
     return os.path.realpath("qmm/resources/")
 
 
-def timestampToString(timestamp):
+def timestamp_to_string(timestamp):
     """Takes a UNIX timestamp and return a vernacular date
     """
     return datetime.strftime(datetime.fromtimestamp(timestamp), "%c")
-
-
-def loadQtStyleSheetFile(file, window):
-    try:
-        with open(file, 'r') as f:
-            window.setStyleSheet(f.read() + '\n')
-    except Exception as e:
-        logger.debug("Could not load style sheet because: %s", e)

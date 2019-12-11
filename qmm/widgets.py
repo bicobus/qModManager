@@ -243,7 +243,7 @@ class ListRowItem(QtWidgets.QListWidgetItem):
     @property
     def added(self):
         if not self._added:
-            self._added = timestampToString(self._stat.st_mtime)
+            self._added = timestamp_to_string(self._stat.st_mtime)
         return self._added
 
     @property
