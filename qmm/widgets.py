@@ -3,15 +3,14 @@
 import logging
 from os import path
 # from collections import deque # DetailView
-from . import file_from_resource_path
-from .common import timestampToString
+from .common import timestampToString, settings
 from .filehandler import (FILE_MISSING, FILE_MATCHED, FILE_MISMATCHED,
                           FILE_IGNORED)
 from .conflictbucket import ConflictBucket
+from .ui_settings import Ui_Settings
 # from .ui_detailedview import Ui_DetailedView # DetailView
-from PyQt5 import uic
 from PyQt5 import QtWidgets
-from PyQt5.QtGui import QIcon
+from PyQt5.QtCore import pyqtSlot
 
 # from PyQt5.QtGui import QIcon, QPixmap
 # _detailViewButton = QtWidgets.QPushButton()
@@ -22,85 +21,50 @@ from PyQt5.QtGui import QIcon
 logger = logging.getLogger(__name__)
 
 
-def constructButton(label=None, callback=None):
-    button = QtWidgets.QPushButton()
-    if label:
-        button.setText(label)
-        button.setObjectName(label.lower())
-    if callback:
-        button.clicked.connect(callback)
-    button.setSizePolicy(QtWidgets.QSizePolicy.Minimum,
-                         QtWidgets.QSizePolicy.Fixed)
-    return button
+class QSettings(QtWidgets.QWidget, Ui_Settings):
+    def __init__(self):
+        super().__init__()
+        self.setupUi(self)
 
+    def show(self):
+        super().show()
+        self.game_input.setText(settings['game_folder'])
+        self.repo_input.setText(settings['local_repository'])
 
-class fileWidgetAbstract:
-    def __init__(self, label, callback=None):
-        self.widgets = uic.loadUi(file_from_resource_path("fileInput.ui"))
-        self.widgets.pushButton.clicked.connect(self.click)
-        self.widgets.pushButton.setIcon(QIcon())
-        self.widgets.label.setText(label)
-        self.label = label
-
-        if callback:
-            self.callback = callback
-        self._value = None
-
-    def click(self):
-        raise NotImplementedError("click() must be overriden")
-
-    @property
-    def value(self):
-        return self._value if self._value else ''
-
-    # XXX: using 2 variables might be redundant.
-    @value.setter
-    def value(self, value):
-        self.widgets.lineEdit.setText(value)
-        self._value = value
-
-
-class directoryChooserButton(QtWidgets.QWidget, fileWidgetAbstract):
-    def __init__(self, label, parent, default, callback=None):
-        super().__init__(parent=parent, label=label, callback=callback)
-        if default:
-            self.value = default
-
-    def click(self):
+    @pyqtSlot()
+    def on_game_button_clicked(self):
         value = QtWidgets.QFileDialog.getExistingDirectory(
             parent=self,
-            caption=self.label,
-            directory=self.value
+            caption=self.game_label.text(),
+            directory=settings['game_folder']
         )
-        logger.debug("File selected: %s", value)
-        if value:
-            self.value = value
-            self.callback(value)
 
-    def test(self, file):
-        logger.debug("On selection:", file)
+        if value and value != settings['game_folder']:
+            self.game_input.setText(value)
 
+    @pyqtSlot()
+    def on_repo_button_clicked(self):
+        value = QtWidgets.QFileDialog.getExistingDirectory(
+            parent=self,
+            caption=self.repo_label.text(),
+            directory=settings['local_repository']
+        )
+        if value and value != settings['local_repository']:
+            self.repo_input.setText(value)
 
-class fileChooserButton(QtWidgets.QWidget, fileWidgetAbstract):
-    def __init__(self, label, parent, default=None, callback=None):
-        super().__init__(parent=parent, label=label, callback=callback)
-        if default:
-            self.value = default
+    @pyqtSlot()
+    def on_save_button_clicked(self):
+        if (self.game_input.text() != settings['game_folder']
+                and path.isdir(self.game_input.text())):
+            settings['game_folder'] = self.game_input.text()
+        if (self.repo_input.text() != settings['local_repository']
+                and path.isdir(self.repo_input.text())):
+            settings['local_repository'] = self.repo_input.text()
+        self.hide()
 
-    def click(self):
-        qd = QtWidgets.QFileDialog(self)
-        filters = ["Archives (*.7z *.zip)"]
-        qd.setNameFilters(filters)
-        qd.selectNameFilter(filters[0])
-        qd.fileSelected.connect(self._set_value)
-        qd.exec_()
-
-    def _set_value(self, file):
-        logger.debug(file)
-        if file:
-            self.value = file
-            if self.callback:
-                self.callback(file)
+    @pyqtSlot()
+    def on_cancel_button_clicked(self):
+        self.hide()
 
 
 # widgets name:

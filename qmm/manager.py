@@ -8,7 +8,8 @@ from PyQt5 import QtGui
 from . import dialogs, widgets, filehandler
 from .ui_mainwindow import Ui_MainWindow
 from .config import get_config_dir
-from .common import dirChooserWindow, settings_are_set
+from .common import settings_are_set
+from .widgets import QSettings
 
 logging.getLogger('PyQt5').setLevel(logging.WARNING)
 logging.basicConfig(
@@ -66,7 +67,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if self._settings_window:
             self._settings_window.show()
         else:
-            self._settings_window = dirChooserWindow()
+            self._settings_window = QSettings()
             self._settings_window.show()
 
     def set_tab_color(self, index, color=None):
@@ -193,6 +194,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         if not self.managed_archives.find(hashsum=hashsum):
             archive_name = filehandler.copy_archive_to_repository(filename)
+            if not archive_name:
+                dialogs.qWarning(
+                    "A file with the same name already exists in the repository."
+                )
+                self._adding_files_flag = False
+                return False
             self.managed_archives.add_archive(filename, hashsum)
             filehandler.conflicts_process_files(
                 files=self.managed_archives[archive_name],
@@ -212,6 +219,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.listWidget.scrollToItem(item)
             return True
 
-        dialogs.qWarning("The selected archive is already managed.")
+        dialogs.qWarning((
+            "The file you selected is already present in the repository. "
+            f"It may exists under a different name.\nHashsum matched: {hashsum}"
+        ))
         self._adding_files_flag = False
         return False

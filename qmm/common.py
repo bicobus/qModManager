@@ -3,10 +3,8 @@
 import os
 import logging
 from datetime import datetime
-from . import SETTINGS_HELP, is_windows
-from . import widgets
+from . import is_windows
 from .config import Config
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel
 
 
 logger = logging.getLogger(__name__)
@@ -54,54 +52,3 @@ def loadQtStyleSheetFile(file, window):
             window.setStyleSheet(f.read() + '\n')
     except Exception as e:
         logger.debug("Could not load style sheet because: %s", e)
-
-
-class dirChooserWindow(QWidget):
-    def __init__(self):
-        super().__init__()
-        self.setWindowTitle("qModManager: Settings")
-        loadQtStyleSheetFile('style.css', self)
-
-        text = QLabel(parent=self)
-        text.setWordWrap(False)
-        text.setObjectName("settings_label")
-        text.setText(SETTINGS_HELP)
-
-        self._gameFolderWidget = widgets.directoryChooserButton(
-            label="Game folder",
-            parent=self,
-            callback=self.on_game_selected,
-            default=settings['game_folder']
-        )
-
-        self._localRepositoryWidget = widgets.directoryChooserButton(
-            label="Local repository",
-            parent=self,
-            callback=self.on_repo_selected,
-            default=settings['local_repository']
-        )
-
-        self._doneButton = widgets.constructButton("Done", callback=self.closeWindow)
-
-        layout = QVBoxLayout()
-        layout.addWidget(text)
-        layout.addWidget(self._gameFolderWidget.widgets)
-        layout.addWidget(self._localRepositoryWidget.widgets)
-        layout.addWidget(self._doneButton)
-        self.setLayout(layout)
-
-    @staticmethod
-    def on_game_selected(file):
-        settings['game_folder'] = file
-        # settings.save()
-
-    @staticmethod
-    def on_repo_selected(file):
-        settings['local_repository'] = file
-        # settings.save()
-
-    def closeWindow(self):
-        """
-        Contrarian to its name, this method just hides the window
-        """
-        self.hide()

@@ -2,9 +2,9 @@ RCC=pyrcc5
 UIC=pyuic5 --from-imports
 RDIR=qmm/resources
 LDIR=qmm
-QRC=$(RDIR)/icons.qrc
 #DEPS=$(RDIR)/ui_customlist.ui $(RDIR)/ui_detailedview.ui $(QRC)
 PUI=$(LDIR)/icons_rc.py\
+	$(LDIR)/ui_settings.py\
 	$(LDIR)/ui_mainwindow.py
 
 $(LDIR)/ui_%.py: $(RDIR)/ui_%.ui
