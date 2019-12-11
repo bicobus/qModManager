@@ -223,8 +223,8 @@ class ArchivesCollection(MutableMapping):
         """
         if archiveName and archiveName in self._data.keys():
             return self._data[archiveName]
-        if hashsum and hashsum in self._hashsums:
-            for key, item in self._hashsums:
+        if hashsum and hashsum in self._hashsums.values():
+            for key, item in self._hashsums.items():
                 if item == hashsum:
                     return self._data[key]
         return False
