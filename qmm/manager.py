@@ -29,7 +29,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # Will do style using QT, see TODO file
         # loadQtStyleSheetFile('style.css', self)
 
-        self._adding_files_flag = False
         self._settings_window = None
         self._qc = {}
 
@@ -130,11 +129,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     @pyqtSlot()
     def on_actionOpen_triggered(self):
-        if self._adding_files_flag:  # TODO find a way to make a blocking window
-            return
-
-        self._adding_files_flag = True
-
         if not settings_are_set():
             dialogs.qWarning(
                 "You must set your game folder location."
@@ -186,10 +180,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def _on_actionOpen_done(self, filename):
         """Callback to QFileDialog once a file is selected."""
-        if not filename:
-            self._adding_files_flag = False
-            return
-
         hashsum = filehandler._sha256hash(filename)
 
         if not self.managed_archives.find(hashsum=hashsum):
@@ -198,7 +188,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 dialogs.qWarning(
                     "A file with the same name already exists in the repository."
                 )
-                self._adding_files_flag = False
                 return False
             self.managed_archives.add_archive(filename, hashsum)
             filehandler.conflicts_process_files(
@@ -223,5 +212,4 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             "The file you selected is already present in the repository. "
             f"It may exists under a different name.\nHashsum matched: {hashsum}"
         ))
-        self._adding_files_flag = False
         return False
