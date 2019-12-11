@@ -3,7 +3,7 @@
 import logging
 from os import path
 # from collections import deque # DetailView
-from .common import timestampToString, settings
+from .common import timestamp_to_string, settings
 from .filehandler import (FILE_MISSING, FILE_MATCHED, FILE_MISMATCHED,
                           FILE_IGNORED)
 from .conflictbucket import ConflictBucket
@@ -163,6 +163,8 @@ class ListRowItem(QtWidgets.QListWidgetItem):
         self._added = None
         self._hashsum = hashsum
 
+        self._files = []
+        self._files_str = None
         self._matched = []
         self._matched_str = None
         self._missing = []
@@ -173,11 +175,22 @@ class ListRowItem(QtWidgets.QListWidgetItem):
         self._ignored_str = None
         self._conflicts = {}
         self._conflicts_str = None
-        self._build_strings = [
-            "matched", "missing", "mismatched", "ignored", "conflicts"
-        ]
+        self._errored = []
+        self._errored_str = None
+        self._triage_done = False
+        self._built_strings = False
 
         self.setText(self.filename)
+
+    def _triage(self):
+        if self._triage_done:
+            return
+        for item, status in self._data:
+            if not self._set_item_status(item, status):
+                self._errored.append(item)
+            if 'D' not in item.Attributes:
+                self._files.append(item)
+            self._conflict_triage(item)
 
     def _set_item_status(self, item, status):
         if status == FILE_MATCHED:
@@ -199,7 +212,7 @@ class ListRowItem(QtWidgets.QListWidgetItem):
             c.extend(ConflictBucket().conflicts[item.Path])
         # Check against existing files
         if item.CRC in ConflictBucket().looseconflicts.keys():
-            c.extend(ConflictBucket().looseconflicts[item.CRC])
+            c.extend(*ConflictBucket().looseconflicts[item.CRC])
         # Check against game files (Path and CRC)
         if (item.Path in ConflictBucket().gamefiles.values()
                 or item.CRC in ConflictBucket().gamefiles.keys()):
@@ -208,6 +221,12 @@ class ListRowItem(QtWidgets.QListWidgetItem):
             self._conflicts[item.Path] = c
 
     def _format_strings(self):
+        self._files_str = _format_regular(
+            title="Archive's content",
+            items=self._files)
+        self._errored_str = _format_regular(
+            title="ERR: Following file has unknown status",
+            items=self._errored)
         self._matched_str = _format_regular(
             title="Files installed",
             items=self._matched)
@@ -254,26 +273,14 @@ class ListRowItem(QtWidgets.QListWidgetItem):
 
     @property
     def files(self):
-        top = []
-        strings = ["== Archive's content:\n"]
-        errstring = "ERR: Following file has unknown status → {}"
-        for item, status in self._data:
-            if not self._set_item_status(item, status):
-                top.append(errstring.format(item.Path))
+        self._triage()
+        if not self._built_strings:
+            self._format_strings()
+            self._built_strings = True
 
-            self._conflict_triage(item)
-
-            # Add only files to avoid clutter
-            if 'D' not in item.Attributes:
-                strings.append(f"   - {item.Path}\n")
-
-        self._format_strings()
-        rstr = ""
-        if top:
-            rstr = "".join(top) + "\n\n"
-        rstr += "".join(strings)
-
-        return rstr
+        if self._errored:
+            return self._errored_str + "\n" + self._files_str
+        return self._files_str
 
     @property
     def matched(self):

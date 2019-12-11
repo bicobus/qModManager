@@ -282,7 +282,7 @@ def _get_mod_folder(with_file=None, force_build=False):
         path.append(with_file)
     elif force_build:
         path.extend(mods_path)
-    return os.path.join(*path)
+    return pathlib.Path(*path)
 
 
 def _compute_files_crc32(folder, partition=('res', 'mods')):
@@ -338,7 +338,8 @@ def build_loose_files_crc32(progress=None):
     crc_dict = {}
     for key, crc in _compute_files_crc32(mod_folder):
         progress(f"Computing {key}...")
-        crc_dict[crc] = key
+        crc_dict.setdefault(crc, [])
+        crc_dict[crc].append(key)
 
     ConflictBucket.loosefiles = crc_dict
     return crc_dict
@@ -425,9 +426,9 @@ def file_status(file):
             and path.suffix not in ('.xml', '.svg')
             or _bad_directory_structure(path))):
         return FILE_IGNORED
-    if file.CRC in cBucket.keys() and cBucket[file.CRC] == file.Path:
+    if file.CRC in cBucket.keys() and file.Path in cBucket[file.CRC]:
         return FILE_MATCHED
-    if file.Path in cBucket.values() and file.CRC not in cBucket.keys():
+    if any(file.Path in v for v in cBucket.values()) and file.CRC not in cBucket.keys():
         return FILE_MISMATCHED
     return FILE_MISSING
 
@@ -483,9 +484,12 @@ def install_archive(fileToExtract, ignoreList):
                 if os.path.isdir(src):
                     continue
                 dst = _get_mod_folder(file.Path)
-                os.makedirs(dst, mode=0o644, exist_ok=True)
+                os.makedirs(os.path.dirname(dst), mode=0o750, exist_ok=True)
                 shutil.copy2(src, dst)
     except ArchiveException as e:
+        log.exception(e)
+        return False
+    except OSError as e:
         log.exception(e)
         return False
     return files

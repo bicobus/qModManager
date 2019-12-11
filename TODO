@@ -20,6 +20,7 @@ Toolbar:
 
 Filehandler:
   Related to listing, extracting and parsing archives.
+  [ ] install_archive needs to refresh the state of the tracked files @high
   [ ] Have a way to build a list of files to extract from an archive. @high
       We need to only extract files recognized by the game. Currently .xml and .svg files. The remaining files should be set into a ignored list.
       The list of files to extract needs to be passed down to filehandler.extract7z, or have that function request the list by itself.

@@ -159,7 +159,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             return
 
         for item in items:
-            filehandler.install_archive(item.filename, item._ignored)
+            if not filehandler.install_archive(item.filename, item._ignored):
+                dialogs.qWarning(
+                    f"The archive {item.filename} extracted with errors.\n"
+                    f"Please refer to {get_config_dir('error.log')} for more information."
+                )
 
     @pyqtSlot()
     def on_actionUninstall_Mod_triggered(self):
@@ -204,7 +208,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
             self._add_item_to_list(item)
             self._refresh_list_item_strings()
-            self._adding_files_flag = False
             self.listWidget.scrollToItem(item)
             return True
 
