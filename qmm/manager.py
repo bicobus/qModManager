@@ -42,11 +42,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         filehandler.build_loose_files_crc32(pDialog.progress)
         self.managed_archives = filehandler.ArchivesCollection()
         self.managed_archives.build_archives_list(pDialog.progress)
-        pDialog.done()
 
+        pDialog.progress("Conflict detection...")
         filehandler.detect_conflicts_between_archives(self.managed_archives)
 
-        # self.ui.listWidget
+        pDialog.progress("Computing list of archives...")
         for archive_name in self.managed_archives.keys():
             item = widgets.ListRowItem(
                 filename=archive_name,
@@ -55,6 +55,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 hashsum=self.managed_archives._hashsums[archive_name]
             )
             self._add_item_to_list(item)
+        pDialog.done()
 
     def _add_item_to_list(self, item):
         self.listWidget.addItem(item)

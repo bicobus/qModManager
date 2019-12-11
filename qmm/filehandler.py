@@ -7,6 +7,7 @@ import subprocess
 import re
 import pathlib
 
+from functools import lru_cache
 from zlib import crc32
 from hashlib import sha256
 from collections import namedtuple
@@ -407,15 +408,22 @@ FILE_MISMATCHED = 3
 FILE_IGNORED = 4
 
 
-def file_in_loose_files(file):
+@lru_cache(maxsize=None)
+def _bad_directory_structure(path):
+    if len(path.parts) > 1 and not any(path.parts[1] == x for x in first_level_dir):
+        return True
+    return False
+
+
+def file_status(file):
     cBucket = ConflictBucket().loosefiles
     path = pathObject(file.Path)
     if (path.name in ignore_patterns()
         or (not path.suffix
-            and len(path.parts) > 1
-            and not any(path.parts[1] == x for x in first_level_dir))
+            and _bad_directory_structure(path))
         or (path.suffix
-            and path.suffix not in ('.xml', '.svg'))):
+            and path.suffix not in ('.xml', '.svg')
+            or _bad_directory_structure(path))):
         return FILE_IGNORED
     if file.CRC in cBucket.keys() and cBucket[file.CRC] == file.Path:
         return FILE_MATCHED
@@ -427,14 +435,12 @@ def file_in_loose_files(file):
 def missing_matched_mismatched(file_list):
     new_list = []
     for file in file_list:
-        new_list.append((file, file_in_loose_files(file)))
+        new_list.append((file, file_status(file)))
     return new_list
 
 
 def copy_archive_to_repository(filename):
-    """
-    Copy an archive to the manager's repository
-    """
+    """Copy an archive to the manager's repository"""
     if not settings['local_repository']:
         log.warning("Unable to copy archive: no local repository configured.")
         return False
@@ -461,14 +467,13 @@ def copy_archive_to_repository(filename):
 
 
 def install_archive(fileToExtract, ignoreList):
-    """Install the content of an archive into the game mod folder.
-    """
+    """Install the content of an archive into the game mod folder."""
     if not settings['game_folder']:
         log.warning("Unable to unpack archive: game location is unknown.")
         return False
 
     fileToExtract = os.path.join(settings['local_repository'], fileToExtract)
-    ignoreList = ["-x!{}".format(path.as_posix()) for path in ignoreList]
+    ignoreList = ["-x!{}".format(path.Path) for path in ignoreList]
 
     try:
         with TemporaryDirectory(prefix="qmm-") as td:

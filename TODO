@@ -29,7 +29,7 @@ Filehandler:
   [x] Refactor install_archive @done (28-11-19 18:57)
   [x] Refactor uninstall_archive @done (07-12-19 14:52)
   [x] Refactor delete_archive @done (07-12-19 14:52)
-  [ ] Refactor copy_archive_to_repository
+  [x] Refactor copy_archive_to_repository @done (11-12-19 12:21)
 
 Metadata:
   [-] Unpack and store the metadata subfolder in the local repository. @high @cancelled (09-11-19 10:46)
