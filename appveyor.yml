@@ -61,6 +61,8 @@ on_finish:
 deploy:
   - provider: GitHub
     name: Github
+    auth_token:
+      secure: 9VzstVpyoCRNGlCcc9dIfoTYLTw9LBz5QDFkKg5qUqvT8Fk8bUTnOVSg5WCO7Fg7
     on:
       APPVEYOR_REPO_TAG: true
     artifact: main.exe
