@@ -23,6 +23,7 @@ skip_commits:
 environment:
   matrix:
     - PYTHON: "C:\\Python37-x64"
+      APPVEYOR_REPO_TAG: true
 
 install:
   # Add python and Scripts to the PATH
