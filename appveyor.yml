@@ -1,10 +1,11 @@
 version: '{branch}.{build}'
 # os: Windows
 # image: Visual Studio 2015
-#branches:
-#  # whitelist
-#  only:
-#    - master
+branches:
+  # whitelist
+  only:
+    - '/v\d.\d.\d/'
+    - '/v\d*\.\d*\.\d*-.*/'
 
 # Do build on tags
 skip_non_tags: true
