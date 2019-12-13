@@ -1,20 +1,24 @@
+version: '{branch}.{build}'
+# os: Windows
+# image: Visual Studio 2015
 branches:
   # whitelist
   only:
-    - production
+    - master
 
-# Do not build on tags
-skip_tags: true
+# Do build on tags
+skip_non_tags: true
 skip_branch_with_pr: true
-
-# Don't know if needed
-# image: Visual Studio 2015
 
 # fetch repository as zip archive
 # shallow_clone: true
 
 # set clone depth, clone entire history if not defined
 clone_depth: 5
+
+skip_commits:
+  files:
+    - .deepsource.toml
 
 environment:
   matrix:
@@ -42,7 +46,8 @@ build_script:
 # build: off
 
 artifacts:
-   - path: dist\*
+   - path: dist\main.exe
+     name: main.exe
 
 # clean up pip cache, might not be needed
 on_finish:
@@ -51,3 +56,9 @@ on_finish:
   - C:\cygwin\bin\find "%LOCALAPPDATA%\pip" -empty -delete
   - C:\cygwin\bin\du -hs "%LOCALAPPDATA%\pip\Cache"
 
+deploy:
+  - provider: Github
+    name: release
+    on:
+      APPVEYOR_REPO_TAG: true
+    artifact: main.exe
