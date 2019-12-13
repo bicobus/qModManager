@@ -7,7 +7,7 @@ from PyQt5.QtWidgets import QMessageBox, qApp, QDialog, QLabel, QVBoxLayout
 def qError(message, **kwargs):
     msg = QMessageBox()
     msg.setIcon(QMessageBox.Critical)
-    msg.setWindowTitle("An error occured")
+    msg.setWindowTitle("An error occurred")
     msg.setText(message)
     msg.setStandardButtons(QMessageBox.Ok)
     _do_message(msg, **kwargs)
@@ -16,7 +16,7 @@ def qError(message, **kwargs):
 def qWarning(message, **kwargs):
     msg = QMessageBox()
     msg.setIcon(QMessageBox.Warning)
-    msg.setWindowTitle("An warning occured")
+    msg.setWindowTitle("An warning occurred")
     msg.setText(message)
     msg.setStandardButtons(QMessageBox.Ok)
     _do_message(msg, **kwargs)
@@ -35,7 +35,7 @@ def qWarningYesNo(message, **kwargs):
 def qInformation(message, **kwargs):
     msg = QMessageBox()
     msg.setIcon(QMessageBox.Information)
-    msg.setWindowTitle("An error occured")
+    msg.setWindowTitle("An error occurred")
     msg.setText(message)
     msg.setStandardButtons(QMessageBox.Ok)
     _do_message(msg, **kwargs)
@@ -70,5 +70,3 @@ class qProgress(QDialog):
         qApp.processEvents()
         # sleep(0.005)
 
-    def done(self):
-        self.hide()

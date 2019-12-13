@@ -51,36 +51,32 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             item = widgets.ListRowItem(
                 filename=archive_name,
                 data=filehandler.missing_matched_mismatched(self.managed_archives[archive_name]),
-                stat=self.managed_archives._stat[archive_name],
-                hashsum=self.managed_archives._hashsums[archive_name]
+                stat=self.managed_archives.stat(archive_name),
+                hashsum=self.managed_archives.hashsums(archive_name)
             )
             self._add_item_to_list(item)
-        pDialog.done()
+        pDialog.done(1)
 
     def _add_item_to_list(self, item):
         self.listWidget.addItem(item)
         # Sets the widget to be displayed in the given item .
         # self.ui.listWidget.setItemWidget(item, item._widget)
 
-    def do_settings(self):
-        if self._settings_window:
-            self._settings_window.show()
-        else:
+    def do_settings(self) -> None:
+        if not self._settings_window:
             self._settings_window = QSettings()
-            self._settings_window.show()
+        self._settings_window.show()
 
-    def set_tab_color(self, index, color=None):
+    def set_tab_color(self, index, color: QtGui.QColor = None) -> None:
         if index not in self._qc.keys():  # Cache default color
             self._qc[index] = self.tabWidget.tabBar().tabTextColor(index)
 
         if not color:
-            self.tabWidget.tabBar().setTabTextColor(index, self._qc[index])
-        else:
-            assert isinstance(color, QtGui.QColor), type(color)
-            self.tabWidget.tabBar().setTabTextColor(index, color)
+            color = self._qc[index]
+        self.tabWidget.tabBar().setTabTextColor(index, color)
 
     @pyqtSlot()
-    def on_listWidget_itemSelectionChanged(self):
+    def on_listWidget_itemSelectionChanged(self) -> None:
         """
         rgb(135, 33, 39) # redish
         rgb(78, 33, 135) # blueish
@@ -159,7 +155,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             return
 
         for item in items:
-            if not filehandler.install_archive(item.filename, item._ignored):
+            if not filehandler.install_archive(item.filename, item.list_ignored()):
                 dialogs.qWarning(
                     f"The archive {item.filename} extracted with errors.\n"
                     f"Please refer to {get_config_dir('error.log')} for more information."
@@ -171,8 +167,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if not items:
             return
 
-        for item in items:
-            filehandler.uninstall_archive(item.filename)
+        if filehandler.uninstall_files(items[0].list_matched()):
+            self._refresh_list_item_strings()
 
     @pyqtSlot()
     def on_actionSettings_triggered(self):

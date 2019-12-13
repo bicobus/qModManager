@@ -21,7 +21,7 @@ if __name__ == "__main__":
         mw.show()
         sys.exit(app.exec_())
     except Exception:
-        logger.exception("Critical error occured:")
+        logger.exception("Critical error occurred:")
         raise
     finally:
         logger.info("Application shutdown complete.")

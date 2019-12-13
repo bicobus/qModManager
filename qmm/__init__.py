@@ -3,7 +3,7 @@
 __author__ = "Bicobus"
 __credits__ = ["bicobus"]
 __license__ = "EUPL V1.2"
-__version__ = "0.0"
+__version__ = "1.0"
 __maintainer__ = "bicobus"
 __email__ = "bicobus@keemail.me"
 __status__ = "Development"

@@ -154,7 +154,7 @@ class QSettings(QtWidgets.QWidget, Ui_Settings):
 class ListRowItem(QtWidgets.QListWidgetItem):
     """ListWidgetItem representing one single archive."""
 
-    def __init__(self, filename, data, stat, hashsum):
+    def __init__(self, filename: str, data, stat, hashsum):
         super().__init__()
         self._key = path.basename(filename)
         self._data = data
@@ -248,6 +248,12 @@ class ListRowItem(QtWidgets.QListWidgetItem):
         for item, _ in self._data:
             self._conflict_triage(item)
         self._format_strings()
+
+    def list_ignored(self):
+        return self._ignored
+
+    def list_matched(self):
+        return self._matched
 
     @property
     def name(self):

@@ -24,7 +24,7 @@ if is_windows:
         resource = os.path.join(*resource)
         assert not resource.startswith('/')
         path = os.path.join(appdata_path, resource)
-        if not os.isdir(path):
+        if not os.path.isdir(path):
             os.makedirs(path, 0o700)
         return path
 else:

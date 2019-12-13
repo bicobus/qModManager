@@ -7,6 +7,7 @@ import subprocess
 import re
 import pathlib
 
+from typing import Type, List, Optional, Any
 from functools import lru_cache
 from zlib import crc32
 from hashlib import sha256
@@ -25,9 +26,9 @@ startupinfo = None
 if is_windows:
     startupinfo = subprocess.STARTUPINFO()
     startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
-    pathObject = pathlib.PureWindowsPath
+    pathObject: Type[pathlib.PurePath] = pathlib.PureWindowsPath
 else:
-    pathObject = pathlib.PurePosixPath
+    pathObject: Type[pathlib.PurePath] = pathlib.PurePosixPath
 
 # Mods directory structure
 first_level_dir = ('items', 'outfits')  # outfits aren't supported in mods
@@ -42,7 +43,6 @@ reErrorMatch = re.compile(r"""^(
     Sub\sitems\sErrors:.+
 )""", re.X | re.I).match
 
-UnpackList = namedtuple('UnpackList', 'file_list error')
 FileMetadata = namedtuple('FileMetadata', 'Path Attributes CRC Modified')
 ArchiveStruct = namedtuple(
     'ArchiveStruct', 'valid mismatched missing conflict ignored')
@@ -56,30 +56,33 @@ class ArchiveException(FileHandlerException):
     pass
 
 
-def ignore_patterns(sevenFlag=False):
-    if sevenFlag:
+def ignore_patterns(seven_flag=False):
+    if seven_flag:
         return ('-xr!*.DS_Store', '-x!__MACOSX', '-xr!*Thumbs.db')
     return ('.DS_Store', '__MACOSX', 'Thumbs.db')
 
 
-def extract7z(file_archive, outputpath, excludeList=None, progress=None):
-    filepath = os.path.abspath(file_archive)
-    outputpath = os.path.abspath(outputpath)
+def extract7z(file_archive: pathlib.Path,
+              output_path: pathlib.Path,
+              exclude_list=None,
+              progress=None):
+    filepath = file_archive.absolute()
+    output_path = output_path.absolute()
     cmd = [
         tools_path(
-        ), 'x', f'{filepath}', f'-o{outputpath}', '-ba', '-bb1', '-y',
+        ), 'x', f'{filepath}', f'-o{output_path}', '-ba', '-bb1', '-y',
         '-scsUTF-8', '-sccUTF-8'
     ]
     cmd.extend(ignore_patterns(True))
-    if excludeList:
-        assert isinstance(excludeList, list)
-        cmd.extend(excludeList)
+    if exclude_list:
+        assert isinstance(exclude_list, list)
+        cmd.extend(exclude_list)
 
     proc = subprocess.Popen(
         cmd, startupinfo=startupinfo, stdout=subprocess.PIPE,
         stdin=subprocess.PIPE, stderr=subprocess.STDOUT)
 
-    fList = []
+    f_list: List[FileMetadata] = []
     errstring = ""
     with proc.stdout as out:
         for line in iter(out.readline, b''):
@@ -93,71 +96,71 @@ def extract7z(file_archive, outputpath, excludeList=None, progress=None):
             extract = reExtractMatch(line)
             if extract:
                 path = extract.group(1).strip()
-                fList.append(FileMetadata(Attributes=None, Path=path,
-                                          CRC=None, Modified=None))
+                f_list.append(FileMetadata(Attributes=None, Path=path,
+                                           CRC=None, Modified=None))
                 if progress:
                     progress(f'Extracting {path}...')
 
-    returncode = proc.wait()
-    if returncode != 0 or errstring:
+    return_code = proc.wait()
+    if return_code != 0 or errstring:
         raise ArchiveException((
-            f"{filepath}: Extraction failed with error code {returncode} "
+            f"{filepath}: Extraction failed with error code {return_code} "
             f"and message:\n{errstring}"))
 
-    return fList
+    return f_list
 
 
-def list7z(filepath, progress=None):
-    filepath = os.path.abspath(filepath)
+def list7z(file_path, progress=None) -> List[FileMetadata]:
+    file_path = os.path.abspath(file_path)
 
     if progress:
-        progress(f'Processing {filepath}...')
+        progress(f'Processing {file_path}...')
 
     cmd = [
         tools_path(
-        ), 'l', f'{filepath}', '-ba', '-scsUTF-8', '-sccUTF-8', '-slt'
+        ), 'l', f'{file_path}', '-ba', '-scsUTF-8', '-sccUTF-8', '-slt'
     ]
 
     proc = subprocess.Popen(
         cmd, startupinfo=startupinfo, stdout=subprocess.PIPE,
         stdin=subprocess.PIPE, stderr=subprocess.STDOUT)
 
-    fList = []
+    f_list: List[FileMetadata] = []
     model = {
         'Path': None,
         'Modified': None,
         'Attributes': None,
         'CRC': None
     }
-    errstring = ""
+    err_string = ""
     with proc.stdout as out:
         for line in iter(out.readline, b''):
             line = line.decode('utf-8')
 
-            errData = reErrorMatch(line)
-            if errData:
-                errstring = line + b''.join(out).decode('utf-8')
+            err_data = reErrorMatch(line)
+            if err_data:
+                err_string = line + b''.join(out).decode('utf-8')
                 break
 
-            fileData = reListMatch(line)
-            if fileData:
-                fdg = fileData.group(1).strip()
+            file_data: Optional[Any] = reListMatch(line)
+            if file_data:
+                fdg = file_data.group(1).strip()
                 if fdg == 'Path':
-                    tmpData = model.copy()
+                    tmp_data = model.copy()
                 if fdg in ('Path', 'Modified', 'Attributes', 'CRC'):
-                    tmpData[fdg] = fileData.group(2).strip()
+                    tmp_data[fdg] = file_data.group(2).strip()
                 if fdg == 'CRC':
-                    if 'D' not in tmpData['Attributes']:
-                        tmpData[fdg] = int(tmpData[fdg], 16)
-                    fList.append(FileMetadata(**tmpData))
+                    if 'D' not in tmp_data['Attributes']:
+                        tmp_data[fdg] = int(tmp_data[fdg], 16)
+                    f_list.append(FileMetadata(**tmp_data))
 
-    returncode = proc.wait()
-    if returncode != 0 or errstring:
+    return_code = proc.wait()
+    if return_code != 0 or err_string:
         raise ArchiveException((
-            f"{filepath}: listing failed with error code {returncode} "
-            f"and message:\n{errstring}"))
+            f"{file_path}: listing failed with error code {return_code} "
+            f"and message:\n{err_string}"))
 
-    return fList
+    return f_list
 
 
 def _sha256hash(filename):
@@ -168,7 +171,9 @@ def _sha256hash(filename):
         else:
             with open(filename, 'rb') as fp:
                 result = sha256(fp.read()).hexdigest()
-    except OSError:
+    except OSError as e:
+        log.exception(e)
+        result = None
         pass
 
     return result
@@ -207,7 +212,7 @@ class ArchivesCollection(MutableMapping):
         self._set_stat(path.name, path)
         self._set_hashsums(path.name, hashsum)
 
-    def find(self, archiveName=None, hashsum=None):
+    def find(self, archive_name=None, hashsum=None):
         """Try to find a member, then returns its object, either through the name
         of the archive and/or the sha256sum of the file.
 
@@ -218,18 +223,17 @@ class ArchivesCollection(MutableMapping):
         If all checks fails, returns False.
 
         Keywords arguments:
-        archiveName -- filename of the archive, suffix included (default None)
+        archive_name -- filename of the archive, suffix included (default None)
         hashsum -- sha256sum of the file (default None)
         """
-        if archiveName and archiveName in self._data.keys():
-            return self._data[archiveName]
+        if archive_name and archive_name in self._data.keys():
+            return self._data[archive_name]
         if hashsum and hashsum in self._hashsums.values():
             for key, item in self._hashsums.items():
                 if item == hashsum:
                     return self._data[key]
         return False
 
-    @property
     def stat(self, key):
         return self._stat[key]
 
@@ -237,7 +241,6 @@ class ArchivesCollection(MutableMapping):
         assert isinstance(value, pathlib.Path)
         self._stat[key] = value.stat()
 
-    @property
     def hashsums(self, key):
         return self._hashsums[key]
 
@@ -272,7 +275,7 @@ def _ignored_part_in_path(path):
     return False
 
 
-def _get_mod_folder(with_file=None, force_build=False):
+def _get_mod_folder(with_file=None, force_build=False) -> pathlib.Path:
     path = [settings['game_folder']]
     mods_path = ['res', 'mods']
     if with_file:
@@ -467,21 +470,21 @@ def copy_archive_to_repository(filename):
         return os.path.basename(new_filename)
 
 
-def install_archive(fileToExtract, ignoreList):
+def install_archive(file_to_extract, ignore_list):
     """Install the content of an archive into the game mod folder."""
     if not settings['game_folder']:
         log.warning("Unable to unpack archive: game location is unknown.")
         return False
 
-    fileToExtract = os.path.join(settings['local_repository'], fileToExtract)
-    ignoreList = ["-x!{}".format(path.Path) for path in ignoreList]
+    file_to_extract = pathlib.Path(settings['local_repository'], file_to_extract)
+    ignore_list = ["-x!{}".format(path.Path) for path in ignore_list]
 
     try:
         with TemporaryDirectory(prefix="qmm-") as td:
-            files = extract7z(fileToExtract, td, excludeList=ignoreList)
+            files = extract7z(file_to_extract, pathlib.Path(td), exclude_list=ignore_list)
             for file in files:
-                src = os.path.join(td, file.Path)
-                if os.path.isdir(src):
+                src = pathlib.Path(td, file.Path)
+                if src.is_dir():
                     continue
                 dst = _get_mod_folder(file.Path)
                 os.makedirs(os.path.dirname(dst), mode=0o750, exist_ok=True)
@@ -495,22 +498,23 @@ def install_archive(fileToExtract, ignoreList):
     return files
 
 
-def uninstall_files(fileList):
+def uninstall_files(file_list: list):
     """Removes a list of files and directory from the filesystem."""
-    assert isinstance(fileList, list)
 
     dlist = []
-    for item in fileList:
-        assert isinstance(item, pathlib.PurePath)
-        i = pathlib.Path(item)
-        log.debug("Trying to delete file: %s", item.Path)
-        if not i.is_dir():
+    has_errors = False
+    for item in file_list:
+        assert isinstance(item, FileMetadata)
+        file = _get_mod_folder(item.Path)
+        log.debug("Trying to delete file: %s", file)
+        if not file.is_dir():
             try:
-                i.unlink()
+                file.unlink()
             except OSError as e:
-                log.error("Unable to remove file %s: %s", item, e)
+                log.error("Unable to remove file %s: %s", file, e)
+                has_errors = True
         else:
-            dlist.append(i)
+            dlist.append(file)
 
     dlist.sort(reverse=True)
     for directory in dlist:
@@ -518,6 +522,9 @@ def uninstall_files(fileList):
             directory.rmdir()
         except OSError as e:  # Probably due to not being empty
             log.debug("Unable to remove directory %s: %s", directory, e)
+            has_errors = True
+
+    return has_errors
 
 
 def delete_archive(filepath):
