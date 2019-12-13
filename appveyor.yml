@@ -59,8 +59,8 @@ on_finish:
   - C:\cygwin\bin\du -hs "%LOCALAPPDATA%\pip\Cache"
 
 deploy:
-  - provider: Github
-    name: release
+  - provider: GitHub Release
+    name: Github
     on:
       APPVEYOR_REPO_TAG: true
     artifact: main.exe
