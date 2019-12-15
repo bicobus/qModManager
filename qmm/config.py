@@ -39,8 +39,7 @@ def get_config_dir(filename=None, extraDirectories=None):
 
     if filename:
         return os.path.join(path, filename)
-    else:
-        return path
+    return path
 
 
 class Config(MutableMapping):
@@ -49,7 +48,7 @@ class Config(MutableMapping):
     """
 
     def __init__(self, filename, config_dir=None, defaults=None,
-                 file_version=1, compress=False, parent=None):
+                 compress=False):
         self._data = dict()
         self._save_timer = False
         self._compress = compress
@@ -88,8 +87,7 @@ class Config(MutableMapping):
 
         if self._data[key] == value:
             return
-        else:
-            self._data[key] = value
+        self._data[key] = value
 
         log.debug("Config key state changed, save timer state is: %s", self._save_timer)
         if not self._save_timer:
@@ -104,7 +102,7 @@ class Config(MutableMapping):
 
     def _get_data_from_file(self, filename=None):
         if not os.path.exists(filename):
-            return
+            return None
 
         try:
             if self._compress:
@@ -116,7 +114,7 @@ class Config(MutableMapping):
                     data = json.load(f)
         except IOError as e:
             log.warning("Unable ti load config file %s: %s", filename, e)
-            return
+            return None
         return data
 
     def load(self, filename=None):

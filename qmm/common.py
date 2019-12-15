@@ -1,6 +1,7 @@
 # Licensed under the EUPL v1.2
 # © 2019 bicobus <bicobus@keemail.me>
 import os
+import sys
 import logging
 from datetime import datetime
 from . import is_windows
@@ -21,15 +22,17 @@ settings = Config(
 def settings_are_set():
     if not settings['local_repository'] or not settings['game_folder']:
         return False
-    else:
-        return True
+    return True
 
 
 def tools_path():
     if is_windows:
-        return os.path.join(os.path.dirname(__file__), 'tools', '7z.exe')
-    else:
-        return '7z'
+        if getattr(sys, 'frozen', False):
+            rel = os.path.dirname(sys.executable)
+        elif __file__:
+            rel = os.path.dirname(__file__)
+        return os.path.join(rel, 'tools', '7z.exe')
+    return '7z'
 
 
 def resources_directory():
