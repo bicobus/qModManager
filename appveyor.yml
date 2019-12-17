@@ -2,7 +2,7 @@ version: '{branch}.{build}'
 # os: Windows
 # image: Visual Studio 2015
 branches:
-  # whitelist
+  # whitelist tags schemes (e.g.: 1.0.0)
   only:
     - '/v\d.\d.\d/'
     - '/v\d*\.\d*\.\d*-.*/'
@@ -26,7 +26,12 @@ environment:
     - PYTHON: "C:\\Python37-x64"
       APPVEYOR_REPO_TAG: true
 
+cache:
+  - '%LOCALAPPDATA%\pip\Cache\http'
+  - '%LOCALAPPDATA%\pip\Cache\wheels'
+
 install:
+  - C:\cygwin\bin\du -hs '%LOCALAPPDATA%\pip\cache'
   # Add python and Scripts to the PATH
   - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
 
@@ -38,18 +43,29 @@ install:
   # Install dependencies
   - python -m pip install --disable-pip-version-check --upgrade pip
   - python -m pip install pyinstaller
+  - python -m pip install flake8
   - python -m pip install -r requirements.txt
-  - c:\cygwin\bin\make compile
+
+before_test:
+  - echo Starting Tests
+
+after_test:
+  - echo Finished Tests
+
+test_script:
+  - flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
 
 build_script:
+  - c:\cygwin\bin\make compile
   - pyinstaller -F main.py
 
-# Disable automatic builds
-# build: off
+on_success:
+  - "copy dist\main.exe ."
+  - 7z a qModManager.7z main.exe README.md tools\
 
 artifacts:
-   - path: dist\main.exe
-     name: main.exe
+   - path: qModManager.7z
+     name: qModManager
 
 # clean up pip cache, might not be needed
 on_finish:
@@ -61,8 +77,9 @@ on_finish:
 deploy:
   - provider: GitHub
     name: Github
+    prerelease: true
     auth_token:
       secure: 9VzstVpyoCRNGlCcc9dIfoTYLTw9LBz5QDFkKg5qUqvT8Fk8bUTnOVSg5WCO7Fg7
     on:
       APPVEYOR_REPO_TAG: true
-    artifact: main.exe
+    artifact: qModManager
