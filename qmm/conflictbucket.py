@@ -1,5 +1,6 @@
 # Licensed under the EUPL v1.2
 # © 2019 bicobus <bicobus@keemail.me>
+from typing import Dict, List
 
 
 class ConflictBucket:
@@ -10,8 +11,8 @@ class ConflictBucket:
             cls._instance = super(ConflictBucket, cls).__new__(cls)
             cls._instance._conflicts = {}
             cls._instance._looseconflicts = {}
-            cls._instance._gamefiles = None
-            cls._instance._loosefiles = None
+            cls._instance._gamefiles = {}
+            cls._instance._loosefiles = {}
         return cls._instance
 
     @property
@@ -35,7 +36,7 @@ class ConflictBucket:
         return self._loosefiles
 
     @loosefiles.setter
-    def loosefiles(self, loosefiles):
+    def loosefiles(self, loosefiles: Dict[int, List]):
         self._loosefiles = loosefiles
 
     @property
