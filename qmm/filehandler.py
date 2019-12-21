@@ -18,7 +18,7 @@ from tempfile import TemporaryDirectory
 from . import is_windows
 from .common import tools_path, settings, settings_are_set
 from .conflictbucket import ConflictBucket
-log = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 # this shit: https://docs.microsoft.com/en-us/windows/win32/api/processthreadsapi/ns-processthreadsapi-startupinfoa
 # Internet wisdom tells me STARTF_USESHOWWINDOW is used to hide the would be console
@@ -45,7 +45,8 @@ reErrorMatch = re.compile(r"""^(
 
 FileMetadata = namedtuple('FileMetadata', 'Path Attributes CRC Modified')
 ArchiveStruct = namedtuple(
-    'ArchiveStruct', 'valid mismatched missing conflict ignored')
+    'ArchiveStruct',
+    'valid mismatched missing conflict ignored')
 
 
 class FileHandlerException(Exception):
@@ -58,8 +59,8 @@ class ArchiveException(FileHandlerException):
 
 def ignore_patterns(seven_flag=False):
     if seven_flag:
-        return ('-xr!*.DS_Store', '-x!__MACOSX', '-xr!*Thumbs.db')
-    return ('.DS_Store', '__MACOSX', 'Thumbs.db')
+        return '-xr!*.DS_Store', '-x!__MACOSX', '-xr!*Thumbs.db'
+    return '.DS_Store', '__MACOSX', 'Thumbs.db'
 
 
 def extract7z(file_archive: pathlib.Path,
@@ -127,10 +128,10 @@ def list7z(file_path, progress=None) -> List[FileMetadata]:
 
     f_list: List[FileMetadata] = []
     model = {
-        'Path': None,
-        'Modified': None,
-        'Attributes': None,
-        'CRC': None
+        'Path': "",
+        'Modified': "",
+        'Attributes': "",
+        'CRC': 0
     }
     err_string = ""
     with proc.stdout as out:
@@ -163,8 +164,16 @@ def list7z(file_path, progress=None) -> List[FileMetadata]:
     return f_list
 
 
-def _sha256hash(filename):
-    """Returns the 256 hash of the managed archive."""
+def sha256hash(filename):
+    """Returns the 256 hash of the managed archive.
+
+    Args:
+        filename: path to the file to hash
+
+    Returns:
+        string: if successful
+        None: if not successful
+    """
     try:
         if hasattr(filename, 'read'):
             result = sha256(filename.read).hexdigest()
@@ -172,7 +181,7 @@ def _sha256hash(filename):
             with open(filename, 'rb') as fp:
                 result = sha256(fp.read()).hexdigest()
     except OSError as e:
-        log.exception(e)
+        logger.exception(e)
         result = None
         pass
 
@@ -207,7 +216,7 @@ class ArchivesCollection(MutableMapping):
         if not path.is_file():
             return
         if not hashsum:
-            hashsum = _sha256hash(path)
+            hashsum = sha256hash(path)
         self[path.name] = list7z(path, progress)
         self._set_stat(path.name, path)
         self._set_hashsums(path.name, hashsum)
@@ -222,9 +231,9 @@ class ArchivesCollection(MutableMapping):
         self._hashsums dict.
         If all checks fails, returns False.
 
-        Keywords arguments:
-        archive_name -- filename of the archive, suffix included (default None)
-        hashsum -- sha256sum of the file (default None)
+        Args:
+            archive_name: filename of the archive, suffix included (default None)
+            hashsum: sha256sum of the file (default None)
         """
         if archive_name and archive_name in self._data.keys():
             return self._data[archive_name]
@@ -277,14 +286,10 @@ def _ignored_part_in_path(path):
 
 def _get_mod_folder(with_file=None, force_build=False) -> pathlib.Path:
     path = [settings['game_folder']]
-    mods_path = ['res', 'mods']
     if with_file:
-        # XXX Removes the check, res/mods is supposed to not be present
-        if with_file.split('/')[0] != 'res':
-            path.extend(mods_path)
         path.append(with_file)
     elif force_build:
-        path.extend(mods_path)
+        path.extend(['res', 'mods'])
     return pathlib.Path(*path)
 
 
@@ -300,7 +305,7 @@ def _compute_files_crc32(folder, partition=('res', 'mods')):
         for file in files:
             key = pathObject(os.path.join(path, file)).as_posix()
             with open(os.path.join(root, file), 'rb') as fp:
-                yield (key, crc32(fp.read()))
+                yield key, crc32(fp.read())
 
 
 # The paths returned by this function are non-existent due to a difference
@@ -328,7 +333,7 @@ def build_game_files_crc32(progress=None):
             key = os.path.join(*n_parts)
             progress(f"Computing {key}...")
             if crc in crc_dict.keys():
-                log.error(f"Game has duplicate file or we found a CRC collision: {crc}")
+                logger.error(f"Game has duplicate file or we found a CRC collision: {crc}")
             crc_dict[crc] = key
 
     ConflictBucket.gamefiles = crc_dict
@@ -351,7 +356,7 @@ def build_loose_files_crc32(progress=None):
 def _filter_list_on_exclude(archives_list, list_to_exclude):
     for archive_name, items in archives_list.items():
         if not list_to_exclude or archive_name not in list_to_exclude:
-            yield (archive_name, items)
+            yield archive_name, items
 
 
 def file_in_other_archives(file, archives, ignore):
@@ -363,7 +368,7 @@ def file_in_other_archives(file, archives, ignore):
     ignore: list of archives to ignore, for instance already parsed archives
     """
     def _ofile(v):
-        return (v.CRC, v.Path)
+        return v.CRC, v.Path
 
     found = []
     for ck, items in _filter_list_on_exclude(archives, ignore):
@@ -395,7 +400,7 @@ def conflicts_process_files(files, archives_list, current_archive, processed):
             ConflictBucket().conflicts[file.Path].extend(bad_archives)
 
 
-def detect_conflicts_between_archives(archives_lists):
+def detect_conflicts_between_archives(archives_lists: ArchivesCollection):
     assert isinstance(archives_lists, ArchivesCollection), type(archives_lists)
     list_done = []  # (sha256, filepath) of already processed archives
     conflicts = ConflictBucket().conflicts
@@ -419,19 +424,21 @@ def _bad_directory_structure(path):
     return False
 
 
-def file_status(file):
-    cBucket = ConflictBucket().loosefiles
+@lru_cache(maxsize=None)
+def _bad_suffix(suffix):
+    return bool(suffix not in ('.xml', '.svg'))
+
+
+def file_status(file: FileMetadata) -> int:
+    c_bucket = ConflictBucket().loosefiles
     path = pathObject(file.Path)
     if (path.name in ignore_patterns()
-        or (not path.suffix
-            and _bad_directory_structure(path))
-        or (path.suffix
-            and path.suffix not in ('.xml', '.svg')
-            or _bad_directory_structure(path))):
+            or _bad_directory_structure(path)
+            or (path.suffix and _bad_suffix(path.suffix))):
         return FILE_IGNORED
-    if file.CRC in cBucket.keys() and file.Path in cBucket[file.CRC]:
+    if file.CRC in c_bucket.keys() and file.Path in c_bucket[file.CRC]:
         return FILE_MATCHED
-    if any(file.Path in v for v in cBucket.values()) and file.CRC not in cBucket.keys():
+    if any(file.Path in v for v in c_bucket.values()) and file.CRC not in c_bucket.keys():
         return FILE_MISMATCHED
     return FILE_MISSING
 
@@ -446,7 +453,7 @@ def missing_matched_mismatched(file_list):
 def copy_archive_to_repository(filename):
     """Copy an archive to the manager's repository"""
     if not settings['local_repository']:
-        log.warning("Unable to copy archive: no local repository configured.")
+        logger.warning("Unable to copy archive: no local repository configured.")
         return False
 
     new_filename = os.path.join(
@@ -455,7 +462,7 @@ def copy_archive_to_repository(filename):
     )
 
     if os.path.exists(new_filename):
-        log.error(
+        logger.error(
             "Unable to copy archive, a file with a similar name already exists.")
         return False
 
@@ -464,7 +471,7 @@ def copy_archive_to_repository(filename):
             os.makedirs(settings['local_repository'])
         shutil.copy(filename, settings['local_repository'])
     except IOError as e:
-        log.error("Error copying archive: %s", e)
+        logger.error("Error copying archive: %s", e)
         return False
     else:
         return os.path.basename(new_filename)
@@ -473,7 +480,7 @@ def copy_archive_to_repository(filename):
 def install_archive(file_to_extract, ignore_list):
     """Install the content of an archive into the game mod folder."""
     if not settings['game_folder']:
-        log.warning("Unable to unpack archive: game location is unknown.")
+        logger.warning("Unable to unpack archive: game location is unknown.")
         return False
 
     file_to_extract = pathlib.Path(settings['local_repository'], file_to_extract)
@@ -490,10 +497,10 @@ def install_archive(file_to_extract, ignore_list):
                 os.makedirs(os.path.dirname(dst), mode=0o750, exist_ok=True)
                 shutil.copy2(src, dst)
     except ArchiveException as e:
-        log.exception(e)
+        logger.exception(e)
         return False
     except OSError as e:
-        log.exception(e)
+        logger.exception(e)
         return False
     return files
 
@@ -506,12 +513,12 @@ def uninstall_files(file_list: list):
     for item in file_list:
         assert isinstance(item, FileMetadata)
         file = _get_mod_folder(item.Path)
-        log.debug("Trying to delete file: %s", file)
+        logger.debug("Trying to delete file: %s", file)
         if not file.is_dir():
             try:
                 file.unlink()
             except OSError as e:
-                log.error("Unable to remove file %s: %s", file, e)
+                logger.error("Unable to remove file %s: %s", file, e)
                 has_errors = True
         else:
             dlist.append(file)
@@ -521,7 +528,7 @@ def uninstall_files(file_list: list):
         try:
             directory.rmdir()
         except OSError as e:  # Probably due to not being empty
-            log.debug("Unable to remove directory %s: %s", directory, e)
+            logger.debug("Unable to remove directory %s: %s", directory, e)
             has_errors = True
 
     return has_errors
@@ -536,8 +543,8 @@ def delete_archive(filepath):
         try:
             filepath.unlink()
         except OSError as e:
-            log.error("Unable to remove file from drive: %s", e)
+            logger.error("Unable to remove file from drive: %s", e)
             return False
     else:
-        log.error("Unable to remove an non-existing file: %s", filepath)
+        logger.error("Unable to remove an non-existing file: %s", filepath)
     return True
