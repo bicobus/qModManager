@@ -183,7 +183,6 @@ def sha256hash(filename):
     except OSError as e:
         logger.exception(e)
         result = None
-        pass
 
     return result
 
