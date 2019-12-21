@@ -1,5 +1,7 @@
-# Licensed under the EUPL v1.2
-# © 2019 bicobus <bicobus@keemail.me>
+"""Handles the Qt main window.
+Licensed under the EUPL v1.2
+© 2019 bicobus <bicobus@keemail.me>
+"""
 
 import logging
 from PyQt5.QtCore import pyqtSlot
@@ -62,11 +64,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # Sets the widget to be displayed in the given item .
         # self.ui.listWidget.setItemWidget(item, item._widget)
 
-    def do_settings(self) -> None:
-        if not self._settings_window:
-            self._settings_window = QSettings()
-        self._settings_window.show()
-
     def set_tab_color(self, index, color: QtGui.QColor = None) -> None:
         if index not in self._qc.keys():  # Cache default color
             self._qc[index] = self.tabWidget.tabBar().tabTextColor(index)
@@ -75,8 +72,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             color = self._qc[index]
         self.tabWidget.tabBar().setTabTextColor(index, color)
 
-    @pyqtSlot()
-    def on_listWidget_itemSelectionChanged(self) -> None:
+    @pyqtSlot(name="on_listWidget_itemSelectionChanged")
+    def _on_selection_change(self) -> None:
         """
         rgb(135, 33, 39) # redish
         rgb(78, 33, 135) # blueish
@@ -123,8 +120,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.set_tab_color(conflict_idx)
         self.tab_conflicts_content.setPlainText(item.conflicts)
 
-    @pyqtSlot()
-    def on_actionOpen_triggered(self):
+    @pyqtSlot(name="on_actionOpen_triggered")
+    def _do_add_new_mod(self):
         if not settings_are_set():
             dialogs.qWarning(
                 "You must set your game folder location."
@@ -135,21 +132,20 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         filters = ["Archives (*.7z *.zip *.rar)"]
         qfd.setNameFilters(filters)
         qfd.selectNameFilter(filters[0])
-        qfd.fileSelected.connect(self._on_actionOpen_done)
+        qfd.fileSelected.connect(self._on_action_open_done)
         qfd.exec_()
 
-    @pyqtSlot()
-    def on_actionRemove_file_triggered(self):
+    @pyqtSlot(name="on_actionRemove_file_triggered")
+    def _do_delete_selected_file(self):
         items = self.listWidget.selectedItems()
         if not items:
             return
 
         for item in items:
-            if item.key in filehandler.managed_archives.keys():
-                filehandler.delete_archive(item.key)
+            filehandler.delete_archive(item.Path)
 
-    @pyqtSlot()
-    def on_actionInstall_Mod_triggered(self):
+    @pyqtSlot(name="on_actionInstall_Mod_triggered")
+    def _do_install_selected_mod(self):
         items = self.listWidget.selectedItems()
         if not items:
             return
@@ -161,8 +157,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                     f"Please refer to {get_config_dir('error.log')} for more information."
                 )
 
-    @pyqtSlot()
-    def on_actionUninstall_Mod_triggered(self):
+    @pyqtSlot(name="on_actionUninstall_Mod_triggered")
+    def _do_uninstall_selected_mod(self):
         items = self.listWidget.selectedItems()
         if not items:
             return
@@ -170,17 +166,19 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if filehandler.uninstall_files(items[0].list_matched()):
             self._refresh_list_item_strings()
 
-    @pyqtSlot()
-    def on_actionSettings_triggered(self):
-        self.do_settings()
+    @pyqtSlot(name="on_actionSettings_triggered")
+    def do_settings(self):
+        if not self._settings_window:
+            self._settings_window = QSettings()
+        self._settings_window.show()
 
     def _refresh_list_item_strings(self):
         for idx in range(0, self.listWidget.count() - 1):
             self.listWidget.item(idx).refresh_strings()
 
-    def _on_actionOpen_done(self, filename):
+    def _on_action_open_done(self, filename):
         """Callback to QFileDialog once a file is selected."""
-        hashsum = filehandler._sha256hash(filename)
+        hashsum = filehandler.sha256hash(filename)
 
         if not self.managed_archives.find(hashsum=hashsum):
             archive_name = filehandler.copy_archive_to_repository(filename)
@@ -199,8 +197,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             item = widgets.ListRowItem(
                 filename=archive_name,
                 data=filehandler.missing_matched_mismatched(self.managed_archives[archive_name]),
-                stat=self.managed_archives._stat[archive_name],
-                hashsum=self.managed_archives._hashsums[archive_name])
+                stat=self.managed_archives.stat(archive_name),
+                hashsum=self.managed_archives.hashsums(archive_name))
 
             self._add_item_to_list(item)
             self._refresh_list_item_strings()

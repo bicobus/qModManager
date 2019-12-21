@@ -1,16 +1,19 @@
-# Licensed under the EUPL v1.2
-# © 2019 bicobus <bicobus@keemail.me>
+"""Contains various Qt Widgets used internally by the application.
+Licensed under the EUPL v1.2
+© 2019 bicobus <bicobus@keemail.me>
+"""
+
 import logging
 from os import path
 # from collections import deque # DetailView
+from PyQt5 import QtWidgets
+from PyQt5.QtCore import pyqtSlot
 from .common import timestamp_to_string, settings
 from .filehandler import (FILE_MISSING, FILE_MATCHED, FILE_MISMATCHED,
                           FILE_IGNORED)
 from .conflictbucket import ConflictBucket
 from .ui_settings import Ui_Settings
 # from .ui_detailedview import Ui_DetailedView # DetailView
-from PyQt5 import QtWidgets
-from PyQt5.QtCore import pyqtSlot
 
 # from PyQt5.QtGui import QIcon, QPixmap
 # _detailViewButton = QtWidgets.QPushButton()
@@ -22,17 +25,21 @@ logger = logging.getLogger(__name__)
 
 
 class QSettings(QtWidgets.QWidget, Ui_Settings):
+    """Define the settings windows."""
+
     def __init__(self):
         super().__init__()
         self.setupUi(self)
 
     def show(self):
+        """Show the window and assign internal variables"""
         super().show()
         self.game_input.setText(settings['game_folder'])
         self.repo_input.setText(settings['local_repository'])
 
-    @pyqtSlot()
+    @pyqtSlot(name="on_game_button_clicked")
     def on_game_button_clicked(self):
+        """Callback, will show a file selection window to the user"""
         value = QtWidgets.QFileDialog.getExistingDirectory(
             parent=self,
             caption=self.game_label.text(),
@@ -42,8 +49,9 @@ class QSettings(QtWidgets.QWidget, Ui_Settings):
         if value and value != settings['game_folder']:
             self.game_input.setText(value)
 
-    @pyqtSlot()
+    @pyqtSlot(name="on_repo_button_clicked")
     def on_repo_button_clicked(self):
+        """Callback, will show a file selection window to use user"""
         value = QtWidgets.QFileDialog.getExistingDirectory(
             parent=self,
             caption=self.repo_label.text(),
@@ -52,8 +60,9 @@ class QSettings(QtWidgets.QWidget, Ui_Settings):
         if value and value != settings['local_repository']:
             self.repo_input.setText(value)
 
-    @pyqtSlot()
+    @pyqtSlot(name="on_save_button_clicked")
     def on_save_button_clicked(self):
+        """Callback, commit changes to the settings file then hide self"""
         if (self.game_input.text() != settings['game_folder']
                 and path.isdir(self.game_input.text())):
             settings['game_folder'] = self.game_input.text()
@@ -62,7 +71,7 @@ class QSettings(QtWidgets.QWidget, Ui_Settings):
             settings['local_repository'] = self.repo_input.text()
         self.hide()
 
-    @pyqtSlot()
+    @pyqtSlot(name="on_cancel_button_clicked")
     def on_cancel_button_clicked(self):
         self.hide()
 
