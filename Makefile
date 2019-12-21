@@ -7,14 +7,18 @@ PUI=$(LDIR)/icons_rc.py\
 	$(LDIR)/ui_settings.py\
 	$(LDIR)/ui_mainwindow.py
 
+.PHONY: clean qt
+
 $(LDIR)/ui_%.py: $(RDIR)/ui_%.ui
 	$(UIC) -o $@ $<
 
 $(LDIR)/%_rc.py: $(RDIR)/%.qrc
 	$(RCC) -o $@ $<
 
-compile: $(PUI)
+qt: $(PUI)
 
-.PHONEY: clean
 clean: 
 	$(RM) $(PUI)
+	-find . -name '__pycache__' -prune -exec rm -rf "{}" \;
+	-find . -name '*.pyc' -delete
+

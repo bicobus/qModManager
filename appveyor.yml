@@ -56,7 +56,7 @@ test_script:
   - flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
 
 build_script:
-  - c:\cygwin\bin\make compile
+  - c:\cygwin\bin\make qt
   - pyinstaller -F main.py
 
 on_success:
