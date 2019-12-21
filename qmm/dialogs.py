@@ -29,7 +29,7 @@ def qWarningYesNo(message, **kwargs):
     msg.setText(message)
     msg.setStandardButtons(QMessageBox.Ok | QMessageBox.Cancel)
     r = _do_message(msg, **kwargs)
-    return True if r == QMessageBox.Ok else False
+    return bool(r == QMessageBox.Ok)
 
 
 def qInformation(message, **kwargs):
