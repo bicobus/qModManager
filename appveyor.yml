@@ -60,7 +60,8 @@ build_script:
   - pyinstaller -F main.py
 
 on_success:
-  - "copy dist\main.exe ."
+  - ps: >-
+      Move-Item dist\main.exe .\main.exe
   - 7z a qModManager.7z main.exe README.md tools\
 
 artifacts:
