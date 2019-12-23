@@ -7,7 +7,7 @@ import logging
 from PyQt5.QtCore import pyqtSlot
 from PyQt5.QtWidgets import QMainWindow, QFileDialog
 from PyQt5 import QtGui
-from . import dialogs, widgets, filehandler, bucket
+from . import dialogs, widgets, filehandler
 from .ui_mainwindow import Ui_MainWindow
 from .config import get_config_dir
 from .common import settings_are_set
