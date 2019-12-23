@@ -8,3 +8,4 @@ max-line-length=127
 max-complexity=10
 show-source=1
 statistics=1
+select=C,E,F,W,B,B9

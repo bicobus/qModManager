@@ -7,7 +7,7 @@ import logging
 from PyQt5.QtCore import pyqtSlot
 from PyQt5.QtWidgets import QMainWindow, QFileDialog
 from PyQt5 import QtGui
-from . import dialogs, widgets, filehandler
+from . import dialogs, widgets, filehandler, bucket
 from .ui_mainwindow import Ui_MainWindow
 from .config import get_config_dir
 from .common import settings_are_set
@@ -34,21 +34,21 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self._settings_window = None
         self._qc = {}
 
-        pDialog = dialogs.qProgress(
+        p_dialog = dialogs.qProgress(
             parent=self, title="Computing data",
             message="Please wait for the software to initialize it's data."
         )
-        pDialog.show()
+        p_dialog.show()
 
-        filehandler.build_game_files_crc32(pDialog.progress)
-        filehandler.build_loose_files_crc32(pDialog.progress)
+        filehandler.build_game_files_crc32(p_dialog.progress)
+        filehandler.build_loose_files_crc32(p_dialog.progress)
         self.managed_archives = filehandler.ArchivesCollection()
-        self.managed_archives.build_archives_list(pDialog.progress)
+        self.managed_archives.build_archives_list(p_dialog.progress)
 
-        pDialog.progress("Conflict detection...")
+        p_dialog.progress("Conflict detection...")
         filehandler.detect_conflicts_between_archives(self.managed_archives)
 
-        pDialog.progress("Computing list of archives...")
+        p_dialog.progress("Computing list of archives...")
         for archive_name in self.managed_archives.keys():
             item = widgets.ListRowItem(
                 filename=archive_name,
@@ -57,7 +57,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 hashsum=self.managed_archives.hashsums(archive_name)
             )
             self._add_item_to_list(item)
-        pDialog.done(1)
+        p_dialog.done(1)
 
     def _add_item_to_list(self, item):
         self.listWidget.addItem(item)
@@ -140,22 +140,30 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         items = self.listWidget.selectedItems()
         if not items:
             return
-
-        for item in items:
-            filehandler.delete_archive(item.Path)
+        item = items[0]
+        if item.has_matched:
+            self._do_uninstall_selected_mod()
+        filehandler.delete_archive(self.managed_archives[item.filename])
+        del self.managed_archives[item.filename]
+        filehandler.detect_conflicts_between_archives(self.managed_archives)
 
     @pyqtSlot(name="on_actionInstall_Mod_triggered")
     def _do_install_selected_mod(self):
         items = self.listWidget.selectedItems()
         if not items:
+            logger.error("Tried to install a mod, but nothing was selected.")
             return
 
         for item in items:
-            if not filehandler.install_archive(item.filename, item.list_ignored()):
+            files = filehandler.install_archive(item.filename, item.list_ignored())
+            if not files:
                 dialogs.qWarning(
                     f"The archive {item.filename} extracted with errors.\n"
                     f"Please refer to {get_config_dir('error.log')} for more information."
                 )
+            else:
+                self._refresh_list_item_strings()
+                self._on_selection_change()
 
     @pyqtSlot(name="on_actionUninstall_Mod_triggered")
     def _do_uninstall_selected_mod(self):
@@ -165,6 +173,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         if filehandler.uninstall_files(items[0].list_matched()):
             self._refresh_list_item_strings()
+            self._on_selection_change()
+        else:
+            dialogs.qWarning(
+                "The uninstallation process failed at some point. Please "
+                "report this happened to the developper alongside the error "
+                f"file {get_config_dir('error.log')}."
+            )
 
     @pyqtSlot(name="on_actionSettings_triggered")
     def do_settings(self):

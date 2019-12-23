@@ -10,8 +10,8 @@ from PyQt5 import QtWidgets
 from PyQt5.QtCore import pyqtSlot
 from .common import timestamp_to_string, settings
 from .filehandler import (FILE_MISSING, FILE_MATCHED, FILE_MISMATCHED,
-                          FILE_IGNORED)
-from .conflictbucket import ConflictBucket
+                          FILE_IGNORED, missing_matched_mismatched)
+from . import bucket
 from .ui_settings import Ui_Settings
 # from .ui_detailedview import Ui_DetailedView # DetailView
 
@@ -38,7 +38,7 @@ class QSettings(QtWidgets.QWidget, Ui_Settings):
         self.repo_input.setText(settings['local_repository'])
 
     @pyqtSlot(name="on_game_button_clicked")
-    def on_game_button_clicked(self):
+    def _set_game_directory(self):
         """Callback, will show a file selection window to the user"""
         value = QtWidgets.QFileDialog.getExistingDirectory(
             parent=self,
@@ -50,7 +50,7 @@ class QSettings(QtWidgets.QWidget, Ui_Settings):
             self.game_input.setText(value)
 
     @pyqtSlot(name="on_repo_button_clicked")
-    def on_repo_button_clicked(self):
+    def _set_repository_directory(self):
         """Callback, will show a file selection window to use user"""
         value = QtWidgets.QFileDialog.getExistingDirectory(
             parent=self,
@@ -61,7 +61,7 @@ class QSettings(QtWidgets.QWidget, Ui_Settings):
             self.repo_input.setText(value)
 
     @pyqtSlot(name="on_save_button_clicked")
-    def on_save_button_clicked(self):
+    def _commit_changes(self):
         """Callback, commit changes to the settings file then hide self"""
         if (self.game_input.text() != settings['game_folder']
                 and path.isdir(self.game_input.text())):
@@ -73,6 +73,12 @@ class QSettings(QtWidgets.QWidget, Ui_Settings):
 
     @pyqtSlot(name="on_cancel_button_clicked")
     def on_cancel_button_clicked(self):
+        """Simply hide the window.
+        The default values are being defined within the show method, thus
+        there is nothing here for us to do.
+        Returns:
+            void
+        """
         self.hide()
 
 
@@ -172,24 +178,30 @@ class ListRowItem(QtWidgets.QListWidgetItem):
         self._added = None
         self._hashsum = hashsum
 
-        self._files = []
-        self._files_str = None
-        self._matched = []
-        self._matched_str = None
-        self._missing = []
-        self._missing_str = None
-        self._mismatched = []
-        self._mismatched_str = None
-        self._ignored = []
-        self._ignored_str = None
-        self._conflicts = {}
-        self._conflicts_str = None
-        self._errored = []
-        self._errored_str = None
+        self._files_str = ""
+        self._matched_str = ""
+        self._missing_str = ""
+        self._mismatched_str = ""
+        self._ignored_str = ""
+        self._conflicts_str = ""
+        self._errored_str = ""
+
         self._triage_done = False
         self._built_strings = False
 
         self.setText(self.filename)
+        self.__setup_buckets()
+        self._triage()
+        self._format_strings()
+
+    def __setup_buckets(self):
+        self._files = []
+        self._matched = []
+        self._missing = []
+        self._mismatched = []
+        self._ignored = []
+        self._conflicts = {}
+        self._errored = []
 
     def _triage(self):
         if self._triage_done:
@@ -200,6 +212,7 @@ class ListRowItem(QtWidgets.QListWidgetItem):
             if 'D' not in item.Attributes:
                 self._files.append(item)
             self._conflict_triage(item)
+        self._triage_done = True
 
     def _set_item_status(self, item, status):
         if status == FILE_MATCHED:
@@ -215,19 +228,19 @@ class ListRowItem(QtWidgets.QListWidgetItem):
         return True
 
     def _conflict_triage(self, item):
-        c = []
+        tmp_conflicts = []
         # Check other archives
-        if item.Path in ConflictBucket().conflicts.keys():
-            c.extend(ConflictBucket().conflicts[item.Path])
+        if bucket.with_conflict(item.Path):
+            tmp_conflicts.extend(bucket.conflicts[item.Path])
         # Check against existing files
-        if item.CRC in ConflictBucket().looseconflicts.keys():
-            c.extend(*ConflictBucket().looseconflicts[item.CRC])
+        if bucket.with_looseconflicts(item.CRC):
+            tmp_conflicts.extend(*bucket.looseconflicts[item.CRC])
         # Check against game files (Path and CRC)
-        if (item.Path in ConflictBucket().gamefiles.values()
-                or item.CRC in ConflictBucket().gamefiles.keys()):
-            c.append(ConflictBucket().gamefiles[item.CRC])
-        if c:
-            self._conflicts[item.Path] = c
+        if (bucket.with_gamefiles(path=item.Path)
+                or bucket.with_gamefiles(crc=item.CRC)):
+            tmp_conflicts.append(bucket.gamefiles[item.CRC])
+        if tmp_conflicts:
+            self._conflicts[item.Path] = tmp_conflicts
 
     def _format_strings(self):
         self._files_str = _format_regular(
@@ -251,11 +264,13 @@ class ListRowItem(QtWidgets.QListWidgetItem):
         self._ignored_str = _format_regular(
             title="Files present in the archive but ignored",
             items=self._ignored)
+        self._built_strings = True
 
     def refresh_strings(self):
-        self._conflicts = {}
-        for item, _ in self._data:
-            self._conflict_triage(item)
+        self.__setup_buckets()
+        self._data = missing_matched_mismatched([i for i, _ in self._data])
+        self._triage_done = False
+        self._triage()
         self._format_strings()
 
     def list_ignored(self):
@@ -288,7 +303,6 @@ class ListRowItem(QtWidgets.QListWidgetItem):
 
     @property
     def files(self):
-        self._triage()
         if not self._built_strings:
             self._format_strings()
             self._built_strings = True

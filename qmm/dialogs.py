@@ -69,4 +69,3 @@ class qProgress(QDialog):
         # been made.
         qApp.processEvents()
         # sleep(0.005)
-

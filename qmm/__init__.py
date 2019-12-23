@@ -10,9 +10,12 @@ __status__ = "Development"
 
 import os
 import platform
+from collections import namedtuple
 
 is_windows = platform.system() in ('Windows', 'Microsoft')
 is_linux = platform.system() == 'Linux'
+
+FileMetadata = namedtuple('FileMetadata', 'Path Attributes CRC Modified')
 
 
 SETTINGS_HELP = """Some settings are required to be set for you to be able to use this tool.

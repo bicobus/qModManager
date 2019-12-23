@@ -31,6 +31,8 @@ def tools_path():
             rel = os.path.dirname(sys.executable)
         elif __file__:
             rel = os.path.dirname(__file__)
+        else:
+            raise Exception("Unable to find application's path.")
         return os.path.join(rel, 'tools', '7z.exe')
     return '7z'
 

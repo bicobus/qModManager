@@ -7,17 +7,17 @@ import subprocess
 import re
 import pathlib
 
-from typing import Type, List, Optional, Any
+from typing import Type, List
 from functools import lru_cache
 from zlib import crc32
 from hashlib import sha256
-from collections import namedtuple
 from collections.abc import MutableMapping
 from tempfile import TemporaryDirectory
 
+from . import FileMetadata
+from . import bucket
 from . import is_windows
 from .common import tools_path, settings, settings_are_set
-from .conflictbucket import ConflictBucket
 logger = logging.getLogger(__name__)
 
 # this shit: https://docs.microsoft.com/en-us/windows/win32/api/processthreadsapi/ns-processthreadsapi-startupinfoa
@@ -43,11 +43,6 @@ reErrorMatch = re.compile(r"""^(
     Sub\sitems\sErrors:.+
 )""", re.X | re.I).match
 
-FileMetadata = namedtuple('FileMetadata', 'Path Attributes CRC Modified')
-ArchiveStruct = namedtuple(
-    'ArchiveStruct',
-    'valid mismatched missing conflict ignored')
-
 
 class FileHandlerException(Exception):
     pass
@@ -70,9 +65,8 @@ def extract7z(file_archive: pathlib.Path,
     filepath = file_archive.absolute()
     output_path = output_path.absolute()
     cmd = [
-        tools_path(
-        ), 'x', f'{filepath}', f'-o{output_path}', '-ba', '-bb1', '-y',
-        '-scsUTF-8', '-sccUTF-8'
+        tools_path(), 'x', f'{filepath}', f'-o{output_path}',
+        '-ba', '-bb1', '-y', '-scsUTF-8', '-sccUTF-8'
     ]
     cmd.extend(ignore_patterns(True))
     if exclude_list:
@@ -118,8 +112,8 @@ def list7z(file_path, progress=None) -> List[FileMetadata]:
         progress(f'Processing {file_path}...')
 
     cmd = [
-        tools_path(
-        ), 'l', f'{file_path}', '-ba', '-scsUTF-8', '-sccUTF-8', '-slt'
+        tools_path(), 'l', f'{file_path}',
+        '-ba', '-scsUTF-8', '-sccUTF-8', '-slt'
     ]
 
     proc = subprocess.Popen(
@@ -143,7 +137,7 @@ def list7z(file_path, progress=None) -> List[FileMetadata]:
                 err_string = line + b''.join(out).decode('utf-8')
                 break
 
-            file_data: Optional[Any] = reListMatch(line)
+            file_data = reListMatch(line)
             if file_data:
                 fdg = file_data.group(1).strip()
                 if fdg == 'Path':
@@ -211,7 +205,7 @@ class ArchivesCollection(MutableMapping):
 
     def add_archive(self, path, hashsum=None, progress=None):
         if not isinstance(path, pathlib.Path):
-            path = pathlib.Path(os.path.join(settings['local_repository'], path))
+            path = pathlib.Path(settings['local_repository'], path)
         if not path.is_file():
             return
         if not hashsum:
@@ -283,16 +277,40 @@ def _ignored_part_in_path(path):
     return False
 
 
-def _get_mod_folder(with_file=None, force_build=False) -> pathlib.Path:
+def _get_mod_folder(with_file=None, prepend_modpath=False) -> pathlib.Path():
     path = [settings['game_folder']]
+    if prepend_modpath:
+        path.extend(['res', 'mods'])
     if with_file:
         path.append(with_file)
-    elif force_build:
-        path.extend(['res', 'mods'])
     return pathlib.Path(*path)
 
 
+def _crc32(filename) -> int:
+    """Returns the CRC32 hash of the given filename.
+
+    Args:
+        filename: path to the file to hash
+
+    Returns:
+        string: if successful
+        None: if not successful
+    """
+    try:
+        if hasattr(filename, 'read'):
+            result = crc32(filename.read())
+        else:
+            with open(filename, 'rb') as fp:
+                result = crc32(fp.read())
+    except OSError as e:
+        logger.exception(e)
+        result = None
+
+    return result
+
+
 def _compute_files_crc32(folder, partition=('res', 'mods')):
+    root: str
     for root, _, files in os.walk(folder):
         if not files:
             continue
@@ -302,18 +320,24 @@ def _compute_files_crc32(folder, partition=('res', 'mods')):
         path = root.partition(os.path.join(*partition) + os.path.sep)[2]
 
         for file in files:
-            key = pathObject(os.path.join(path, file)).as_posix()
+            key = pathObject(path, file).as_posix()
             with open(os.path.join(root, file), 'rb') as fp:
-                yield key, crc32(fp.read())
+                yield key, _crc32(fp)
 
 
-# The paths returned by this function are non-existent due to a difference
-# between the mods and the game folder structure.
 def build_game_files_crc32(progress=None):
+    """Compute the CRC32 value of all the game files then add them to a bucket
+
+    The paths returned by this function are non-existent due to a difference
+    between the mods and the game folder structure. It is needed to be that way
+    in order to compare the mod files with the existing game files.
+
+    Args:
+        progress (dialogs.qProgress.progress): Callback to a method accepting strings as argument.
+    """
     target_folder = os.path.join(settings['game_folder'], 'res')
     scan_theses = ('clothing', 'outfits', 'tattoos', 'weapons')
 
-    crc_dict = {}
     for p_folder in scan_theses:
         folder = os.path.join(target_folder, p_folder)
         for key, crc in _compute_files_crc32(folder, partition=('res',)):
@@ -331,25 +355,24 @@ def build_game_files_crc32(progress=None):
             n_parts.extend(k_parts)
             key = os.path.join(*n_parts)
             progress(f"Computing {key}...")
-            if crc in crc_dict.keys():
-                logger.error(f"Game has duplicate file or we found a CRC collision: {crc}")
-            crc_dict[crc] = key
-
-    ConflictBucket.gamefiles = crc_dict
-    return crc_dict
+            bucket.as_gamefile(crc, key)
 
 
 # Returns a dict indexed on the files
 def build_loose_files_crc32(progress=None):
-    mod_folder = _get_mod_folder(force_build=True)
-    crc_dict = {}
+    """
+    Build the CRC32 value of all loose files
+    Args:
+        progress: Callback to a method accepting strings as argument.
+
+    Returns:
+        None
+
+    """
+    mod_folder = _get_mod_folder(prepend_modpath=True)
     for key, crc in _compute_files_crc32(mod_folder):
         progress(f"Computing {key}...")
-        crc_dict.setdefault(crc, [])
-        crc_dict[crc].append(key)
-
-    ConflictBucket.loosefiles = crc_dict
-    return crc_dict
+        bucket.as_loosefile(crc, key)
 
 
 def _filter_list_on_exclude(archives_list, list_to_exclude):
@@ -361,10 +384,13 @@ def _filter_list_on_exclude(archives_list, list_to_exclude):
 def file_in_other_archives(file, archives, ignore):
     """Returns a list of archives in which file is found if the number of said
     archive is above 1. Otherwise returns False.
+    Args:
+        file (FileMetadata): file to be found
+        archives (ArchivesCollection): instance of ArchivesCollections
+        ignore (list): list of archives to ignore, for instance already parsed archives
 
-    file: file to be found
-    archives: instance of ArchivesCollections
-    ignore: list of archives to ignore, for instance already parsed archives
+    Returns:
+        List: List of archives containing the same file.
     """
     def _ofile(v):
         return v.CRC, v.Path
@@ -382,10 +408,10 @@ def file_in_other_archives(file, archives, ignore):
 
 def conflicts_process_files(files, archives_list, current_archive, processed):
     for file in files:
-        if file.CRC in ConflictBucket().loosefiles.keys():
-            ConflictBucket().has_loose_conflicts(file)
+        if bucket.with_loosefiles(crc=file.CRC):
+            bucket.as_loose_conflicts(file)
 
-        if file.Path in ConflictBucket().conflicts.keys():
+        if bucket.with_conflict(file.Path):
             continue
 
         bad_archives = file_in_other_archives(
@@ -395,19 +421,15 @@ def conflicts_process_files(files, archives_list, current_archive, processed):
 
         if bad_archives:
             bad_archives.append(current_archive)
-            ConflictBucket().conflicts.setdefault(file.Path, [])
-            ConflictBucket().conflicts[file.Path].extend(bad_archives)
+            bucket.as_conflict(file.Path, bad_archives)
 
 
 def detect_conflicts_between_archives(archives_lists: ArchivesCollection):
     assert isinstance(archives_lists, ArchivesCollection), type(archives_lists)
     list_done = []  # (sha256, filepath) of already processed archives
-    conflicts = ConflictBucket().conflicts
     for archive_name, archive_content in archives_lists.items():
         conflicts_process_files(archive_content, archives_lists, archive_name, list_done)
         list_done.append(archive_name)
-
-    return conflicts
 
 
 FILE_MATCHED = 1
@@ -429,15 +451,16 @@ def _bad_suffix(suffix):
 
 
 def file_status(file: FileMetadata) -> int:
-    c_bucket = ConflictBucket().loosefiles
     path = pathObject(file.Path)
     if (path.name in ignore_patterns()
             or _bad_directory_structure(path)
             or (path.suffix and _bad_suffix(path.suffix))):
         return FILE_IGNORED
-    if file.CRC in c_bucket.keys() and file.Path in c_bucket[file.CRC]:
+    if (bucket.with_loosefiles(crc=file.CRC)
+            and bucket.with_loosefiles(path=file.Path)):
         return FILE_MATCHED
-    if any(file.Path in v for v in c_bucket.values()) and file.CRC not in c_bucket.keys():
+    if (any(file.Path in v for v in bucket.loosefiles.values())
+            and not bucket.with_loosefiles(crc=file.CRC)):
         return FILE_MISMATCHED
     return FILE_MISSING
 
@@ -485,6 +508,7 @@ def install_archive(file_to_extract, ignore_list):
     file_to_extract = pathlib.Path(settings['local_repository'], file_to_extract)
     ignore_list = ["-x!{}".format(path.Path) for path in ignore_list]
 
+    # to_return: List[Tuple[str, int]] = []
     try:
         with TemporaryDirectory(prefix="qmm-") as td:
             files = extract7z(file_to_extract, pathlib.Path(td), exclude_list=ignore_list)
@@ -492,9 +516,11 @@ def install_archive(file_to_extract, ignore_list):
                 src = pathlib.Path(td, file.Path)
                 if src.is_dir():
                     continue
-                dst = _get_mod_folder(file.Path)
+                dst = _get_mod_folder(file.Path, prepend_modpath=True)
                 os.makedirs(os.path.dirname(dst), mode=0o750, exist_ok=True)
                 shutil.copy2(src, dst)
+                # to_return.append((file.Path, _crc32(dst)))
+                bucket.as_loosefile(_crc32(dst), file.Path)
     except ArchiveException as e:
         logger.exception(e)
         return False
@@ -508,17 +534,20 @@ def uninstall_files(file_list: list):
     """Removes a list of files and directory from the filesystem."""
 
     dlist = []
-    has_errors = False
+    success = True
     for item in file_list:
         assert isinstance(item, FileMetadata)
-        file = _get_mod_folder(item.Path)
+        file = _get_mod_folder(item.Path, prepend_modpath=True)
         logger.debug("Trying to delete file: %s", file)
         if not file.is_dir():
             try:
                 file.unlink()
+                bucket.remove_from_loosefiles(item)
             except OSError as e:
                 logger.error("Unable to remove file %s: %s", file, e)
-                has_errors = True
+                success = False
+            else:
+                logger.debug("File unlinked: %s", file)
         else:
             dlist.append(file)
 
@@ -527,10 +556,12 @@ def uninstall_files(file_list: list):
         try:
             directory.rmdir()
         except OSError as e:  # Probably due to not being empty
-            logger.debug("Unable to remove directory %s: %s", directory, e)
-            has_errors = True
+            logger.error("Unable to remove directory %s: %s", directory, e)
+            success = False
+        else:
+            logger.debug("Directory removed: %s", directory)
 
-    return has_errors
+    return success
 
 
 def delete_archive(filepath):

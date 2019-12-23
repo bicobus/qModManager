@@ -7,7 +7,9 @@ verify_ssl = true
 pytest = "*"
 "flake8" = "*"
 pyinstaller = "*"
-pytype = "*"
+pylint = "*"
+"flake8-bugbear" = "*"
+"flake8-comprehensions" = "*"
 
 [packages]
 pyxdg = "*"
