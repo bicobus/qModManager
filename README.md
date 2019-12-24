@@ -1,6 +1,9 @@
-# qModManager
+[![Build
+status](https://ci.appveyor.com/api/projects/status/hn7a0oa12qhg62ds?svg=true)](https://ci.appveyor.com/project/bicobus/qmodmanager)
 
 [![DeepSource](https://static.deepsource.io/deepsource-badge-light.svg)](https://deepsource.io/gh/bicobus/qModManager/?ref=repository-badge)
+
+# qModManager
 
 Simple tool to manage a set of archives. Written to manage mods available for
 [Lilith's Throne](https://github.com/Innoxia/liliths-throne-public)
