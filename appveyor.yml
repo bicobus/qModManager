@@ -59,7 +59,7 @@ build_script:
   - c:\cygwin\bin\make qt
   - pyinstaller -F main.py
 
-on_success:
+after_build:
   - ps: move dist\main.exe main.exe
   - 7z a qModManager.7z main.exe README.md tools\
 
@@ -70,7 +70,7 @@ artifacts:
 # clean up pip cache, might not be needed
 on_finish:
   - C:\cygwin\bin\find "%LOCALAPPDATA%\pip" -type f -mtime +360 -delete
-  - C:\cygwin\bin\find "%LOCALAPPDATA%\pip" -type f -size +10M -delete
+  #- C:\cygwin\bin\find "%LOCALAPPDATA%\pip" -type f -size +10M -delete
   - C:\cygwin\bin\find "%LOCALAPPDATA%\pip" -empty -delete
   - C:\cygwin\bin\du -hs "%LOCALAPPDATA%\pip\Cache"
 
