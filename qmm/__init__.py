@@ -10,12 +10,17 @@ __status__ = "Development"
 
 import os
 import platform
-from collections import namedtuple
+from typing import NamedTuple
 
 is_windows = platform.system() in ('Windows', 'Microsoft')
 is_linux = platform.system() == 'Linux'
 
-FileMetadata = namedtuple('FileMetadata', 'Path Attributes CRC Modified')
+
+class FileMetadata(NamedTuple):
+    Path: str
+    Attributes: str
+    CRC: int
+    Modified: str
 
 
 SETTINGS_HELP = """Some settings are required to be set for you to be able to use this tool.

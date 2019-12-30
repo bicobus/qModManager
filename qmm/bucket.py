@@ -21,6 +21,8 @@ def with_conflict(path: str) -> bool:
 
     Args:
         path (str):  Simple string, should be a path pointing to a file
+    Returns:
+        bool: True if path exist in conflicts's keys
     """
     return bool(path in conflicts.keys())
 
@@ -29,8 +31,8 @@ def with_loosefiles(crc: int = None, path: str = None) -> bool:
     """Check if either a crc or a path is present in the loosefiles bucket.
 
     Args:
-        crc (int): If not None, will check if the value in loosefiles's keys
-        path (str): If not None, will check if the value can be found in loosefiles
+        crc: If not None, will check if the value in loosefiles's keys
+        path: If not None, will check if the value can be found in loosefiles
     Returns:
         bool: Returns True if either crc or path is found, otherwise False
     """
@@ -42,6 +44,12 @@ def with_loosefiles(crc: int = None, path: str = None) -> bool:
 
 
 def with_looseconflicts(crc: int) -> bool:
+    """
+    Args:
+        crc (int): CRC32 as integer
+    Returns:
+        bool: True if the given CRC exist in looseconflicts's keys
+    """
     return bool(crc in looseconflicts.keys())
 
 
@@ -77,11 +85,15 @@ def as_loose_conflicts(file: FileMetadata):
 
 
 def as_loosefile(crc: int, filepath: str):
+    """Adds filepath to the loosefiles bucket, indexed on given CRC."""
     loosefiles.setdefault(crc, [])
     loosefiles[crc].append(filepath)
 
 
 def remove_from_loosefiles(file: FileMetadata):
+    """Removes the reference to file if it is found in loosefiles"""
     if file.CRC in loosefiles.keys():
-        if file in loosefiles.values():
-            loosefiles[file.CRC].pop(loosefiles[file.CRC].index(file))
+        if any(file.Path in x for x in loosefiles.values()):
+            loosefiles[file.CRC].pop(loosefiles[file.CRC].index(file.Path))
+            if not loosefiles[file.CRC]:
+                loosefiles.pop(file.CRC)

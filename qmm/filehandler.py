@@ -7,7 +7,7 @@ import subprocess
 import re
 import pathlib
 
-from typing import Type, List
+from typing import Type, List, Tuple
 from functools import lru_cache
 from zlib import crc32
 from hashlib import sha256
@@ -91,8 +91,8 @@ def extract7z(file_archive: pathlib.Path,
             extract = reExtractMatch(line)
             if extract:
                 path = extract.group(1).strip()
-                f_list.append(FileMetadata(Attributes=None, Path=path,
-                                           CRC=None, Modified=None))
+                f_list.append(FileMetadata(Attributes="", Path=path,
+                                           CRC=0, Modified=""))
                 if progress:
                     progress(f'Extracting {path}...')
 
@@ -465,7 +465,7 @@ def file_status(file: FileMetadata) -> int:
     return FILE_MISSING
 
 
-def missing_matched_mismatched(file_list):
+def missing_matched_mismatched(file_list: List[FileMetadata]) -> List[Tuple[FileMetadata, int]]:
     new_list = []
     for file in file_list:
         new_list.append((file, file_status(file)))
@@ -508,7 +508,6 @@ def install_archive(file_to_extract, ignore_list):
     file_to_extract = pathlib.Path(settings['local_repository'], file_to_extract)
     ignore_list = ["-x!{}".format(path.Path) for path in ignore_list]
 
-    # to_return: List[Tuple[str, int]] = []
     try:
         with TemporaryDirectory(prefix="qmm-") as td:
             files = extract7z(file_to_extract, pathlib.Path(td), exclude_list=ignore_list)
@@ -519,7 +518,6 @@ def install_archive(file_to_extract, ignore_list):
                 dst = _get_mod_folder(file.Path, prepend_modpath=True)
                 os.makedirs(os.path.dirname(dst), mode=0o750, exist_ok=True)
                 shutil.copy2(src, dst)
-                # to_return.append((file.Path, _crc32(dst)))
                 bucket.as_loosefile(_crc32(dst), file.Path)
     except ArchiveException as e:
         logger.exception(e)
@@ -532,7 +530,6 @@ def install_archive(file_to_extract, ignore_list):
 
 def uninstall_files(file_list: list):
     """Removes a list of files and directory from the filesystem."""
-
     dlist = []
     success = True
     for item in file_list:
