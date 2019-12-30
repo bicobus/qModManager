@@ -265,9 +265,9 @@ class ArchivesCollection(MutableMapping):
             self._data[key] = value
 
     def __delitem__(self, key):
-        del(self._data[key])
-        del(self._stat[key])
-        del(self._hashsums[key])
+        del self._data[key]
+        del self._stat[key]
+        del self._hashsums[key]
 
 
 def _ignored_part_in_path(path):
