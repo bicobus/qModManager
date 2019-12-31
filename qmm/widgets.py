@@ -196,6 +196,7 @@ class ListRowItem(QtWidgets.QListWidgetItem):
 
     def __setup_buckets(self):
         self._files = []
+        self._folders = []
         self._matched = []
         self._missing = []
         self._mismatched = []
@@ -211,6 +212,8 @@ class ListRowItem(QtWidgets.QListWidgetItem):
                 self._errored.append(item)
             if 'D' not in item.Attributes:
                 self._files.append(item)
+            else:
+                self._folders.append(item)
             self._conflict_triage(item)
         self._triage_done = True
 
@@ -276,8 +279,10 @@ class ListRowItem(QtWidgets.QListWidgetItem):
     def list_ignored(self):
         return self._ignored
 
-    def list_matched(self):
-        return self._matched
+    def list_matched(self, include_folders=False):
+        if not include_folders:
+            return self._matched
+        return self._matched + self._folders
 
     @property
     def name(self):

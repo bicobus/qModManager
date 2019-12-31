@@ -171,7 +171,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if not items:
             return
 
-        if filehandler.uninstall_files(items[0].list_matched()):
+        if filehandler.uninstall_files(items[0].list_matched(include_folders=True)):
             self._refresh_list_item_strings()
             self._on_selection_change()
         else:

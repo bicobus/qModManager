@@ -202,6 +202,7 @@ class ArchivesCollection(MutableMapping):
                 self.add_archive(entry, progress=progress)
             else:
                 print(entry.suffix)
+        return True
 
     def add_archive(self, path, hashsum=None, progress=None):
         if not isinstance(path, pathlib.Path):
