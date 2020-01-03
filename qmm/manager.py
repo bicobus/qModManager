@@ -33,7 +33,16 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         self._settings_window = None
         self._qc = {}
+        self.__connection_link = None
+        self._init_settings()
 
+    def _init_settings(self):
+        if not settings_are_set():
+            self.do_settings(not_empty=True)
+        else:
+            self._init_mods()
+
+    def _init_mods(self):
         p_dialog = dialogs.qProgress(
             parent=self, title="Computing data",
             message="Please wait for the software to initialize it's data."
@@ -182,9 +191,17 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             )
 
     @pyqtSlot(name="on_actionSettings_triggered")
-    def do_settings(self):
+    def do_settings(self, not_empty=False):
         if not self._settings_window:
             self._settings_window = QSettings()
+        if not_empty:
+            button = self._settings_window.save_button
+            self.__connection_link = button.clicked.connect(self._init_mods)
+        else:
+            if self.__connection_link:
+                button = self._settings_window.save_button
+                button.disconnect(self.__connection_link)
+        self._settings_window.set_mode(not_empty)
         self._settings_window.show()
 
     def _refresh_list_item_strings(self):

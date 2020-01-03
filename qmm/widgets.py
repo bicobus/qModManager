@@ -31,6 +31,12 @@ class QSettings(QtWidgets.QWidget, Ui_Settings):
         super().__init__()
         self.setupUi(self)
 
+    def set_mode(self, require_data=False):
+        if require_data:
+            self.cancel_button.setEnabled(False)
+        else:
+            self.cancel_button.setEnabled(True)
+
     def show(self):
         """Show the window and assign internal variables"""
         super().show()
