@@ -243,7 +243,7 @@ class ListRowItem(QtWidgets.QListWidgetItem):
             tmp_conflicts.extend(bucket.conflicts[item.Path])
         # Check against existing files
         if bucket.with_looseconflicts(item.CRC):
-            tmp_conflicts.extend(*bucket.looseconflicts[item.CRC])
+            tmp_conflicts.extend(bucket.looseconflicts[item.CRC])
         # Check against game files (Path and CRC)
         if (bucket.with_gamefiles(path=item.Path)
                 or bucket.with_gamefiles(crc=item.CRC)):
