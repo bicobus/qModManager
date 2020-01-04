@@ -41,6 +41,12 @@
    </item>
    <item row="2" column="0">
     <widget class="QLabel" name="repo_label">
+     <property name="cursor">
+      <cursorShape>WhatsThisCursor</cursorShape>
+     </property>
+     <property name="toolTip">
+      <string>Path to a folder containing your collection of mods.</string>
+     </property>
      <property name="text">
       <string>Archive Repository</string>
      </property>
@@ -55,6 +61,12 @@
    </item>
    <item row="0" column="0">
     <widget class="QLabel" name="game_label">
+     <property name="cursor">
+      <cursorShape>WhatsThisCursor</cursorShape>
+     </property>
+     <property name="toolTip">
+      <string>Path to the folder containing the jar or exe of the game.</string>
+     </property>
      <property name="text">
       <string>Game Location</string>
      </property>
