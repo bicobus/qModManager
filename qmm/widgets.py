@@ -387,6 +387,11 @@ def _format_regular(title, items):
 def _format_conflicts(title, items):
     strings = [f"== {title}:\n"]
     for filepath, archives in items:
-        strings.append(f"  - {filepath}\n        -> ")
-        strings.append("\n        -> ".join(archives) + "\n")
+        strings.append(f"  - {filepath}\n")
+        for element in archives:
+            if isinstance(element, list):
+                for e in element:
+                    strings.append(f"\t-> (a) {e}\n")
+            else:
+                strings.append(f"\t-> (b) {element}\n")
     return "".join(strings)
