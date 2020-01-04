@@ -32,13 +32,14 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # loadQtStyleSheetFile('style.css', self)
 
         self._settings_window = None
+        self.managed_archives = filehandler.ArchivesCollection()
         self._qc = {}
         self.__connection_link = None
         self._init_settings()
 
     def _init_settings(self):
         if not settings_are_set():
-            self.do_settings(not_empty=True)
+            self.do_settings(first_launch=True)
         else:
             self._init_mods()
 
@@ -51,7 +52,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         filehandler.build_game_files_crc32(p_dialog.progress)
         filehandler.build_loose_files_crc32(p_dialog.progress)
-        self.managed_archives = filehandler.ArchivesCollection()
         self.managed_archives.build_archives_list(p_dialog.progress)
 
         p_dialog.progress("Conflict detection...")
@@ -152,7 +152,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         item = items[0]
         if item.has_matched:
             self._do_uninstall_selected_mod()
-        filehandler.delete_archive(self.managed_archives[item.filename])
+        filehandler.delete_archive(item.filename)
         del self.managed_archives[item.filename]
         filehandler.detect_conflicts_between_archives(self.managed_archives)
 
@@ -191,21 +191,21 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             )
 
     @pyqtSlot(name="on_actionSettings_triggered")
-    def do_settings(self, not_empty=False):
+    def do_settings(self, first_launch=False):
         if not self._settings_window:
             self._settings_window = QSettings()
-        if not_empty:
+        if first_launch:
             button = self._settings_window.save_button
             self.__connection_link = button.clicked.connect(self._init_mods)
         else:
             if self.__connection_link:
                 button = self._settings_window.save_button
                 button.disconnect(self.__connection_link)
-        self._settings_window.set_mode(not_empty)
+        self._settings_window.set_mode(first_launch)
         self._settings_window.show()
 
     def _refresh_list_item_strings(self):
-        for idx in range(0, self.listWidget.count() - 1):
+        for idx in range(0, self.listWidget.count()):
             self.listWidget.item(idx).refresh_strings()
 
     def _on_action_open_done(self, filename):
