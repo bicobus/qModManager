@@ -1,3 +1,15 @@
+Bug:
+  [ ] delete_archive is somewhat broken
+    PS C:\Users\---\Downloads\qModManager> .\main.exe
+    Traceback (most recent call last):
+      File "qmm\manager.py", line 155, in _do_delete_selected_file
+      File "qmm\filehandler.py", line 568, in delete_archive
+      File "pathlib.py", line 1010, in __new__
+      File "pathlib.py", line 665, in _from_parts
+      File "pathlib.py", line 649, in _parse_args
+    TypeError: expected str, bytes or os.PathLike object, not list
+    PS C:\Users\---\Downloads\qModManager>
+
 Implement basic UI:
    [ ] Stylesheet: implement something like https://github.com/gmarull/qtmodern/blob/master/qtmodern/styles.py
    [x] Populate the list of managed mods @done (13-12-19 18:49)
