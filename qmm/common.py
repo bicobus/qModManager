@@ -20,12 +20,17 @@ settings = Config(
 
 
 def settings_are_set():
+    """Returns False if either 'local_repository' or 'game_folder' isn't set."""
     if not settings['local_repository'] or not settings['game_folder']:
         return False
     return True
 
 
 def tools_path():
+    """Returns the path to the 7z executable
+
+    TODO: needs a better name
+    """
     if is_windows:
         if getattr(sys, 'frozen', False):
             rel = os.path.dirname(sys.executable)
@@ -37,11 +42,6 @@ def tools_path():
     return '7z'
 
 
-def resources_directory():
-    return os.path.realpath("qmm/resources/")
-
-
 def timestamp_to_string(timestamp):
-    """Takes a UNIX timestamp and return a vernacular date
-    """
+    """Takes a UNIX timestamp and return a vernacular date"""
     return datetime.strftime(datetime.fromtimestamp(timestamp), "%c")

@@ -276,6 +276,11 @@ class ListRowItem(QtWidgets.QListWidgetItem):
         self._built_strings = True
 
     def refresh_strings(self):
+        """Called when the game's folder state changed
+
+        Reinitialize the widget's strings, recompute the conflicts then redo
+        all triaging and formatting.
+        """
         self.__setup_buckets()
         self._data = missing_matched_mismatched([i for i, _ in self._data])
         self._triage_done = False
@@ -283,37 +288,51 @@ class ListRowItem(QtWidgets.QListWidgetItem):
         self._format_strings()
 
     def list_ignored(self):
+        """Returns a list of ignored elements"""
         return self._ignored
 
     def list_matched(self, include_folders=False):
+        """Returns a list of matched files.
+
+        Args:
+            include_folders (bool): If true, include folders into the list.
+        """
         if not include_folders:
             return self._matched
         return self._matched + self._folders
 
     @property
     def name(self):
+        """Return the name of the archive, formatted for GUI usage
+
+        Transfrom the '_' character into space.
+        """
         if not self._name:
             self._name = self._key.replace('_', ' ')
         return self._name
 
     @property
     def filename(self):
+        """Returns the name of the archive filename, suitable for path manipulations"""
         return self._key
 
     @property
     def added(self):
+        """Returns time at which the archive got added to the system"""
         if not self._added:
             self._added = timestamp_to_string(self._stat.st_mtime)
         return self._added
 
     @property
     def hashsum(self):
+        """Returns the sha256 hashsum of the archive"""
         if self._hashsum:
             return self._hashsum
         return ""
 
     @property
     def files(self):
+        """Returns a formatted string containing all the files of the archive"""
         if not self._built_strings:
             self._format_strings()
             self._built_strings = True
@@ -324,10 +343,12 @@ class ListRowItem(QtWidgets.QListWidgetItem):
 
     @property
     def matched(self):
+        """Returns a formatted string containing all files matched on the filesystem"""
         return self._matched_str
 
     @property
-    def has_matched(self):
+    def has_matched(self) -> bool:
+        """Returns True if the archive has matched files on the filesystem"""
         if self._matched:
             return True
         return False
