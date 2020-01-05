@@ -330,6 +330,7 @@
     <property name="title">
      <string>Help</string>
     </property>
+    <addaction name="actionMenuHelp"/>
     <addaction name="actionAbout"/>
    </widget>
    <widget class="QMenu" name="menuPreferences">
@@ -415,6 +416,15 @@
     <string>Uninstall Mod</string>
    </property>
   </action>
+  <action name="actionMenuHelp">
+   <property name="icon">
+    <iconset resource="icons.qrc">
+     <normaloff>:/icons/help-circle.svg</normaloff>:/icons/help-circle.svg</iconset>
+   </property>
+   <property name="text">
+    <string>Help of qModManager</string>
+   </property>
+  </action>
  </widget>
  <resources>
   <include location="icons.qrc"/>
@@ -449,6 +459,22 @@
     <hint type="destinationlabel">
      <x>421</x>
      <y>320</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionMenuHelp</sender>
+   <signal>triggered()</signal>
+   <receiver>actionHelp</receiver>
+   <slot>trigger()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>-1</x>
+     <y>-1</y>
     </hint>
    </hints>
   </connection>

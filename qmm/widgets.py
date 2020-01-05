@@ -6,13 +6,14 @@ Licensed under the EUPL v1.2
 import logging
 from os import path
 # from collections import deque # DetailView
-from PyQt5 import QtWidgets
+from PyQt5 import QtWidgets, QtGui
 from PyQt5.QtCore import pyqtSlot
 from .common import timestamp_to_string, settings
 from .filehandler import (FILE_MISSING, FILE_MATCHED, FILE_MISMATCHED,
                           FILE_IGNORED, missing_matched_mismatched)
 from . import bucket
 from .ui_settings import Ui_Settings
+from .ui_about import Ui_About
 # from .ui_detailedview import Ui_DetailedView # DetailView
 
 # from PyQt5.QtGui import QIcon, QPixmap
@@ -22,6 +23,16 @@ from .ui_settings import Ui_Settings
 # _detailViewButton.setIcon(icon)
 
 logger = logging.getLogger(__name__)
+
+
+class QAbout(QtWidgets.QWidget, Ui_About):
+    def __init__(self):
+        super().__init__()
+        self.setupUi(self)
+        font = QtGui.QFont()
+        font.setFamily("Unifont")
+        font.setPointSize(11)
+        self.text_author.setFont(font)
 
 
 class QSettings(QtWidgets.QWidget, Ui_Settings):

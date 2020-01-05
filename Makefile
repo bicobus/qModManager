@@ -5,7 +5,8 @@ LDIR=qmm
 #DEPS=$(RDIR)/ui_customlist.ui $(RDIR)/ui_detailedview.ui $(QRC)
 PUI=$(LDIR)/icons_rc.py\
 	$(LDIR)/ui_settings.py\
-	$(LDIR)/ui_mainwindow.py
+	$(LDIR)/ui_mainwindow.py\
+	$(LDIR)/ui_about.py
 
 .PHONY: clean qt
 

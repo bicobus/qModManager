@@ -42,8 +42,7 @@ install:
 
   # Install dependencies
   - python -m pip install --disable-pip-version-check --upgrade pip
-  - python -m pip install pyinstaller
-  - python -m pip install flake8
+  - python -m pip install pyinstaller flake8
   - python -m pip install -r requirements.txt
 
 before_test:

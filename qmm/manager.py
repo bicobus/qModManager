@@ -11,7 +11,7 @@ from . import dialogs, widgets, filehandler
 from .ui_mainwindow import Ui_MainWindow
 from .config import get_config_dir
 from .common import settings_are_set
-from .widgets import QSettings
+from .widgets import QSettings, QAbout
 
 logging.getLogger('PyQt5').setLevel(logging.WARNING)
 logging.basicConfig(
@@ -32,6 +32,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # loadQtStyleSheetFile('style.css', self)
 
         self._settings_window = None
+        self._about_window = None
         self.managed_archives = filehandler.ArchivesCollection()
         self._qc = {}
         self.__connection_link = None
@@ -204,6 +205,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self._settings_window.set_mode(first_launch)
         self._settings_window.show()
 
+    @pyqtSlot(name="on_actionAbout_triggered")
+    def do_about(self):
+        self._about_window = QAbout()
+        self._about_window.show()
+
     def _refresh_list_item_strings(self):
         for idx in range(0, self.listWidget.count()):
             self.listWidget.item(idx).refresh_strings()
@@ -256,6 +262,7 @@ def main():
     logger.info("Starting application")
     try:
         app = QApplication(sys.argv)
+        QtGui.QFontDatabase.addApplicationFont(":/unifont.ttf")
         mw = MainWindow()
         mw.show()
         sys.exit(app.exec_())

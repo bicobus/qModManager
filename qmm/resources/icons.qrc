@@ -1,5 +1,5 @@
 <RCC>
-  <qresource prefix="icons">
+  <qresource prefix="/icons">
     <file alias="file-transfer.svg">icons/file-transfer-line.svg</file>
     <file alias="eye.svg">icons/eye-line.svg</file>
     <file alias="eye-off.svg">icons/eye-off-line.svg</file>
@@ -10,5 +10,8 @@
     <file alias="file-minus.svg">icons/file-reduce-line.svg</file>
     <file alias="info.svg">icons/information-line.svg</file>
     <file alias="help-circle.svg">icons/question-line.svg</file>
+  </qresource>
+  <qresource prefix="/">
+    <file>unifont.ttf</file>
   </qresource>
 </RCC>
