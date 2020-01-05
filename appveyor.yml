@@ -57,11 +57,11 @@ test_script:
 
 build_script:
   - c:\cygwin\bin\make qt
-  - pyinstaller -F main.py
+  - pyinstaller -F run.py
 
 after_build:
-  - ps: move dist\main.exe main.exe
-  - 7z a qModManager.7z main.exe README.md LICENSE tools\
+  - ps: move dist\run.exe run.exe
+  - 7z a qModManager.7z run.exe README.md LICENSE tools\
 
 artifacts:
    - path: qModManager.7z
