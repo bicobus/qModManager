@@ -263,8 +263,8 @@ def main():
     try:
         app = QApplication(sys.argv)
         QtGui.QFontDatabase.addApplicationFont(":/unifont.ttf")
-        mw = MainWindow()
-        mw.show()
+        mainwindow = MainWindow()
+        mainwindow.show()
         sys.exit(app.exec_())
     except Exception:
         logger.exception("Critical error occurred:")
