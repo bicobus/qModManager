@@ -207,7 +207,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     @pyqtSlot(name="on_actionAbout_triggered")
     def do_about(self):
-        self._about_window = QAbout()
+        if not self._about_window:
+            self._about_window = QAbout()
         self._about_window.show()
 
     def _refresh_list_item_strings(self):
