@@ -252,9 +252,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
 
 def main():
-    import sys
-    import signal
-    import locale
+    import sys  # pylint: disable=import-outside-toplevel
+    import signal  # pylint: disable=import-outside-toplevel
+    import locale  # pylint: disable=import-outside-toplevel
     # Sets locale according to $LANG variable instead of C locale
     locale.setlocale(locale.LC_ALL, '')
     # Ends the application on CTRL+c
