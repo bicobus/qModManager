@@ -1,5 +1,9 @@
-"""Buckets of dicts with a set of functions necessary to keep track of
-the state of the game file structure.
+"""Buckets of dicts with a set of helpers function..
+
+This module serves has a stand-in database, any function or method it contain
+would be facilitator to either access or transform the data. This module is
+necessary in order to keep track of the state of the different files and make
+that specific state available globally within the other modules.
 
   Licensed under the EUPL v1.2
   © 2019 bicobus <bicobus@keemail.me>
@@ -44,7 +48,7 @@ def with_loosefiles(crc: int = None, path: str = None) -> bool:
 
 
 def with_looseconflicts(crc: int) -> bool:
-    """
+    """Check if a CRC32 exists in the looseconflicts bucket
     Args:
         crc (int): CRC32 as integer
     Returns:
@@ -54,6 +58,15 @@ def with_looseconflicts(crc: int) -> bool:
 
 
 def with_gamefiles(crc: int = None, path: str = None):
+    """First check if a CRC32 exist within the gamefiles bucket, if no CRC is
+    given or the check fails, will then check if a path is present in the
+    gamefiles's bucket values.
+    Args:
+        crc (int): CRC32 as integer
+        path (str): the relative pathlike string of a file
+    Returns:
+        bool: True if either CRC32 or path are found
+    """
     if crc in gamefiles.keys():
         return True
     if path in gamefiles.values():
@@ -62,6 +75,7 @@ def with_gamefiles(crc: int = None, path: str = None):
 
 
 def as_conflict(key: str, value):
+    """Append and item to the conflicts bucket"""
     conflicts.setdefault(key, [])
     if isinstance(value, list):
         conflicts[key].extend(value)
