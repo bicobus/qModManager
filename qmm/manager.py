@@ -4,6 +4,7 @@ Licensed under the EUPL v1.2
 """
 
 import logging
+from typing import List
 from PyQt5.QtCore import pyqtSlot
 from PyQt5.QtWidgets import QApplication, QMainWindow, QFileDialog
 from PyQt5 import QtGui
@@ -149,10 +150,21 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def _do_delete_selected_file(self):
         items = self.listWidget.selectedItems()
         if not items:
+            logger.error("Triggered _do_delete_selected_file without a selection")
             return
+
+        ret = dialogs.qWarningYesNo(
+            "This action will uninstall the mod, then delete the archive from "
+            "your filesystem.\n\nDo you want to continue?"
+        )
+        if not ret:
+            return
+
         item = items[0]
         if item.has_matched:
-            self._do_uninstall_selected_mod()
+            ret = self._do_uninstall_selected_mod():
+            if not ret:
+                return
         filehandler.delete_archive(item.filename)
         del self.managed_archives[item.filename]
         filehandler.detect_conflicts_between_archives(self.managed_archives)
@@ -161,52 +173,74 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def _do_install_selected_mod(self):
         items = self.listWidget.selectedItems()
         if not items:
-            logger.error("Tried to install a mod, but nothing was selected.")
+            logger.error("Triggered _do_install_selected_mod without a selection")
             return
 
-        for item in items:
-            files = filehandler.install_archive(item.filename, item.list_ignored())
-            if not files:
-                dialogs.qWarning(
-                    f"The archive {item.filename} extracted with errors.\n"
-                    f"Please refer to {get_config_dir('error.log')} for more information."
-                )
-            else:
-                self._refresh_list_item_strings()
-                self._on_selection_change()
+        # We should only have one element in the list.
+        item = items[0]
+
+        files = filehandler.install_archive(item.filename, item.list_ignored())
+        if not files:
+            dialogs.qWarning(
+                f"The archive {item.filename} extracted with errors.\n"
+                f"Please refer to {get_config_dir('error.log')} for more information."
+            )
+        else:
+            self._refresh_list_item_strings()
+            self._on_selection_change()
 
     @pyqtSlot(name="on_actionUninstall_Mod_triggered")
     def _do_uninstall_selected_mod(self):
-        items = self.listWidget.selectedItems()
+        items: List[widgets.ListRowItem] = self.listWidget.selectedItems()
         if not items:
-            return
+            return False
 
-        if filehandler.uninstall_files(items[0].list_matched(include_folders=True)):
+        item = item[0]
+        if item.has_mismatched:
+            dialogs.qInformation(
+                "Unable to uninstall mod: mismatched items exists on drive.\n"
+                "This is most likely due to another installed mod conflicting "
+                "with this mod.\n"
+            )
+            return False
+
+        if filehandler.uninstall_files(items.list_matched(include_folders=True)):
             self._refresh_list_item_strings()
             self._on_selection_change()
-        else:
-            dialogs.qWarning(
-                "The uninstallation process failed at some point. Please "
-                "report this happened to the developper alongside the error "
-                f"file {get_config_dir('error.log')}."
-            )
+            return True
+
+        dialogs.qWarning(
+            "The uninstallation process failed at some point. Please "
+            "report this happened to the developper alongside the error "
+            f"file {get_config_dir('error.log')}."
+        )
+        return False
 
     @pyqtSlot(name="on_actionSettings_triggered")
     def do_settings(self, first_launch=False):
+        """Show the settings window
+
+        Args:
+            first_launch (bool): If true, disable cancel button and bind
+                                 the save button to _init_mods
+        """
         if not self._settings_window:
             self._settings_window = QSettings()
         if first_launch:
             button = self._settings_window.save_button
             self.__connection_link = button.clicked.connect(self._init_mods)
+            self._settings_window.set_mode(first_run=True)
         else:
             if self.__connection_link:
                 button = self._settings_window.save_button
                 button.disconnect(self.__connection_link)
+                self._settings_window.set_mode(first_run=False)
         self._settings_window.set_mode(first_launch)
         self._settings_window.show()
 
     @pyqtSlot(name="on_actionAbout_triggered")
     def do_about(self):
+        """Show the about window"""
         if not self._about_window:
             self._about_window = QAbout()
         self._about_window.show()

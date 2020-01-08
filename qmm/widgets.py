@@ -42,8 +42,8 @@ class QSettings(QtWidgets.QWidget, Ui_Settings):
         super().__init__()
         self.setupUi(self)
 
-    def set_mode(self, require_data=False):
-        if require_data:
+    def set_mode(self, first_run=False):
+        if first_run:
             self.cancel_button.setEnabled(False)
         else:
             self.cancel_button.setEnabled(True)
