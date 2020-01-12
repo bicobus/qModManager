@@ -162,7 +162,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         item = items[0]
         if item.has_matched:
-            ret = self._do_uninstall_selected_mod():
+            ret = self._do_uninstall_selected_mod()
             if not ret:
                 return
         filehandler.delete_archive(item.filename)
