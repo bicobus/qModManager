@@ -564,13 +564,15 @@ def uninstall_files(file_list: list):
 
 def delete_archive(filepath):
     """Delete an archive from the filesystem."""
+    # Assume filepath to only be a filename
     if not isinstance(filepath, pathlib.Path):
-        filepath = pathlib.Path(filepath)
+        filepath = pathlib.Path(settings['local_repository'], filepath)
 
     if filepath.exists():
         try:
             filepath.unlink()
         except OSError as e:
+            logger.debug(filepath)
             logger.error("Unable to remove file from drive: %s", e)
             return False
     else:
