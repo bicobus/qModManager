@@ -201,6 +201,7 @@ class ArchivesCollection(MutableMapping):
             if entry.is_file() and entry.suffix in suffixes:
                 self.add_archive(entry, progress=progress)
             else:
+                # TODO: output error to log
                 print(entry.suffix)
         return True
 
@@ -343,18 +344,11 @@ def build_game_files_crc32(progress=None):
         folder = os.path.join(target_folder, p_folder)
         for key, crc in _compute_files_crc32(folder, partition=('res',)):
             # normalize path: category/namespace/... -> namespace/category/...
-            k_parts = key.split(os.path.sep)
-            n_parts = []
-            category = k_parts.pop(0)  # category
-            namespace = k_parts.pop(0)  # namespace
-            # Those are under the 'items' folder: namespace/items/category/...
+            category, namespace, extra = key.split(os.path.sep, 2)
             if category in ('clothing', 'weapons', 'tattoos'):
-                n_parts.extend([namespace, 'items'])
+                key = os.path.join(namespace, 'items', category, extra)
             else:
-                n_parts.append(namespace)
-            n_parts.append(category)
-            n_parts.extend(k_parts)
-            key = os.path.join(*n_parts)
+                key = os.path.join(namespace, category, extra)
             progress(f"Computing {key}...")
             bucket.as_gamefile(crc, key)
 
