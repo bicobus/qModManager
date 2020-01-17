@@ -10,13 +10,20 @@ Bug:
     TypeError: expected str, bytes or os.PathLike object, not list
     PS C:\Users\---\Downloads\qModManager>
 
-Implement basic UI:
+Implement basic UI and features:
    [ ] Stylesheet: implement something like https://github.com/gmarull/qtmodern/blob/master/qtmodern/styles.py
    [x] Populate the list of managed mods @done (13-12-19 18:49)
    [x] Populate tabs appropriately @done (13-12-19 18:49)
    [ ] Merge existing tabs into a single tree view
        Color code each row to show the status of the files
    [ ] A "Refresh Archives" button might be helpful
+       Refresh the list of archives present in the folder. Could be done
+       automatically by watching changes to the folder.
+       Known Qt way: QFileSystemWatcher https://doc.qt.io/qt-5/qfilesystemwatcher.html
+       Investigate python.
+   [ ] Normalize mismatched archive
+       Provide a way to normalize an archive, by replacing the mismatched
+       content with the one from the archive.
 
 Toolbar:
   [x] actionOpen @done (20-10-19 10:40)
