@@ -195,7 +195,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if not items:
             return False
 
-        item = item[0]
+        item = items[0]
         if item.has_mismatched:
             dialogs.qInformation(
                 "Unable to uninstall mod: mismatched items exists on drive.\n"
