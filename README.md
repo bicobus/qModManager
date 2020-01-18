@@ -1,7 +1,5 @@
-[![Build
-status](https://ci.appveyor.com/api/projects/status/hn7a0oa12qhg62ds?svg=true)](https://ci.appveyor.com/project/bicobus/qmodmanager)
-
-[![DeepSource](https://static.deepsource.io/deepsource-badge-light.svg)](https://deepsource.io/gh/bicobus/qModManager/?ref=repository-badge)
+[![Build status](https://ci.appveyor.com/api/projects/status/hn7a0oa12qhg62ds?svg=true)](https://ci.appveyor.com/project/bicobus/qmodmanager)
+[![DeepSource](https://static.deepsource.io/deepsource-badge-light-mini.svg)](https://deepsource.io/gh/bicobus/qModManager/?ref=repository-badge)
 
 # qModManager
 
