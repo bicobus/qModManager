@@ -1,13 +1,16 @@
-version = 1
-
-exclude_patterns = [
-  "doc/**"
-]
-
-[[analyzers]]
-name = "python"
-enabled = true
-
-  [analyzers.meta]
-  runtime_version = "3.x.x"
-  max_line_length = 127
+{
+  "version": 1,
+  "analyzers": [
+      {
+          "meta": {
+              "max_line_length": 127,
+              "runtime_version": "3.x.x"
+          },
+          "name": "python",
+          "enabled": true
+      }
+  ],
+  "exclude_patterns": [
+      "doc/**"
+  ]
+}
