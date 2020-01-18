@@ -1,22 +1,31 @@
-RCC=pyrcc5
-UIC=pyuic5 --from-imports
+RCC := $(shell command -v pyrcc5 2>/dev/null)
+UIC := $(shell command -v pyuic5 2>/dev/null)
+UIC_FLAGS=--from-imports
 RDIR=resources
 LDIR=qmm
-#DEPS=$(RDIR)/ui_customlist.ui $(RDIR)/ui_detailedview.ui $(QRC)
 PUI=$(LDIR)/icons_rc.py\
 	$(LDIR)/ui_settings.py\
 	$(LDIR)/ui_mainwindow.py\
 	$(LDIR)/ui_about.py
 
-.PHONY: clean qt
+ifndef RCC
+    $(error pyrcc5 not found in PATH, make not run within virtualenv?)
+endif
+ifndef UIC
+    $(error pyuic5 not found in PATH, make not run within virtualenv?)
+endif
+
+.PHONY: all clean qt
+
+all: qt
+
+qt: $(PUI)
 
 $(LDIR)/ui_%.py: $(RDIR)/ui_%.ui
-	$(UIC) -o $@ $<
+	$(UIC) $(UIC_FLAGS) -o $@ $<
 
 $(LDIR)/%_rc.py: $(RDIR)/%.qrc
 	$(RCC) -o $@ $<
-
-qt: $(PUI)
 
 clean: 
 	$(RM) $(PUI)
