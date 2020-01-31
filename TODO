@@ -1,14 +1,18 @@
 Bug:
   [ ] delete_archive is somewhat broken
-    PS C:\Users\---\Downloads\qModManager> .\main.exe
-    Traceback (most recent call last):
-      File "qmm\manager.py", line 155, in _do_delete_selected_file
-      File "qmm\filehandler.py", line 568, in delete_archive
-      File "pathlib.py", line 1010, in __new__
-      File "pathlib.py", line 665, in _from_parts
-      File "pathlib.py", line 649, in _parse_args
-    TypeError: expected str, bytes or os.PathLike object, not list
-    PS C:\Users\---\Downloads\qModManager>
+        PS C:\Users\---\Downloads\qModManager> .\main.exe
+        Traceback (most recent call last):
+          File "qmm\manager.py", line 155, in _do_delete_selected_file
+          File "qmm\filehandler.py", line 568, in delete_archive
+          File "pathlib.py", line 1010, in __new__
+          File "pathlib.py", line 665, in _from_parts
+          File "pathlib.py", line 649, in _parse_args
+        TypeError: expected str, bytes or os.PathLike object, not list
+        PS C:\Users\---\Downloads\qModManager>
+  [ ] Installing over a mismatched state doesn't refresh the other archives's states
+      The mismatched state is properly erased from the item that override the existing files, however the other
+      archives do not get their cache updated. This is due to the fact that the previous files aren't removed from
+      the buckets.
 
 Implement basic UI and features:
    [ ] Stylesheet: implement something like https://github.com/gmarull/qtmodern/blob/master/qtmodern/styles.py
