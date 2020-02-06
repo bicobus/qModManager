@@ -6,11 +6,14 @@ Licensed under the EUPL v1.2
 import logging
 from os import path
 # from collections import deque # DetailView
+from typing import Tuple, List
+
 from PyQt5 import QtWidgets, QtGui
 from PyQt5.QtCore import pyqtSlot
 from .common import timestamp_to_string, settings
 from .filehandler import (FILE_MISSING, FILE_MATCHED, FILE_MISMATCHED,
                           FILE_IGNORED, missing_matched_mismatched)
+from .bucket import FileMetadata
 from . import bucket
 from .ui_settings import Ui_Settings
 from .ui_about import Ui_About
@@ -61,7 +64,7 @@ class QSettings(QtWidgets.QWidget, Ui_Settings):
             parent=self,
             caption=self.game_label.text(),
             directory=settings['game_folder']
-        )
+        )  # noqa pycharm
 
         if value and value != settings['game_folder']:
             self.game_input.setText(value)
@@ -73,7 +76,7 @@ class QSettings(QtWidgets.QWidget, Ui_Settings):
             parent=self,
             caption=self.repo_label.text(),
             directory=settings['local_repository']
-        )
+        )  # noqa pycharm
         if value and value != settings['local_repository']:
             self.repo_input.setText(value)
 
@@ -108,7 +111,7 @@ class QSettings(QtWidgets.QWidget, Ui_Settings):
 #  * content_tags
 #  * filetreeWidget
 #
-#  FIXME: Unfinished, will need to be revisited
+#  Unfinished, will need to be revisited
 # class DetailedView(QtWidgets.QWidget):
 #     def __init__(self, parent=None):
 #         super(DetailedView, self).__init__(parent)
@@ -185,6 +188,7 @@ class QSettings(QtWidgets.QWidget, Ui_Settings):
 
 class ListRowItem(QtWidgets.QListWidgetItem):
     """ListWidgetItem representing one single archive."""
+    _data: List[Tuple[FileMetadata, int]]
 
     def __init__(self, filename: str, data, stat, hashsum):
         super().__init__()
@@ -204,6 +208,7 @@ class ListRowItem(QtWidgets.QListWidgetItem):
         self._errored_str = ""
 
         self._triage_done = False
+        self._triage_second = False
         self._built_strings = False
 
         self.setText(self.filename)
@@ -227,7 +232,7 @@ class ListRowItem(QtWidgets.QListWidgetItem):
         for item, status in self._data:
             if not self._set_item_status(item, status):
                 self._errored.append(item)
-            if 'D' not in item.Attributes:
+            if not item.is_dir():
                 self._files.append(item)
             else:
                 self._folders.append(item)
@@ -238,7 +243,12 @@ class ListRowItem(QtWidgets.QListWidgetItem):
         if status == FILE_MATCHED:
             self._matched.append(item)
         elif status == FILE_MISMATCHED:
-            self._mismatched.append(item)
+            # File is mismatched against something else, find it and store it
+            for crc, mfile in bucket.loosefiles.items():
+                f = list(filter(lambda x: x.path == item.path, mfile))
+                if f:
+                    logger.debug("Found mismatched as '%s'", f[0])
+                    self._mismatched.append(f[0])
         elif status == FILE_MISSING:
             self._missing.append(item)
         elif status == FILE_IGNORED:
@@ -247,20 +257,26 @@ class ListRowItem(QtWidgets.QListWidgetItem):
             return False
         return True
 
-    def _conflict_triage(self, item):
+    def _conflict_triage(self, item: FileMetadata):
         tmp_conflicts = []
         # Check other archives
-        if bucket.with_conflict(item.Path):
-            tmp_conflicts.extend(bucket.conflicts[item.Path])
+        if bucket.with_conflict(item.path):
+            tmp_conflicts.extend(bucket.conflicts[item.path])
         # Check against existing files
-        if bucket.with_looseconflicts(item.CRC):
-            tmp_conflicts.extend(bucket.looseconflicts[item.CRC])
+        # XXX maybe useless
+        if bucket.with_looseconflicts(item.path):
+            x = [c.path for c in bucket.looseconflicts[item.path]
+                 if c.crc != item.crc]
+            logger.debug(x)
+            tmp_conflicts.extend(
+                x
+            )
         # Check against game files (Path and CRC)
-        if (bucket.with_gamefiles(path=item.Path)
-                or bucket.with_gamefiles(crc=item.CRC)):
-            tmp_conflicts.append(bucket.gamefiles[item.CRC])
+        if (bucket.with_gamefiles(path=item.path)
+                or bucket.with_gamefiles(crc=item.crc)):
+            tmp_conflicts.append(bucket.gamefiles[item.crc])
         if tmp_conflicts:
-            self._conflicts[item.Path] = tmp_conflicts
+            self._conflicts[item.path] = tmp_conflicts
 
     def _format_strings(self):
         self._files_str = _format_regular(
@@ -295,12 +311,20 @@ class ListRowItem(QtWidgets.QListWidgetItem):
         self.__setup_buckets()
         self._data = missing_matched_mismatched([i for i, _ in self._data])
         self._triage_done = False
+        self._triage_second = True
         self._triage()
         self._format_strings()
 
     def list_ignored(self):
         """Returns a list of ignored elements"""
         return self._ignored
+
+    def install_info(self):
+        return {
+            'matched': self._matched,
+            'mismatched': self._mismatched,
+            'ignored': self._ignored
+        }
 
     def list_matched(self, include_folders=False):
         """Returns a list of matched files.
@@ -405,13 +429,13 @@ class ListRowItem(QtWidgets.QListWidgetItem):
         return False
 
 
-def _format_regular(title, items):
+def _format_regular(title, items: List[FileMetadata]):
     strings = [f"== {title}:\n"]
     for item in items:
-        if 'D' in item.Attributes:
+        if item.is_dir():
             continue
-        crc = hex(item.CRC)
-        strings.append(f"  - {item.Path} ({crc})\n")
+        crc = hex(item.crc)
+        strings.append(f"  - {item.path} ({crc})\n")
     strings.append("\n")
     return "".join(strings)
 
@@ -423,7 +447,11 @@ def _format_conflicts(title, items):
         for element in archives:
             if isinstance(element, list):
                 for e in element:
-                    strings.append(f"\t-> (a) {e}\n")
+                    strings.append(f"\t-> (debug:a) {e.path}\n")
             else:
-                strings.append(f"\t-> (b) {element}\n")
+                if isinstance(element, FileMetadata):
+                    e = [element.path, element.crc, element.origin]
+                else:
+                    e = element
+                strings.append(f"\t-> (debug:b) {e}\n")
     return "".join(strings)

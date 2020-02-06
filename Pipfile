@@ -12,7 +12,7 @@ pylint = "*"
 
 [packages]
 pyxdg = "*"
-"pyqt5" = ">=5.13"
+pyqt5 = "~=5.14"
 
 [requires]
 python_version = "3.7"

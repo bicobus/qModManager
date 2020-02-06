@@ -1,10 +1,9 @@
 # Licensed under the EUPL v1.2
 # © 2019 bicobus <bicobus@keemail.me>
 import os
-import sys
 import logging
 from datetime import datetime
-from . import is_windows
+from . import is_windows, get_base_path
 from .config import Config
 
 
@@ -32,13 +31,7 @@ def tools_path():
     TODO: needs a better name
     """
     if is_windows:
-        if getattr(sys, 'frozen', False):
-            rel = os.path.dirname(sys.executable)
-        elif __file__:
-            rel = os.path.dirname(__file__)
-        else:
-            raise Exception("Unable to find application's path.")
-        return os.path.join(rel, 'tools', '7z.exe')
+        return os.path.join(get_base_path(), 'tools', '7z.exe')
     return '7z'
 
 

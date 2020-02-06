@@ -7,14 +7,14 @@ import subprocess
 import re
 import pathlib
 
-from typing import Type, List, Tuple
+from typing import List, Tuple, Dict
 from functools import lru_cache
 from zlib import crc32
 from hashlib import sha256
 from collections.abc import MutableMapping
 from tempfile import TemporaryDirectory
 
-from . import FileMetadata
+from .bucket import FileMetadata
 from . import bucket
 from . import is_windows
 from .common import tools_path, settings, settings_are_set
@@ -26,9 +26,6 @@ startupinfo = None
 if is_windows:
     startupinfo = subprocess.STARTUPINFO()
     startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
-    pathObject: Type[pathlib.PurePath] = pathlib.PureWindowsPath
-else:
-    pathObject: Type[pathlib.PurePath] = pathlib.PurePosixPath
 
 # Mods directory structure
 first_level_dir = ('items', 'outfits')  # outfits aren't supported in mods
@@ -61,7 +58,7 @@ def ignore_patterns(seven_flag=False):
 def extract7z(file_archive: pathlib.Path,
               output_path: pathlib.Path,
               exclude_list=None,
-              progress=None):
+              progress=None) -> List[FileMetadata]:
     filepath = file_archive.absolute()
     output_path = output_path.absolute()
     cmd = [
@@ -91,8 +88,9 @@ def extract7z(file_archive: pathlib.Path,
             extract = reExtractMatch(line)
             if extract:
                 path = extract.group(1).strip()
-                f_list.append(FileMetadata(Attributes="", Path=path,
-                                           CRC=0, Modified=""))
+                f_list.append(
+                    FileMetadata(attributes="", path=path,
+                                 crc=0, modified="", isfrom=file_archive.name))
                 if progress:
                     progress(f'Extracting {path}...')
 
@@ -106,7 +104,18 @@ def extract7z(file_archive: pathlib.Path,
 
 
 def list7z(file_path, progress=None) -> List[FileMetadata]:
-    file_path = os.path.abspath(file_path)
+    if not isinstance(file_path, pathlib.Path):
+        file_path = pathlib.Path(file_path)
+        if not file_path.exists():
+            raise ArchiveException(f"{file_path} couldn't be found.")
+
+    model = {
+        'path': "",
+        'modified': "",
+        'attributes': "",
+        'crc': 0,
+        'isfrom': file_path.name
+    }
 
     if progress:
         progress(f'Processing {file_path}...')
@@ -121,12 +130,6 @@ def list7z(file_path, progress=None) -> List[FileMetadata]:
         stdin=subprocess.PIPE, stderr=subprocess.STDOUT)
 
     f_list: List[FileMetadata] = []
-    model = {
-        'Path': "",
-        'Modified': "",
-        'Attributes': "",
-        'CRC': 0
-    }
     err_string = ""
     with proc.stdout as out:
         for line in iter(out.readline, b''):
@@ -143,10 +146,10 @@ def list7z(file_path, progress=None) -> List[FileMetadata]:
                 if fdg == 'Path':
                     tmp_data = model.copy()
                 if fdg in ('Path', 'Modified', 'Attributes', 'CRC'):
-                    tmp_data[fdg] = file_data.group(2).strip()
+                    tmp_data[fdg.lower()] = file_data.group(2).strip()
                 if fdg == 'CRC':
-                    if 'D' not in tmp_data['Attributes']:
-                        tmp_data[fdg] = int(tmp_data[fdg], 16)
+                    if 'D' not in tmp_data['attributes']:
+                        tmp_data[fdg.lower()] = int(tmp_data[fdg.lower()], 16)
                     f_list.append(FileMetadata(**tmp_data))
 
     return_code = proc.wait()
@@ -201,8 +204,7 @@ class ArchivesCollection(MutableMapping):
             if entry.is_file() and entry.suffix in suffixes:
                 self.add_archive(entry, progress=progress)
             else:
-                # TODO: output error to log
-                print(entry.suffix)
+                logger.warning(f"File with suffix '{entry.suffix}' ignored.")
         return True
 
     def add_archive(self, path, hashsum=None, progress=None):
@@ -263,7 +265,7 @@ class ArchivesCollection(MutableMapping):
     def __setitem__(self, key, value):
         if key not in self._data or self._data[key] != value:
             assert isinstance(value, list), type(value)
-            assert all(isinstance(x, FileMetadata) for x in value)
+            assert all(isinstance(x, bucket.FileMetadata) for x in value)
             self._data[key] = value
 
     def __delitem__(self, key):
@@ -312,19 +314,19 @@ def _crc32(filename) -> int:
 
 
 def _compute_files_crc32(folder, partition=('res', 'mods')):
-    root: str
     for root, _, files in os.walk(folder):
         if not files:
             continue
         # We want to build a path that is similar to the one present in an
         # archive. To do so we need to remove anything that is before, and
         # including the "partition" folder.
+        # ...blah/res/mods/namespace/category/ -> namespace/category/
         path = root.partition(os.path.join(*partition) + os.path.sep)[2]
 
         for file in files:
-            key = pathObject(path, file).as_posix()
-            with open(os.path.join(root, file), 'rb') as fp:
-                yield key, _crc32(fp)
+            kfile = pathlib.PurePath(path, file).as_posix()
+            with pathlib.Path(root, file).open('rb') as fp:
+                yield kfile, _crc32(fp)
 
 
 def build_game_files_crc32(progress=None):
@@ -342,18 +344,17 @@ def build_game_files_crc32(progress=None):
 
     for p_folder in scan_theses:
         folder = os.path.join(target_folder, p_folder)
-        for key, crc in _compute_files_crc32(folder, partition=('res',)):
+        for kfile, crc in _compute_files_crc32(folder, partition=('res',)):
             # normalize path: category/namespace/... -> namespace/category/...
-            category, namespace, extra = key.split(os.path.sep, 2)
+            category, namespace, extra = kfile.split(os.path.sep, 2)
             if category in ('clothing', 'weapons', 'tattoos'):
-                key = os.path.join(namespace, 'items', category, extra)
+                kfile = os.path.join(namespace, 'items', category, extra)
             else:
-                key = os.path.join(namespace, category, extra)
-            progress(f"Computing {key}...")
-            bucket.as_gamefile(crc, key)
+                kfile = os.path.join(namespace, category, extra)
+            progress(f"Computing {kfile}...")
+            bucket.as_gamefile(crc, kfile)
 
 
-# Returns a dict indexed on the files
 def build_loose_files_crc32(progress=None):
     """
     Build the CRC32 value of all loose files
@@ -365,9 +366,9 @@ def build_loose_files_crc32(progress=None):
 
     """
     mod_folder = _get_mod_folder(prepend_modpath=True)
-    for key, crc in _compute_files_crc32(mod_folder):
-        progress(f"Computing {key}...")
-        bucket.as_loosefile(crc, key)
+    for kfile, crc in _compute_files_crc32(mod_folder):
+        progress(f"Computing {kfile}...")
+        bucket.as_loosefile(crc, kfile)
 
 
 def _filter_list_on_exclude(archives_list, list_to_exclude):
@@ -376,7 +377,7 @@ def _filter_list_on_exclude(archives_list, list_to_exclude):
             yield archive_name, items
 
 
-def file_in_other_archives(file, archives, ignore):
+def file_in_other_archives(file: bucket.FileMetadata, archives: ArchivesCollection, ignore):
     """Returns a list of archives in which file is found if the number of said
     archive is above 1. Otherwise returns False.
     Args:
@@ -387,26 +388,25 @@ def file_in_other_archives(file, archives, ignore):
     Returns:
         List: List of archives containing the same file.
     """
-    def _ofile(v):
-        return v.CRC, v.Path
-
     found = []
-    for ck, items in _filter_list_on_exclude(archives, ignore):
-        for crc, other_file_path in map(_ofile, items):
-            if ('D' not in file.Attributes
-                    and file.Path == other_file_path
-                    and file.CRC != crc):
-                found.append(ck)
+    for archive_name, items in _filter_list_on_exclude(archives, ignore):
+        for crc, other_file_path in map(lambda v: (v.crc, v.path), items):
+            if (not file.is_dir()
+                    and file.path == other_file_path
+                    and file.crc != crc):
+                found.append(archive_name)
 
     return found
 
 
-def conflicts_process_files(files, archives_list, current_archive, processed):
+def conflicts_process_files(files: List[bucket.FileMetadata], archives_list, current_archive, processed):
     for file in files:
-        if bucket.with_loosefiles(crc=file.CRC):
-            bucket.as_loose_conflicts(file)
+        # FIXME remove the loosefiles things
+        # if bucket.with_loosefiles(file, check_type=3) and not bucket.with_loosefiles(file, check_type=1):
+        #     logger.debug("Add file '%s' (origin %s) to loose conflicts.", file.path, file.origin)
+        #     bucket.as_loose_conflicts(file)
 
-        if bucket.with_conflict(file.Path):
+        if bucket.with_conflict(file.path):
             continue
 
         bad_archives = file_in_other_archives(
@@ -416,12 +416,14 @@ def conflicts_process_files(files, archives_list, current_archive, processed):
 
         if bad_archives:
             bad_archives.append(current_archive)
-            bucket.as_conflict(file.Path, bad_archives)
+            bucket.as_conflict(file.path, bad_archives)
+    return
 
 
 def detect_conflicts_between_archives(archives_lists: ArchivesCollection):
     assert isinstance(archives_lists, ArchivesCollection), type(archives_lists)
-    list_done = []  # (sha256, filepath) of already processed archives
+    list_done = []
+    # archive_content is a list of objects [FileMetadata, FileMetadata, ...]
     for archive_name, archive_content in archives_lists.items():
         conflicts_process_files(archive_content, archives_lists, archive_name, list_done)
         list_done.append(archive_name)
@@ -434,7 +436,7 @@ FILE_IGNORED = 4
 
 
 @lru_cache(maxsize=None)
-def _bad_directory_structure(path):
+def _bad_directory_structure(path: pathlib.Path):
     if len(path.parts) > 1 and not any(path.parts[1] == x for x in first_level_dir):
         return True
     return False
@@ -445,22 +447,20 @@ def _bad_suffix(suffix):
     return bool(suffix not in ('.xml', '.svg'))
 
 
-def file_status(file: FileMetadata) -> int:
-    path = pathObject(file.Path)
-    if (path.name in ignore_patterns()
-            or _bad_directory_structure(path)
-            or (path.suffix and _bad_suffix(path.suffix))):
+def file_status(file: bucket.FileMetadata) -> int:
+    if (file.pathobj.name in ignore_patterns()
+            or _bad_directory_structure(file.path_as_posix())
+            or (file.pathobj.suffix and _bad_suffix(file.pathobj.suffix))):
         return FILE_IGNORED
-    if (bucket.with_loosefiles(crc=file.CRC)
-            and bucket.with_loosefiles(path=file.Path)):
+    if bucket.with_loosefiles(file, check_type=1):
         return FILE_MATCHED
-    if (any(file.Path in v for v in bucket.loosefiles.values())
-            and not bucket.with_loosefiles(crc=file.CRC)):
+    if (bucket.with_loosefiles(file, check_type=3)
+            and not bucket.with_loosefiles(file, check_type=1)):
         return FILE_MISMATCHED
     return FILE_MISSING
 
 
-def missing_matched_mismatched(file_list: List[FileMetadata]) -> List[Tuple[FileMetadata, int]]:
+def missing_matched_mismatched(file_list: List[bucket.FileMetadata]) -> List[Tuple[bucket.FileMetadata, int]]:
     new_list = []
     for file in file_list:
         new_list.append((file, file_status(file)))
@@ -494,26 +494,31 @@ def copy_archive_to_repository(filename):
         return os.path.basename(new_filename)
 
 
-def install_archive(file_to_extract, ignore_list):
+def install_archive(file_to_extract, file_context: Dict[str, List[FileMetadata]]):
     """Install the content of an archive into the game mod folder."""
     if not settings['game_folder']:
         logger.warning("Unable to unpack archive: game location is unknown.")
         return False
 
     file_to_extract = pathlib.Path(settings['local_repository'], file_to_extract)
-    ignore_list = ["-x!{}".format(path.Path) for path in ignore_list]
+    ignore_list = ["-x!{}".format(filemd.path) for filemd in file_context['ignored'] + file_context['matched']]
 
     try:
         with TemporaryDirectory(prefix="qmm-") as td:
             files = extract7z(file_to_extract, pathlib.Path(td), exclude_list=ignore_list)
             for file in files:
-                src = pathlib.Path(td, file.Path)
+                src = pathlib.Path(td, file.path)
                 if src.is_dir():
                     continue
-                dst = _get_mod_folder(file.Path, prepend_modpath=True)
+                dst = _get_mod_folder(file.path, prepend_modpath=True)
                 os.makedirs(os.path.dirname(dst), mode=0o750, exist_ok=True)
                 shutil.copy2(src, dst)
-                bucket.as_loosefile(_crc32(dst), file.Path)
+                ccrc = _crc32(dst)
+                bucket.as_loosefile(ccrc, file.path)
+                logger.debug(f"Added as loose: {ccrc} {file.path}")
+            for file in file_context['mismatched']:
+                logger.debug(f"Removed from loose: {file.crc} {file.path}")
+                bucket.remove_item_from_loosefiles(file)
     except ArchiveException as e:
         logger.exception(e)
         return False
@@ -529,15 +534,18 @@ def uninstall_files(file_list: list):
     success = True
     for item in file_list:
         assert isinstance(item, FileMetadata)
-        file = _get_mod_folder(item.Path, prepend_modpath=True)
+        file = item.pathobj
         logger.debug("Trying to delete file: %s", file)
         if not file.is_dir():
             try:
                 file.unlink()
-                bucket.remove_from_loosefiles(item)
+                bucket.remove_item_from_loosefiles(item)
             except OSError as e:
-                logger.error("Unable to remove file %s: %s", file, e)
-                success = False
+                if e.errno == 39:  # Folder non-empty
+                    logger.warning(e.strerror)
+                else:
+                    logger.error("Unable to remove file %s: %s", file, e)
+                    success = False
             else:
                 logger.debug("File unlinked: %s", file)
         else:

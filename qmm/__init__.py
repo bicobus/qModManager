@@ -9,18 +9,30 @@ __email__ = "bicobus@keemail.me"
 __status__ = "Development"
 
 import os
+import sys
 import platform
-from typing import NamedTuple
+import logging
+
+
+def get_base_path():
+    if getattr(sys, 'frozen', False):
+        return os.path.dirname(sys.executable)
+    elif __file__:
+        return os.path.dirname(os.path.join('run.py'))
+    raise Exception("Unable to find application's path.")
+
+
+logging.getLogger('PyQt5').setLevel(logging.WARNING)
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(levelname)s:%(name)s:%(module)s:%(funcName)s:%(message)s',
+    filename=os.path.join(get_base_path(), 'error.log'),
+    filemode='w'
+)
+
 
 is_windows = platform.system() in ('Windows', 'Microsoft')
 is_linux = platform.system() == 'Linux'
-
-
-class FileMetadata(NamedTuple):
-    Path: str
-    Attributes: str
-    CRC: int
-    Modified: str
 
 
 SETTINGS_HELP = """Some settings are required to be set for you to be able to use this tool.

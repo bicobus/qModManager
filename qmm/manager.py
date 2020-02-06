@@ -14,13 +14,6 @@ from .config import get_config_dir
 from .common import settings_are_set
 from .widgets import QSettings, QAbout
 
-logging.getLogger('PyQt5').setLevel(logging.WARNING)
-logging.basicConfig(
-    level=logging.DEBUG,
-    format='%(levelname)s:%(name)s:%(module)s:%(funcName)s:%(message)s',
-    filename=get_config_dir("error.log"),
-    filemode='w'
-)
 logger = logging.getLogger(__name__)
 
 
@@ -85,7 +78,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     @pyqtSlot(name="on_listWidget_itemSelectionChanged")
     def _on_selection_change(self) -> None:
-        """
+        """Changes the color of the text in the tab (not the body).
         rgb(135, 33, 39) # redish
         rgb(78, 33, 135) # blueish
         rgb(91, 135, 33) # greenish
@@ -171,7 +164,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     @pyqtSlot(name="on_actionInstall_Mod_triggered")
     def _do_install_selected_mod(self):
-        items = self.listWidget.selectedItems()
+        items: List[widgets.ListRowItem] = self.listWidget.selectedItems()
         if not items:
             logger.error("Triggered _do_install_selected_mod without a selection")
             return
@@ -179,13 +172,14 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # We should only have one element in the list.
         item = items[0]
 
-        files = filehandler.install_archive(item.filename, item.list_ignored())
+        files = filehandler.install_archive(item.filename, item.install_info())
         if not files:
             dialogs.qWarning(
                 f"The archive {item.filename} extracted with errors.\n"
                 f"Please refer to {get_config_dir('error.log')} for more information."
             )
         else:
+            filehandler.detect_conflicts_between_archives(self.managed_archives)
             self._refresh_list_item_strings()
             self._on_selection_change()
 
@@ -204,7 +198,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             )
             return False
 
-        if filehandler.uninstall_files(items.list_matched(include_folders=True)):
+        if filehandler.uninstall_files(item.list_matched(include_folders=True)):
+            filehandler.detect_conflicts_between_archives(self.managed_archives)
             self._refresh_list_item_strings()
             self._on_selection_change()
             return True
@@ -297,7 +292,7 @@ def main():
     logger.info("Starting application")
     try:
         app = QApplication(sys.argv)
-        QtGui.QFontDatabase.addApplicationFont(":/unifont.ttf")
+        QtGui.QFontDatabase.addApplicationFont(":/unifont.ttf")  # noqa PyCallByClass, PyArgumentList
         mainwindow = MainWindow()
         mainwindow.show()
         sys.exit(app.exec_())
