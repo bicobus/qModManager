@@ -417,7 +417,6 @@ def conflicts_process_files(files: List[bucket.FileMetadata], archives_list, cur
         if bad_archives:
             bad_archives.append(current_archive)
             bucket.as_conflict(file.path, bad_archives)
-    return
 
 
 def detect_conflicts_between_archives(archives_lists: ArchivesCollection):

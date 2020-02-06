@@ -244,7 +244,7 @@ class ListRowItem(QtWidgets.QListWidgetItem):
             self._matched.append(item)
         elif status == FILE_MISMATCHED:
             # File is mismatched against something else, find it and store it
-            for crc, mfile in bucket.loosefiles.items():
+            for mfile in bucket.loosefiles.values():
                 f = list(filter(lambda x: x.path == item.path, mfile))
                 if f:
                     logger.debug("Found mismatched as '%s'", f[0])

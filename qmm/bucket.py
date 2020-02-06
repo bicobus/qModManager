@@ -57,18 +57,19 @@ class FileMetadata:
                                         pathobj)
 
     def is_dir(self):
+        """Check if the represented item is a directory"""
         if not self.pathobj.exists():
-            return 'D' in self._Attributes
-        else:
-            return self.pathobj.is_dir()
+            return bool('D' in self._Attributes)
+        return self.pathobj.is_dir()
 
     def is_file(self):
+        """Check if the represented item is a file"""
         if not self.pathobj.exists():
-            return 'D' not in self._Attributes
-        else:
-            self.pathobj.is_file()
+            return bool('D' not in self._Attributes)
+        return self.pathobj.is_file()
 
     def exists(self):
+        """Check if the file exists on the disk"""
         return self.pathobj.exists()
 
     def path_as_posix(self):
@@ -99,6 +100,7 @@ class FileMetadata:
         return self._from
 
     def as_dict(self):
+        """Returns this object as a dict (kinda)"""
         return {
             'CRC': self._CRC,
             'Path': self._Path,

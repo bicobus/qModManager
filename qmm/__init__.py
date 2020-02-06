@@ -19,7 +19,8 @@ def get_base_path():
         return os.path.dirname(sys.executable)
     elif __file__:
         return os.path.dirname(os.path.join('run.py'))
-    raise Exception("Unable to find application's path.")
+    else:
+        raise Exception("Unable to find application's path.")
 
 
 logging.getLogger('PyQt5').setLevel(logging.WARNING)

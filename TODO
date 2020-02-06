@@ -25,7 +25,7 @@ Implement basic UI and features:
        automatically by watching changes to the folder.
        Known Qt way: QFileSystemWatcher https://doc.qt.io/qt-5/qfilesystemwatcher.html
        Investigate python.
-   [ ] Normalize mismatched archive
+   [x] Normalize mismatched archive @done (06-02-20 18:33)
        Provide a way to normalize an archive, by replacing the mismatched
        content with the one from the archive.
 
@@ -35,9 +35,9 @@ Toolbar:
     [x] actionOpen_done (callback) @done (09-12-19 12:57)
         Check if file isn't already in the list, both name and hashsum
   [x] actionRemove_file @done (20-10-19 10:47)
-  [ ] actionHelp
+  [x] actionHelp @done (06-02-20 18:33)
   [x] actionAdd_Archive(clone of actionOpen) @done (20-10-19 10:41)
-  [ ] actionAbout
+  [x] actionAbout @done (06-02-20 18:33)
   [x] actionSettings @done (13-12-19 08:32)
   [x] actionInstall_Mod @done (20-10-19 10:47)
   [x] actionUninstall_Mod @done (13-12-19 18:45)
