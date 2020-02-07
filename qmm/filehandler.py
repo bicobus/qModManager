@@ -410,11 +410,6 @@ def file_in_other_archives(file: bucket.FileMetadata,
 
 def conflicts_process_files(files: List[bucket.FileMetadata], archives_list, current_archive, processed):
     for file in files:
-        # FIXME remove the loosefiles things
-        # if bucket.with_loosefiles(file, check_type=3) and not bucket.with_loosefiles(file, check_type=1):
-        #     logger.debug("Add file '%s' (origin %s) to loose conflicts.", file.path, file.origin)
-        #     bucket.as_loose_conflicts(file)
-
         if bucket.with_conflict(file.path):
             continue
 

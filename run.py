@@ -1,7 +1,6 @@
 #!/usr/bin/env python
-
 # Licensed under the EUPL v1.2
-# © 2019 bicobus <bicobus@keemail.me>
+# © 2020 bicobus <bicobus@keemail.me>
 
 from qmm import manager
 

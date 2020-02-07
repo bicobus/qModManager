@@ -1,12 +1,11 @@
-"""Buckets of dicts with a set of helpers function..
+#  Licensed under the EUPL v1.2
+#  © 2020 bicobus <bicobus@keemail.me>
+"""Buckets of dicts with a set of helpers function.
 
 This module serves has a stand-in database, any function or method it contain
 would be facilitator to either access or transform the data. This module is
 necessary in order to keep track of the state of the different files and make
 that specific state available globally within the other modules.
-
-  Licensed under the EUPL v1.2
-  © 2019 bicobus <bicobus@keemail.me>
 """
 from os.path import join, sep
 import pathlib
@@ -21,6 +20,12 @@ TYPE_GAMEFILE = 2
 
 
 class FileMetadata:
+    """Representation of a file.
+
+    Can handle game files, mod files or file information comming from an
+    archive.
+    """
+
     def __init__(self, crc, path, attributes, modified, isfrom):
         self._CRC = crc
         self._from = isfrom
@@ -41,8 +46,12 @@ class FileMetadata:
         else:
             self._Modified = modified
 
-    def _normalize_path(self, pathobj: pathlib.Path, partition=('res', 'mods')):
-        """We want to build a path that is similar to the one present in an
+    def _normalize_path(self,
+                        pathobj: pathlib.Path,
+                        partition=('res', 'mods')):
+        """Return a pathlib.Path object with a normalized path.
+
+        We want to build a path that is similar to the one present in an
         archive. To do so we need to remove anything that is before, and
         including the "partition" folder.
         ...blah/res/mods/namespace/category/ -> namespace/category/
@@ -100,7 +109,7 @@ class FileMetadata:
         return self._from
 
     def as_dict(self):
-        """Returns this object as a dict (kinda)"""
+        """Return this object as a dict (kinda)."""
         return {
             'CRC': self._CRC,
             'Path': self._Path,
@@ -111,18 +120,19 @@ class FileMetadata:
         }
 
     def __str__(self):
-        return f"{self.__class__}({self._Path}, crc: {self._CRC}, from: {self.origin})"
+        return (
+            f"{self.__class__}({self._Path}, crc: {self._CRC}, "
+            f"from: {self.origin})"
+        )
 
 
 Conflict = Dict[str, List]
 LooseFiles = Dict[int, List[FileMetadata]]
 GameFiles = Dict[int, str]
-LooseConflicts = Dict[str, List]
 
 conflicts: Conflict = {}
 loosefiles: LooseFiles = {}
 gamefiles: GameFiles = {}
-looseconflicts: LooseConflicts = {}
 
 
 def _find_index_from(lbucket, crc, path):
@@ -132,15 +142,9 @@ def _find_index_from(lbucket, crc, path):
     return False
 
 
-def _find_index_from_looseconflicts(path, crc):
-    for item in looseconflicts[path]:
-        if item.crc == crc:
-            return looseconflicts[path].index(item)
-    return False
-
-
 def with_conflict(path: str) -> bool:
     """Check if path exists in conflicts's keys.
+
     The conflicts bucket purpose is to list issues in-between archives only.
 
     Args:
@@ -180,16 +184,6 @@ def with_loosefiles(filemd: FileMetadata, check_type=4) -> bool:
     return False
 
 
-def with_looseconflicts(path: str) -> bool:
-    """Check if a path exists in the looseconflicts bucket
-    Args:
-        path: path to check against index
-    Returns:
-        bool: True if the given path exist in looseconflicts's keys
-    """
-    return bool(path in looseconflicts.keys())
-
-
 def with_gamefiles(crc: int = None, path: str = None):
     """First check if a CRC32 exist within the gamefiles bucket, if no CRC is
     given or the check fails, will then check if a path is present in the
@@ -227,23 +221,6 @@ def as_gamefile(crc: int, value: str):
         crc=crc, path=value, modified=None,
         attributes=None, isfrom=TYPE_GAMEFILE)
     gamefiles.setdefault(crc, value)
-
-
-def as_loose_conflicts(file: FileMetadata):
-    looseconflicts.setdefault(file.path, [])
-    if file in looseconflicts[file.path]:
-        logger.debug("Duplicate FileMetadata in loose conflicts: %s", file.path)
-        return
-    looseconflicts[file.path].append(file)
-
-
-def remove_item_from_loose_conflicts(path, crc):
-    """A loose conflict is a mismatched file that is present on the harddrive"""
-    if path in looseconflicts.keys():
-        idx = _find_index_from_looseconflicts(path=path, crc=crc)
-        del looseconflicts[path][idx]
-        if not looseconflicts[path]:
-            del looseconflicts[path]
 
 
 def as_loosefile(crc: int, filepath: pathlib.PurePath):

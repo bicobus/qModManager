@@ -1,7 +1,6 @@
-"""Contains various Qt Widgets used internally by the application.
-Licensed under the EUPL v1.2
-© 2019 bicobus <bicobus@keemail.me>
-"""
+#  Licensed under the EUPL v1.2
+#  © 2020 bicobus <bicobus@keemail.me>
+"""Contains various Qt Widgets used internally by the application."""
 
 import logging
 from os import path
@@ -29,6 +28,8 @@ logger = logging.getLogger(__name__)
 
 
 class QAbout(QtWidgets.QWidget, Ui_About):
+    """About window displaying various informations about the software."""
+
     def __init__(self):
         super().__init__()
         self.setupUi(self)
@@ -52,14 +53,14 @@ class QSettings(QtWidgets.QWidget, Ui_Settings):
             self.cancel_button.setEnabled(True)
 
     def show(self):
-        """Show the window and assign internal variables"""
+        """Show the window and assign internal variables."""
         super().show()
         self.game_input.setText(settings['game_folder'])
         self.repo_input.setText(settings['local_repository'])
 
     @pyqtSlot(name="on_game_button_clicked")
     def _set_game_directory(self):
-        """Callback, will show a file selection window to the user"""
+        """Show a file selection window to the user."""
         value = QtWidgets.QFileDialog.getExistingDirectory(
             parent=self,
             caption=self.game_label.text(),
@@ -71,7 +72,7 @@ class QSettings(QtWidgets.QWidget, Ui_Settings):
 
     @pyqtSlot(name="on_repo_button_clicked")
     def _set_repository_directory(self):
-        """Callback, will show a file selection window to use user"""
+        """Show a file selection window to use user."""
         value = QtWidgets.QFileDialog.getExistingDirectory(
             parent=self,
             caption=self.repo_label.text(),
@@ -82,7 +83,7 @@ class QSettings(QtWidgets.QWidget, Ui_Settings):
 
     @pyqtSlot(name="on_save_button_clicked")
     def _commit_changes(self):
-        """Callback, commit changes to the settings file then hide self"""
+        """Commit changes to the settings file then hide self."""
         if (self.game_input.text() != settings['game_folder']
                 and path.isdir(self.game_input.text())):
             settings['game_folder'] = self.game_input.text()
@@ -94,8 +95,10 @@ class QSettings(QtWidgets.QWidget, Ui_Settings):
     @pyqtSlot(name="on_cancel_button_clicked")
     def on_cancel_button_clicked(self):
         """Simply hide the window.
+
         The default values are being defined within the show method, thus
         there is nothing here for us to do.
+
         Returns:
             void
         """
@@ -262,15 +265,6 @@ class ListRowItem(QtWidgets.QListWidgetItem):
         # Check other archives
         if bucket.with_conflict(item.path):
             tmp_conflicts.extend(bucket.conflicts[item.path])
-        # Check against existing files
-        # XXX maybe useless
-        if bucket.with_looseconflicts(item.path):
-            x = [c.path for c in bucket.looseconflicts[item.path]
-                 if c.crc != item.crc]
-            logger.debug(x)
-            tmp_conflicts.extend(
-                x
-            )
         # Check against game files (Path and CRC)
         if (bucket.with_gamefiles(path=item.path)
                 or bucket.with_gamefiles(crc=item.crc)):
@@ -390,20 +384,24 @@ class ListRowItem(QtWidgets.QListWidgetItem):
 
     @property
     def missing(self):
+        """Return a string representing the list of missing files."""
         return self._missing_str
 
     @property
     def has_missing(self):
+        """Return a boolean based on missing files contained in the archive."""
         if self._missing:
             return True
         return False
 
     @property
     def mismatched(self):
+        """Return a string representing the mismatched elements."""
         return self._mismatched_str
 
     @property
     def has_mismatched(self):
+        """Return a boolean based on mismatched files contained in the archive."""
         if self._mismatched:
             return True
         return False

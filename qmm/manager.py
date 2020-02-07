@@ -1,8 +1,6 @@
-"""Handles the Qt main window.
-
-Licensed under the EUPL v1.2
-© 2019 bicobus <bicobus@keemail.me>
-"""
+#  Licensed under the EUPL v1.2
+#  © 2020 bicobus <bicobus@keemail.me>
+"""Handles the Qt main window."""
 import logging
 from typing import List
 from PyQt5.QtCore import pyqtSlot
