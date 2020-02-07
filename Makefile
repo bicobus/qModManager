@@ -6,13 +6,14 @@ LDIR=qmm
 PUI=$(LDIR)/icons_rc.py\
 	$(LDIR)/ui_settings.py\
 	$(LDIR)/ui_mainwindow.py\
+	$(LDIR)/ui_qprogress.ui\
 	$(LDIR)/ui_about.py
 
 ifndef RCC
-    $(error pyrcc5 not found in PATH, make not run within virtualenv?)
+    $(error "pyrcc5 not found in PATH, make not run within virtualenv?")
 endif
 ifndef UIC
-    $(error pyuic5 not found in PATH, make not run within virtualenv?)
+    $(error "pyuic5 not found in PATH, make not run within virtualenv?")
 endif
 
 .PHONY: all clean qt

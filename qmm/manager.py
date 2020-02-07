@@ -1,8 +1,8 @@
 """Handles the Qt main window.
+
 Licensed under the EUPL v1.2
 © 2019 bicobus <bicobus@keemail.me>
 """
-
 import logging
 from typing import List
 from PyQt5.QtCore import pyqtSlot
@@ -49,14 +49,15 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         filehandler.build_loose_files_crc32(p_dialog.progress)
         self.managed_archives.build_archives_list(p_dialog.progress)
 
-        p_dialog.progress("Conflict detection...")
+        p_dialog.progress("", category="Conflict detection")
         filehandler.detect_conflicts_between_archives(self.managed_archives)
 
-        p_dialog.progress("Computing list of archives...")
+        p_dialog.progress("", category="Parsing archives")
         for archive_name in self.managed_archives.keys():
             item = widgets.ListRowItem(
                 filename=archive_name,
-                data=filehandler.missing_matched_mismatched(self.managed_archives[archive_name]),
+                data=filehandler.missing_matched_mismatched(
+                    self.managed_archives[archive_name]),
                 stat=self.managed_archives.stat(archive_name),
                 hashsum=self.managed_archives.hashsums(archive_name)
             )
@@ -69,6 +70,17 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # self.ui.listWidget.setItemWidget(item, item._widget)
 
     def set_tab_color(self, index, color: QtGui.QColor = None) -> None:
+        """Manage tab text color.
+
+        Helper to _on_selection_change.
+
+        Store the default text color of a tab in order to restore it
+        whenever the selected element in the linked list changes.
+
+        Args:
+            index: index of the tab
+            color: new color of the text
+        """
         if index not in self._qc.keys():  # Cache default color
             self._qc[index] = self.tabWidget.tabBar().tabTextColor(index)
 
@@ -78,7 +90,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     @pyqtSlot(name="on_listWidget_itemSelectionChanged")
     def _on_selection_change(self) -> None:
-        """Changes the color of the text in the tab (not the body).
+        """Change the tab color to match the selected element in linked list.
+
         rgb(135, 33, 39) # redish
         rgb(78, 33, 135) # blueish
         rgb(91, 135, 33) # greenish
@@ -213,11 +226,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     @pyqtSlot(name="on_actionSettings_triggered")
     def do_settings(self, first_launch=False):
-        """Show the settings window
+        """Show the settings window.
 
         Args:
-            first_launch (bool): If true, disable cancel button and bind
-                                 the save button to _init_mods
+            first_launch (bool):
+                If true, disable cancel button and bind the save button to
+                MainWindow_init_mods
         """
         if not self._settings_window:
             self._settings_window = QSettings()
@@ -235,7 +249,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     @pyqtSlot(name="on_actionAbout_triggered")
     def do_about(self):
-        """Show the about window"""
+        """Show the about window."""
         if not self._about_window:
             self._about_window = QAbout()
         self._about_window.show()

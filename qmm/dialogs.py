@@ -1,7 +1,10 @@
 # Licensed under the EUPL v1.2
-# © 2019 bicobus <bicobus@keemail.me>
+# © 2020 bicobus <bicobus@keemail.me>
+"""Contains a bunch of helper function to display Qt's dialogs."""
 from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QMessageBox, qApp, QDialog, QLabel, QVBoxLayout
+from PyQt5.QtWidgets import QMessageBox, qApp, QDialog
+
+from .ui_qprogress import Ui_Dialog
 
 
 def qError(message, **kwargs):
@@ -50,19 +53,19 @@ def _do_message(mobject, informative=None, detailed=None):
     return mobject.exec_()
 
 
-class qProgress(QDialog):
+class qProgress(QDialog, Ui_Dialog):
     def __init__(self, parent, title, message):
         super().__init__(parent=parent)
+        self.setupUi(self)
         self.setWindowModality(Qt.WindowModal)
         self.setWindowTitle(title)
-        label = QLabel(message)
-        self.informative = QLabel("Initializing...")
-        layout = QVBoxLayout()
-        layout.addWidget(label)
-        layout.addWidget(self.informative)
-        self.setLayout(layout)
+        self.message.setText(message)
+        self.category.setText("Booting")
+        self.informative.setText("Booting")
 
-    def progress(self, text):
+    def progress(self, text: str, category: str = None):
+        if category:
+            self.category.setText(f"{category}: ")
         self.informative.setText(text)
         # processEvents needs to be called in order to touch QT event's loop.
         # Without it, the event loop will stall until all progress call have

@@ -330,17 +330,19 @@ def _compute_files_crc32(folder, partition=('res', 'mods')):
 
 
 def build_game_files_crc32(progress=None):
-    """Compute the CRC32 value of all the game files then add them to a bucket
+    """Compute the CRC32 value of all the game files then add them to a bucket.
 
     The paths returned by this function are non-existent due to a difference
     between the mods and the game folder structure. It is needed to be that way
     in order to compare the mod files with the existing game files.
 
     Args:
-        progress (dialogs.qProgress.progress): Callback to a method accepting strings as argument.
+        progress (dialogs.qProgress.progress):
+            Callback to a method accepting strings as argument.
     """
     target_folder = os.path.join(settings['game_folder'], 'res')
     scan_theses = ('clothing', 'outfits', 'tattoos', 'weapons')
+    progress("", category="Game Files")
 
     for p_folder in scan_theses:
         folder = os.path.join(target_folder, p_folder)
@@ -356,15 +358,17 @@ def build_game_files_crc32(progress=None):
 
 
 def build_loose_files_crc32(progress=None):
-    """
-    Build the CRC32 value of all loose files
+    """Build the CRC32 value of all loose files.
+
     Args:
-        progress: Callback to a method accepting strings as argument.
+        progress (dialogs.qProgress.progress):
+            Callback to a method accepting strings as argument.
 
     Returns:
         None
 
     """
+    progress("", category="Loose Files")
     mod_folder = _get_mod_folder(prepend_modpath=True)
     for kfile, crc in _compute_files_crc32(mod_folder):
         progress(f"Computing {kfile}...")
@@ -377,13 +381,18 @@ def _filter_list_on_exclude(archives_list, list_to_exclude):
             yield archive_name, items
 
 
-def file_in_other_archives(file: bucket.FileMetadata, archives: ArchivesCollection, ignore):
-    """Returns a list of archives in which file is found if the number of said
-    archive is above 1. Otherwise returns False.
+def file_in_other_archives(file: bucket.FileMetadata,
+                           archives: ArchivesCollection,
+                           ignore: List) -> List:
+    """Search for existence of file in other archives.
+
     Args:
-        file (FileMetadata): file to be found
-        archives (ArchivesCollection): instance of ArchivesCollections
-        ignore (list): list of archives to ignore, for instance already parsed archives
+        file (FileMetadata):
+            file to be found
+        archives (ArchivesCollection):
+            instance of ArchivesCollections
+        ignore (list):
+            list of archives to ignore, for instance already parsed archives
 
     Returns:
         List: List of archives containing the same file.
