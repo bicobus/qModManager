@@ -209,7 +209,7 @@ class MainWindow(QMainWindow, EventDropFilter, CustomMenu, Ui_MainWindow):
 
     def _get_selected_item(self, default: widgets.ListRowItem = None) -> widgets.ListRowItem:
         items = self.listWidget.selectedItems()
-        if not items:
+        if not items or default in items:
             return default
         return items[0]
 
@@ -377,8 +377,8 @@ def main():
         mainwindow = MainWindow()
         mainwindow.show()
         sys.exit(app.exec_())
-    except Exception:
-        logger.exception("Critical error occurred:")
+    except Exception as e:
+        logger.exception("Critical error occurred: %s", e)
         raise
     finally:
         logger.info("Application shutdown complete.")
