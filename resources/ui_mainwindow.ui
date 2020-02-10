@@ -47,8 +47,17 @@
        </property>
        <item>
         <widget class="QListWidget" name="listWidget">
+         <property name="acceptDrops">
+          <bool>true</bool>
+         </property>
          <property name="toolTip">
           <string>Use the + or - button to add or remove items from the list.</string>
+         </property>
+         <property name="dragDropMode">
+          <enum>QAbstractItemView::DropOnly</enum>
+         </property>
+         <property name="defaultDropAction">
+          <enum>Qt::LinkAction</enum>
          </property>
          <property name="resizeMode">
           <enum>QListView::Adjust</enum>
@@ -316,7 +325,7 @@
      <x>0</x>
      <y>0</y>
      <width>849</width>
-     <height>23</height>
+     <height>22</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuQMM">

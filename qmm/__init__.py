@@ -15,12 +15,14 @@ import logging
 
 
 def get_base_path():
+    r = None
     if getattr(sys, 'frozen', False):
-        return os.path.dirname(sys.executable)
+        r = os.path.dirname(sys.executable)
     elif __file__:
-        return os.path.dirname(os.path.join('run.py'))
+        r = os.path.dirname(os.path.join('run.py'))
     else:
         raise Exception("Unable to find application's path.")
+    return r
 
 
 logging.getLogger('PyQt5').setLevel(logging.WARNING)

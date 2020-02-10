@@ -204,7 +204,7 @@ class ArchivesCollection(MutableMapping):
             if entry.is_file() and entry.suffix in suffixes:
                 self.add_archive(entry, progress=progress)
             else:
-                logger.warning(f"File with suffix '{entry.suffix}' ignored.")
+                logger.warning("File with suffix '%s' ignored.", entry.suffix)
         return True
 
     def add_archive(self, path, hashsum=None, progress=None):
@@ -518,9 +518,9 @@ def install_archive(file_to_extract, file_context: Dict[str, List[FileMetadata]]
                 shutil.copy2(src, dst)
                 ccrc = _crc32(dst)
                 bucket.as_loosefile(ccrc, file.path)
-                logger.debug(f"Added as loose: {ccrc} {file.path}")
+                logger.debug("Added as loose: %s %s", ccrc, file.path)
             for file in file_context['mismatched']:
-                logger.debug(f"Removed from loose: {file.crc} {file.path}")
+                logger.debug("Removed from loose: %s %s", file.crc, file.path)
                 bucket.remove_item_from_loosefiles(file)
     except ArchiveException as e:
         logger.exception(e)

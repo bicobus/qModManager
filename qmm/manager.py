@@ -3,7 +3,7 @@
 """Handles the Qt main window."""
 import logging
 from typing import List
-from PyQt5.QtCore import pyqtSlot
+from PyQt5.QtCore import pyqtSlot, QEvent
 from PyQt5.QtWidgets import QApplication, QMainWindow, QFileDialog
 from PyQt5 import QtGui
 from . import dialogs, widgets, filehandler
@@ -15,11 +15,34 @@ from .widgets import QSettings, QAbout
 logger = logging.getLogger(__name__)
 
 
-class MainWindow(QMainWindow, Ui_MainWindow):
+class EventFilter:
+    def __init__(self):
+        self._objects = []
+
+    def filter_on(self, objects):
+        self._objects = objects
+
+    def eventFilter(self, o, e):  # noqa
+        if o.objectName() in self._objects:
+            if e.type() == QEvent.DragEnter:
+                e.acceptProposedAction()
+                return True
+            if e.type() == QEvent.Type.Drop:
+                return self._on_drop_action(e)
+        # return false ignores the event and allow further propagation
+        return False
+
+    def _on_drop_action(self, e):
+        raise NotImplementedError()
+
+
+class MainWindow(QMainWindow, Ui_MainWindow, EventFilter):
     def __init__(self):
         super().__init__()
         self.setupUi(self)
         self.setWindowTitle("qModManager")
+        self.listWidget.installEventFilter(self)
+        self.filter_on([self.listWidget.objectName()])
         # Will do style using QT, see TODO file
         # loadQtStyleSheetFile('style.css', self)
 
@@ -251,6 +274,14 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if not self._about_window:
             self._about_window = QAbout()
         self._about_window.show()
+
+    def _on_drop_action(self, e):
+        if e.mimeData().urls():  # Makes sure we have urls
+            logger.info("Received drop event with files %s", [f.path for f in e.mimeData().urls()])
+            for uri in e.mimeData().urls():
+                self._on_action_open_done(uri.path)
+            return True
+        return False
 
     def _refresh_list_item_strings(self):
         for idx in range(0, self.listWidget.count()):

@@ -102,11 +102,12 @@ class FileMetadata:
 
     @property
     def origin(self):
+        r = self._from
         if self._from == TYPE_LOOSEFILE:
-            return 'Loosefile'
+            r = 'Loosefile'
         elif self._from == TYPE_GAMEFILE:
-            return 'GameFile'
-        return self._from
+            r = 'GameFile'
+        return r
 
     def as_dict(self):
         """Return this object as a dict (kinda)."""
