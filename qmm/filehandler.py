@@ -92,7 +92,7 @@ def extract7z(file_archive: pathlib.Path,
 
             extract = reExtractMatch(line)
             if extract:
-                logger.info("Extracting %s", path)
+                logger.info("Extracting %s", line)
                 path = extract.group(1).strip()
                 f_list.append(
                     FileMetadata(attributes="", path=path,
