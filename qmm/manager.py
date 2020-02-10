@@ -227,6 +227,7 @@ class MainWindow(QMainWindow, EventDropFilter, CustomMenu, Ui_MainWindow):
         if not ret:
             return
 
+        logger.info("Deletion of archive %s", item.filename)
         if item.has_matched:
             ret = self._do_uninstall_selected_mod()
             if not ret:
@@ -244,6 +245,7 @@ class MainWindow(QMainWindow, EventDropFilter, CustomMenu, Ui_MainWindow):
             logger.error("Triggered _do_install_selected_mod without a selection")
             return
 
+        logger.info("Installing file %s", item.filename)
         files = filehandler.install_archive(item.filename, item.install_info())
         if not files:
             dialogs.qWarning(
@@ -270,6 +272,7 @@ class MainWindow(QMainWindow, EventDropFilter, CustomMenu, Ui_MainWindow):
             )
             return False
 
+        logger.info("Uninstalling files from archive %s", item.filename)
         if filehandler.uninstall_files(item.list_matched(include_folders=True)):
             filehandler.detect_conflicts_between_archives(self.managed_archives)
             self._refresh_list_item_strings()

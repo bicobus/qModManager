@@ -7,7 +7,7 @@ import subprocess
 import re
 import pathlib
 
-from typing import List, Tuple, Dict
+from typing import List, Tuple, Dict, Union
 from functools import lru_cache
 from zlib import crc32
 from hashlib import sha256
@@ -58,7 +58,7 @@ def ignore_patterns(seven_flag=False):
 def extract7z(file_archive: pathlib.Path,
               output_path: pathlib.Path,
               exclude_list=None,
-              progress=None) -> List[FileMetadata]:
+              progress=None) -> Union[List[FileMetadata], bool]:
     filepath = file_archive.absolute()
     output_path = output_path.absolute()
     cmd = [
@@ -70,9 +70,14 @@ def extract7z(file_archive: pathlib.Path,
         assert isinstance(exclude_list, list)
         cmd.extend(exclude_list)
 
-    proc = subprocess.Popen(
-        cmd, startupinfo=startupinfo, stdout=subprocess.PIPE,
-        stdin=subprocess.PIPE, stderr=subprocess.STDOUT)
+    logger.debug("Running %s", cmd)
+    try:
+        proc = subprocess.Popen(
+            cmd, startupinfo=startupinfo, stdout=subprocess.PIPE,
+            stdin=subprocess.PIPE, stderr=subprocess.STDOUT)
+    except OSError as e:
+        logger.error("System error\n%s", e)
+        return False
 
     f_list: List[FileMetadata] = []
     errstring = ""
@@ -87,6 +92,7 @@ def extract7z(file_archive: pathlib.Path,
 
             extract = reExtractMatch(line)
             if extract:
+                logger.info("Extracting %s", path)
                 path = extract.group(1).strip()
                 f_list.append(
                     FileMetadata(attributes="", path=path,
@@ -509,7 +515,10 @@ def install_archive(file_to_extract, file_context: Dict[str, List[FileMetadata]]
 
     try:
         with TemporaryDirectory(prefix="qmm-") as td:
+            logger.debug("Extracting files to %s", td)
             files = extract7z(file_to_extract, pathlib.Path(td), exclude_list=ignore_list)
+            if not files:
+                logger.error("Exctracted list is empty, something terrible happened.")
             for file in files:
                 src = pathlib.Path(td, file.path)
                 if src.is_dir():
@@ -529,6 +538,8 @@ def install_archive(file_to_extract, file_context: Dict[str, List[FileMetadata]]
     except OSError as e:
         logger.exception(e)
         return False
+    else:
+        logger.info("Installed archive %s", file_to_extract)
     return files
 
 
