@@ -44,6 +44,7 @@ install:
   - python -m pip install --disable-pip-version-check --upgrade pip
   - python -m pip install pyinstaller flake8
   - python -m pip install -r requirements.txt
+  - choco install upx
 
 before_test:
   - echo Starting Tests
