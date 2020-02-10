@@ -2,9 +2,8 @@
 #  © 2020 bicobus <bicobus@keemail.me>
 """Handles the Qt main window."""
 import logging
-from typing import List
-from PyQt5.QtCore import pyqtSlot, QEvent
-from PyQt5.QtWidgets import QApplication, QMainWindow, QFileDialog
+from PyQt5.QtCore import pyqtSlot, QEvent, Qt
+from PyQt5.QtWidgets import QApplication, QMainWindow, QFileDialog, QMenu
 from PyQt5 import QtGui
 from . import dialogs, widgets, filehandler
 from .ui_mainwindow import Ui_MainWindow
@@ -15,12 +14,37 @@ from .widgets import QSettings, QAbout
 logger = logging.getLogger(__name__)
 
 
-class EventFilter:
+class CustomMenu:
     def __init__(self):
+        super().__init__()
+        self._menu_obj = QMenu()
+        self._install_action = self._menu_obj.addAction(
+            QtGui.QIcon(QtGui.QPixmap(":/icons/file-install.svg")),
+            "Install")
+        self._uninstall_action = self._menu_obj.addAction(
+            QtGui.QIcon(QtGui.QPixmap(":/icons/file-uninstall.svg")),
+            "Uninstall")
+        self._delete_action = self._menu_obj.addAction(
+            QtGui.QIcon(QtGui.QPixmap(":/icons/trash.svg")),
+            "Delete")
+
+    def setup_menu(self, obj):
+        obj.setContextMenuPolicy(Qt.CustomContextMenu)
+        obj.customContextMenuRequested.connect(self._do_menu_actions)
+
+    def _do_menu_actions(self, position):
+        raise NotImplementedError()
+
+
+class EventDropFilter:
+    def __init__(self):
+        super().__init__()
         self._objects = []
 
-    def filter_on(self, objects):
-        self._objects = objects
+    def setup_filters(self, objects):
+        for obj in objects:
+            obj.installEventFilter(self)
+            self._objects.append(obj.objectName())
 
     def eventFilter(self, o, e):  # noqa
         if o.objectName() in self._objects:
@@ -36,13 +60,13 @@ class EventFilter:
         raise NotImplementedError()
 
 
-class MainWindow(QMainWindow, Ui_MainWindow, EventFilter):
+class MainWindow(QMainWindow, EventDropFilter, CustomMenu, Ui_MainWindow):
     def __init__(self):
         super().__init__()
         self.setupUi(self)
         self.setWindowTitle("qModManager")
-        self.listWidget.installEventFilter(self)
-        self.filter_on([self.listWidget.objectName()])
+        self.setup_filters([self.listWidget])
+        self.setup_menu(self.listWidget)
         # Will do style using QT, see TODO file
         # loadQtStyleSheetFile('style.css', self)
 
@@ -52,6 +76,16 @@ class MainWindow(QMainWindow, Ui_MainWindow, EventFilter):
         self._qc = {}
         self.__connection_link = None
         self._init_settings()
+
+    def _do_menu_actions(self, position):
+        right_click_action = self._menu_obj.exec_(self.listWidget.mapToGlobal(position))
+        item = self.listWidget.item(self.listWidget.indexAt(position).row())
+        if right_click_action == self._install_action:
+            self._do_install_selected_mod(item)
+        if right_click_action == self._uninstall_action:
+            self._do_uninstall_selected_mod(item)
+        if right_click_action == self._delete_action:
+            self._do_delete_selected_file(item)
 
     def _init_settings(self):
         if not settings_are_set():
@@ -173,10 +207,16 @@ class MainWindow(QMainWindow, Ui_MainWindow, EventFilter):
         qfd.fileSelected.connect(self._on_action_open_done)
         qfd.exec_()
 
-    @pyqtSlot(name="on_actionRemove_file_triggered")
-    def _do_delete_selected_file(self):
+    def _get_selected_item(self, default: widgets.ListRowItem = None) -> widgets.ListRowItem:
         items = self.listWidget.selectedItems()
         if not items:
+            return default
+        return items[0]
+
+    @pyqtSlot(name="on_actionRemove_file_triggered")
+    def _do_delete_selected_file(self, menu_item=None):
+        item = self._get_selected_item(menu_item)
+        if not item:
             logger.error("Triggered _do_delete_selected_file without a selection")
             return
 
@@ -187,7 +227,6 @@ class MainWindow(QMainWindow, Ui_MainWindow, EventFilter):
         if not ret:
             return
 
-        item = items[0]
         if item.has_matched:
             ret = self._do_uninstall_selected_mod()
             if not ret:
@@ -197,14 +236,11 @@ class MainWindow(QMainWindow, Ui_MainWindow, EventFilter):
         filehandler.detect_conflicts_between_archives(self.managed_archives)
 
     @pyqtSlot(name="on_actionInstall_Mod_triggered")
-    def _do_install_selected_mod(self):
-        items: List[widgets.ListRowItem] = self.listWidget.selectedItems()
-        if not items:
+    def _do_install_selected_mod(self, menu_item=None):
+        item = self._get_selected_item(menu_item)
+        if not item:
             logger.error("Triggered _do_install_selected_mod without a selection")
             return
-
-        # We should only have one element in the list.
-        item = items[0]
 
         files = filehandler.install_archive(item.filename, item.install_info())
         if not files:
@@ -218,12 +254,12 @@ class MainWindow(QMainWindow, Ui_MainWindow, EventFilter):
             self._on_selection_change()
 
     @pyqtSlot(name="on_actionUninstall_Mod_triggered")
-    def _do_uninstall_selected_mod(self):
-        items: List[widgets.ListRowItem] = self.listWidget.selectedItems()
-        if not items:
+    def _do_uninstall_selected_mod(self, menu_item=None):
+        item = self._get_selected_item(menu_item)
+        if not item:
+            logger.error("triggered without item to process")
             return False
 
-        item = items[0]
         if item.has_mismatched:
             dialogs.qInformation(
                 "Unable to uninstall mod: mismatched items exists on drive.\n"
