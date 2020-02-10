@@ -554,7 +554,7 @@ def uninstall_files(file_list: list):
         else:
             dlist.append(file)
 
-    dlist.sort(reverse=True)
+    dlist.sort(reverse=True)  # list of strings, longest first
     for directory in dlist:
         try:
             directory.rmdir()
@@ -573,13 +573,11 @@ def delete_archive(filepath):
     if not isinstance(filepath, pathlib.Path):
         filepath = pathlib.Path(settings['local_repository'], filepath)
 
-    if filepath.exists():
-        try:
-            filepath.unlink()
-        except OSError as e:
-            logger.debug(filepath)
-            logger.error("Unable to remove file from drive: %s", e)
-            return False
+    try:
+        filepath.unlink()
+    except OSError as e:
+        logger.error("Unable to remove file %s from drive: %s", filepath, e)
+        return False
     else:
-        logger.error("Unable to remove an non-existing file: %s", filepath)
+        logger.info("Deleted file %s", filepath.as_posix())
     return True

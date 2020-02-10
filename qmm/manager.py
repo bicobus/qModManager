@@ -233,6 +233,8 @@ class MainWindow(QMainWindow, EventDropFilter, CustomMenu, Ui_MainWindow):
                 return
         filehandler.delete_archive(item.filename)
         del self.managed_archives[item.filename]
+        self.listWidget.takeItem(self.listWidget.row(item))
+        del item
         filehandler.detect_conflicts_between_archives(self.managed_archives)
 
     @pyqtSlot(name="on_actionInstall_Mod_triggered")
