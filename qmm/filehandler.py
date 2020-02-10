@@ -455,7 +455,8 @@ def file_status(file: bucket.FileMetadata) -> int:
             or _bad_directory_structure(file.path_as_posix())
             or (file.pathobj.suffix and _bad_suffix(file.pathobj.suffix))):
         return FILE_IGNORED
-    if bucket.with_loosefiles(file, check_type=1):
+    if (bucket.with_loosefiles(file, check_type=1)
+            and bucket.with_loosefiles(file, check_type=3)):
         return FILE_MATCHED
     if (bucket.with_loosefiles(file, check_type=3)
             and not bucket.with_loosefiles(file, check_type=1)):
