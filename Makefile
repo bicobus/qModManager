@@ -6,7 +6,7 @@ LDIR=qmm
 PUI=$(LDIR)/icons_rc.py\
 	$(LDIR)/ui_settings.py\
 	$(LDIR)/ui_mainwindow.py\
-	$(LDIR)/ui_qprogress.ui\
+	$(LDIR)/ui_qprogress.py\
 	$(LDIR)/ui_about.py
 
 ifndef RCC
