@@ -369,7 +369,7 @@
   <action name="actionRemove_file">
    <property name="icon">
     <iconset resource="icons.qrc">
-     <normaloff>:/icons/file-minus.svg</normaloff>:/icons/file-minus.svg</iconset>
+     <normaloff>:/icons/trash.svg</normaloff>:/icons/trash.svg</iconset>
    </property>
    <property name="text">
     <string>Remove file</string>
@@ -410,7 +410,7 @@
   <action name="actionInstall_Mod">
    <property name="icon">
     <iconset resource="icons.qrc">
-     <normaloff>:/icons/file-transfer.svg</normaloff>:/icons/file-transfer.svg</iconset>
+     <normaloff>:/icons/file-install.svg</normaloff>:/icons/file-install.svg</iconset>
    </property>
    <property name="text">
     <string>Install Mod</string>
@@ -419,7 +419,7 @@
   <action name="actionUninstall_Mod">
    <property name="icon">
     <iconset resource="icons.qrc">
-     <normaloff>:/icons/file-forbid.svg</normaloff>:/icons/file-forbid.svg</iconset>
+     <normaloff>:/icons/file-uninstall.svg</normaloff>:/icons/file-uninstall.svg</iconset>
    </property>
    <property name="text">
     <string>Uninstall Mod</string>

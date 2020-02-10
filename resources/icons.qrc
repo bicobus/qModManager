@@ -1,5 +1,7 @@
 <RCC>
   <qresource prefix="/icons">
+    <file alias="file-install.svg">icons/install-line.svg</file>
+    <file alias="file-uninstall.svg">icons/uninstall-line.svg</file>
     <file alias="file-transfer.svg">icons/file-transfer-line.svg</file>
     <file alias="eye.svg">icons/eye-line.svg</file>
     <file alias="eye-off.svg">icons/eye-off-line.svg</file>
