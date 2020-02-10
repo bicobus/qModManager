@@ -572,7 +572,8 @@ def uninstall_files(file_list: list):
             directory.rmdir()
         except OSError as e:  # Probably due to not being empty
             logger.error("Unable to remove directory %s: %s", directory, e)
-            success = False
+            # Success should be True, as folders can belong to multiple mods.
+            # success = False 
         else:
             logger.debug("Directory removed: %s", directory)
 
