@@ -324,9 +324,9 @@ def _compute_files_crc32(folder, partition=('res', 'mods')):
         path = root.partition(os.path.join(*partition) + os.path.sep)[2]
 
         for file in files:
-            kfile = pathlib.PurePath(path, file).as_posix()
+            kfile = pathlib.PurePath(path, file)
             with pathlib.Path(root, file).open('rb') as fp:
-                yield kfile, _crc32(fp)
+                yield str(kfile), _crc32(fp)
 
 
 def build_game_files_crc32(progress=None):
@@ -350,9 +350,9 @@ def build_game_files_crc32(progress=None):
             # normalize path: category/namespace/... -> namespace/category/...
             category, namespace, extra = kfile.split(os.path.sep, 2)
             if category in ('clothing', 'weapons', 'tattoos'):
-                kfile = os.path.join(namespace, 'items', category, extra)
+                kfile = pathlib.PurePath(namespace, 'items', category, extra)
             else:
-                kfile = os.path.join(namespace, category, extra)
+                kfile = pathlib.PurePath(namespace, category, extra)
             progress(f"Computing {kfile}...")
             bucket.as_gamefile(crc, kfile)
 
