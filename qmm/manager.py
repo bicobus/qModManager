@@ -279,7 +279,7 @@ class MainWindow(QMainWindow, Ui_MainWindow, EventFilter):
         if e.mimeData().urls():  # Makes sure we have urls
             logger.info("Received drop event with files %s", [f.path for f in e.mimeData().urls()])
             for uri in e.mimeData().urls():
-                self._on_action_open_done(uri.path)
+                self._on_action_open_done(uri.path())
             return True
         return False
 
