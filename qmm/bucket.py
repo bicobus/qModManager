@@ -156,33 +156,17 @@ def with_conflict(path: str) -> bool:
     return bool(path in conflicts.keys())
 
 
-def with_loosefiles(filemd: FileMetadata, check_type=4) -> bool:
-    """Check if either a crc or a path is present in the loosefiles bucket.
-    TODO Split this in multiple functions: file_in_loosefiles and crc_in_loosefiles
+def file_crc_in_loosefiles(filemd: FileMetadata) -> bool:
+    """Check if a file's crc exists in loosefile's index."""
+    return bool(filemd.crc in loosefiles.keys())
 
-    Args:
-        filemd: A reference to a FileMetadata object
-        check_type: 1 will check crc only, 3 will check paths only, 4 will try
-                    to check both starting with path.
-    Returns:
-        bool: Returns True if either crc or path is found, otherwise False
-    """
+
+def file_path_in_loosefiles(filemd: FileMetadata) -> bool:
+    """Check if a file's path exists within the different loosefile lists."""
     def _extract_paths(fmd):
         return [x.path for x in fmd]
 
-    def _c3():
-        return any(filemd.path in _extract_paths(v) for v in loosefiles.values())
-
-    def _c1():
-        return filemd.crc in loosefiles.keys()
-
-    if check_type == 4 and (_c3() or _c1()):
-        return True
-    if check_type == 3 and _c3():
-        return True
-    if check_type == 1 and _c1():
-        return True
-    return False
+    return bool(any(filemd.path in _extract_paths(v) for v in loosefiles.values()))
 
 
 def with_gamefiles(crc: int = None, path: str = None):
@@ -211,7 +195,7 @@ def as_conflict(key: str, value):
         conflicts[key].append(value)
 
 
-def as_gamefile(crc: int, value: str):
+def as_gamefile(crc: int, value: pathlib.PurePath):
     if crc in gamefiles.keys():
         logger.warning(
             "Duplicate file found, crc matches for\n-> %s\n-> %s",
@@ -237,7 +221,7 @@ def as_loosefile(crc: int, filepath: pathlib.PurePath):
 def remove_item_from_loosefiles(file: FileMetadata):
     """Removes the reference to file if it is found in loosefiles"""
     if file.crc in loosefiles.keys():
-        if with_loosefiles(file, check_type=3):
+        if file_path_in_loosefiles(file):
             idx = _find_index_from(loosefiles, file.crc, file.path)
             loosefiles[file.crc].pop(idx)
             if not loosefiles[file.crc]:  # Removes entry if empty
