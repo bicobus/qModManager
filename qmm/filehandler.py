@@ -13,6 +13,7 @@ from zlib import crc32
 from hashlib import sha256
 from collections.abc import MutableMapping
 from tempfile import TemporaryDirectory
+from send2trash import send2trash, TrashPermissionError
 
 from .bucket import FileMetadata
 from . import bucket
@@ -587,10 +588,16 @@ def delete_archive(filepath):
         filepath = pathlib.Path(settings['local_repository'], filepath)
 
     try:
-        filepath.unlink()
+        send2trash(filepath)
+    except TrashPermissionError as e:
+        logger.error("Unable to move file %s to trash:\n", filepath, e)
+        return False
     except OSError as e:
-        logger.error("Unable to remove file %s from drive: %s", filepath, e)
+        logger.error(
+            "An error occured outside of send2trash for file %s:\n%s",
+            filepath,
+            e)
         return False
     else:
-        logger.info("Deleted file %s", filepath.as_posix())
+        logger.info("Moved file %s to trashbin.", filepath.as_posix())
     return True

@@ -221,8 +221,8 @@ class MainWindow(QMainWindow, EventDropFilter, CustomMenu, Ui_MainWindow):
             return
 
         ret = dialogs.qWarningYesNo(
-            "This action will uninstall the mod, then delete the archive from "
-            "your filesystem.\n\nDo you want to continue?"
+            "This action will uninstall the mod, then move the archive to your "
+            "trashbin.\n\nDo you want to continue?"
         )
         if not ret:
             return

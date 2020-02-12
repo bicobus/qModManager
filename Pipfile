@@ -13,6 +13,7 @@ pylint = "*"
 [packages]
 pyxdg = "*"
 pyqt5 = "~=5.14"
+send2trash = "*"
 
 [requires]
 python_version = "3.7"
