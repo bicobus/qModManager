@@ -590,7 +590,7 @@ def delete_archive(filepath):
     try:
         send2trash(filepath)
     except TrashPermissionError as e:
-        logger.error("Unable to move file %s to trash:\n", filepath, e)
+        logger.error("Unable to move file %s to trash:\n%s", filepath, e)
         return False
     except OSError as e:
         logger.error(
