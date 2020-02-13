@@ -69,7 +69,7 @@ def set_gettext():
     lang = get_locale()
     locale_dir = get_data_path('locales')
     trans = gettext.translation(
-        "qmm", localedir=locale_dir, languages=[lang], fallback=False
+        "qmm", localedir=locale_dir, languages=[lang], fallback=True
     )
     return trans.gettext
 
