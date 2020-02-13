@@ -12,10 +12,13 @@ logger = logging.getLogger(__name__)
 DEFAULT_LANGUAGE = "en"
 # List of maintained translation
 LANGUAGE_CODES = [
-    ('English (United States)', 'en_US')
+    ('English (United States)', 'en_US'),
+    ('French', 'fr_FR')
 ]
 LANGUAGE_ALIASES = {
-    'en': 'en_US'
+    'en': 'en_US',
+    'fr': 'fr_FR',
+    'fr_BE': 'fr_FR'
 }
 
 
