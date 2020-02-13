@@ -6,17 +6,17 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: qMM 1.0\n"
-"Report-Msgid-Bugs-To: bicobus@keemail.me\n"
-"POT-Creation-Date: 2020-02-13 04:53+0100\n"
-"PO-Revision-Date: 2020-02-13 04:55+0100\n"
-"Language-Team: \n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2020-02-13 22:26+0100\n"
+"PO-Revision-Date: 2020-02-13 22:36+0100\n"
+"Last-Translator: bicobus <bicobus@keemail.me>\n"
+"Language-Team: bicobus <bicobus@keemail.me>\n"
+"Language: fr\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Generator: Poedit 2.2.1\n"
-"Last-Translator: \n"
+"X-Generator: Poedit 2.3\n"
 "Plural-Forms: nplurals=2; plural=(n > 1);\n"
-"Language: fr\n"
 
 #: qmm/manager.py:100
 msgid "Computing data"
@@ -44,44 +44,66 @@ msgid ""
 "\n"
 "Do you want to continue?"
 msgstr ""
+"Cette action désinstallera le mod, puis déplacera l'archive vers la "
+"corbeille.\n"
+"\n"
+"Voulez-vous continuer?"
 
 #: qmm/manager.py:254
 #, python-brace-format
-msgid "The archive {item.filename} extracted with errors.\n"
+msgid ""
+"The archive {filename} extracted with errors.\n"
+"Please refer to {loglocation} for more information."
 msgstr ""
+"L'extraction de l'archive {filename} s'est terminée avec des erreurs.\n"
+"Veuillez vous référer au fichier de log {loglocation} pour plus "
+"d'information."
 
-#: qmm/manager.py:271
+#: qmm/manager.py:274
 msgid ""
 "Unable to uninstall mod: mismatched items exists on drive.\n"
 "This is most likely due to another installed mod conflicting with this mod.\n"
 msgstr ""
+"Impossible de désinstaller le mod: des fichiers no correspondant pas à ceux "
+"présent dans l'archive existent sur le disque.\n"
+"Ceci est probablement le résultat venant d'un autre mod installé et en "
+"conflit avec le mod à désinstaller.\n"
 
-#: qmm/manager.py:285
+#: qmm/manager.py:288
+#, python-brace-format
 msgid ""
 "The uninstallation process failed at some point. Please report this happened "
-"to the developper alongside the error "
+"to the developper alongside with the error file {logfile}."
 msgstr ""
+"Échec du processus de désinstallation. Veuillez faire un rapport au "
+"développeur sans oublier d'attacher le fichier de log {logfile}."
 
-#: qmm/manager.py:341
+#: qmm/manager.py:344
 msgid "A file with the same name already exists in the repository."
 msgstr "Un fichier avec le même nom existe déjà dans le dépôt."
 
-#: qmm/manager.py:363
-msgid "The file you selected is already present in the repository. "
+#: qmm/manager.py:366
+#, python-brace-format
+msgid ""
+"The file you selected is already present in the repository. It may exists "
+"under a different name.\n"
+"Hashsum matched: {hashsum}"
 msgstr ""
+"Le fichier sélectionné est déjà présent dans le dépôt. Il peut exister sous "
+"un autre nom.\n"
+"Hashsum identifié: {hashsum}"
 
-#. _translate = QtCore.QCoreApplication.translate
 #: qmm/ui_about.py:65
 msgid "About"
-msgstr ""
+msgstr "À propos"
 
 #: qmm/ui_about.py:66
 msgid "qModManager © 2020 Bicobus"
-msgstr ""
+msgstr "qModManager © 2020 Bicobus"
 
 #: qmm/ui_about.py:67
 msgid "Authors"
-msgstr ""
+msgstr "Auteurs"
 
 #: qmm/ui_about.py:68
 msgid ""
@@ -430,7 +452,7 @@ msgstr ""
 
 #: qmm/ui_about.py:342
 msgid "License"
-msgstr ""
+msgstr "Licence"
 
 #: qmm/ui_about.py:343
 msgid ""
@@ -444,9 +466,8 @@ msgstr ""
 
 #: qmm/ui_about.py:348
 msgid "Credits"
-msgstr ""
+msgstr "Crédits"
 
-#. _translate = QtCore.QCoreApplication.translate
 #: qmm/ui_mainwindow.py:250
 msgid "MainWindow"
 msgstr ""
@@ -461,7 +482,7 @@ msgstr ""
 
 #: qmm/ui_mainwindow.py:253
 msgid "Files"
-msgstr ""
+msgstr "Fichiers"
 
 #: qmm/ui_mainwindow.py:254
 msgid "Matched"
@@ -489,66 +510,64 @@ msgstr ""
 
 #: qmm/ui_mainwindow.py:260
 msgid "SHA256:"
-msgstr ""
+msgstr "SHA256:"
 
 #: qmm/ui_mainwindow.py:261 qmm/ui_mainwindow.py:263
 msgid "N/A"
-msgstr ""
+msgstr "N/A"
 
 #: qmm/ui_mainwindow.py:262
 msgid "Added the:"
-msgstr ""
+msgstr "Ajouté le:"
 
 #: qmm/ui_mainwindow.py:264
 msgid "qMM"
-msgstr ""
+msgstr "qMM"
 
 #: qmm/ui_mainwindow.py:265 qmm/ui_mainwindow.py:270
 msgid "Help"
-msgstr ""
+msgstr "Aide"
 
 #: qmm/ui_mainwindow.py:266
 msgid "Preferences"
-msgstr ""
+msgstr "Préférences"
 
 #: qmm/ui_mainwindow.py:267
 msgid "Add archive"
-msgstr ""
+msgstr "Ajouter une archive"
 
 #: qmm/ui_mainwindow.py:268
 msgid "Quit"
-msgstr ""
+msgstr "Quitter"
 
 #: qmm/ui_mainwindow.py:269
 msgid "Remove file"
-msgstr ""
+msgstr "Retirer un fichier"
 
 #: qmm/ui_mainwindow.py:271
 msgid "Add Archive"
-msgstr ""
+msgstr "Ajouter une Archive"
 
 #: qmm/ui_mainwindow.py:272
 msgid "About qMM"
-msgstr ""
+msgstr "À propos de qMM"
 
-#. _translate = QtCore.QCoreApplication.translate
 #: qmm/ui_mainwindow.py:273 qmm/ui_settings.py:112
 msgid "Settings"
-msgstr ""
+msgstr "Options"
 
 #: qmm/ui_mainwindow.py:274
 msgid "Install Mod"
-msgstr ""
+msgstr "Installer un Mod"
 
 #: qmm/ui_mainwindow.py:275
 msgid "Uninstall Mod"
-msgstr ""
+msgstr "Désinstaller un Mod"
 
 #: qmm/ui_mainwindow.py:276
 msgid "Help of qModManager"
 msgstr ""
 
-#. _translate = QtCore.QCoreApplication.translate
 #: qmm/ui_qprogress.py:40
 msgid "Dialog"
 msgstr ""
@@ -559,27 +578,27 @@ msgstr ""
 
 #: qmm/ui_qprogress.py:43
 msgid "Initializing..."
-msgstr ""
+msgstr "Initialisation..."
 
 #: qmm/ui_settings.py:113
 msgid "Validate"
-msgstr ""
+msgstr "Valider"
 
 #: qmm/ui_settings.py:114
 msgid "Path to a folder containing your collection of mods."
-msgstr ""
+msgstr "Chemin vers un dossier contenant votre collection de mods."
 
 #: qmm/ui_settings.py:115
 msgid "Archive Repository"
-msgstr ""
+msgstr "Dépôt d'archives"
 
 #: qmm/ui_settings.py:116 qmm/ui_settings.py:119
 msgid "Browse..."
-msgstr ""
+msgstr "Naviguer ..."
 
 #: qmm/ui_settings.py:117
 msgid "Path to the folder containing the jar or exe of the game."
-msgstr ""
+msgstr "Chemin vers le dossier contenant le ficher jar ou exécutable du jeu."
 
 #: qmm/ui_settings.py:118
 msgid "Game Location"
@@ -587,7 +606,7 @@ msgstr ""
 
 #: qmm/ui_settings.py:120
 msgid "Cancel"
-msgstr ""
+msgstr "Annuler"
 
 #: qmm/ui_settings.py:121
 msgid "It has to be the folder containing the res/ subdirectory."
@@ -598,3 +617,15 @@ msgid ""
 "Folder that will contain a local copy of your mods. It should be its own "
 "empty folder, containing nothing else than the game's mod archives."
 msgstr ""
+"Un dossier qui contiendra une copie locale de vos mods. Ce dossier devrait "
+"être dédié aux mods de votre jeu, sans sous dossier."
+
+#~ msgid "The archive {item.filename} extracted with errors.\n"
+#~ msgstr "L'archive {item.filename} a été extraite avec erreurs.\n"
+
+#~ msgid ""
+#~ "The uninstallation process failed at some point. Please report this "
+#~ "happened to the developper alongside the error "
+#~ msgstr ""
+#~ "Échec du processus de désinstallation. Veuillez faire un rapport au "
+#~ "développeur "
