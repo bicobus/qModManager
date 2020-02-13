@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # Licensed under the EUPL v1.2
 # © 2019 bicobus <bicobus@keemail.me>
 import os
@@ -113,8 +114,8 @@ def extract7z(file_archive: pathlib.Path,
 def list7z(file_path, progress=None) -> List[FileMetadata]:
     if not isinstance(file_path, pathlib.Path):
         file_path = pathlib.Path(file_path)
-        if not file_path.exists():
-            raise ArchiveException(f"{file_path} couldn't be found.")
+    if not file_path.exists():
+        raise ArchiveException(f"{file_path} couldn't be found.")
 
     model = {
         'path': "",

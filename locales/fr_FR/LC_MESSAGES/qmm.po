@@ -1,0 +1,600 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR bicobus
+# This file is distributed under the same license as the qMM package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: qMM 1.0\n"
+"Report-Msgid-Bugs-To: bicobus@keemail.me\n"
+"POT-Creation-Date: 2020-02-13 04:53+0100\n"
+"PO-Revision-Date: 2020-02-13 04:55+0100\n"
+"Language-Team: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: Poedit 2.2.1\n"
+"Last-Translator: \n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+"Language: fr\n"
+
+#: qmm/manager.py:100
+msgid "Computing data"
+msgstr ""
+
+#: qmm/manager.py:101
+msgid "Please wait for the software to initialize it's data."
+msgstr "Veuillez patienter pendant que le logiciel initialise les données."
+
+#: qmm/manager.py:109
+msgid "Conflict detection"
+msgstr "Détection des conflits"
+
+#: qmm/manager.py:112
+msgid "Parsing archives"
+msgstr ""
+
+#: qmm/manager.py:201
+msgid "You must set your game folder location."
+msgstr ""
+
+#: qmm/manager.py:226
+msgid ""
+"This action will uninstall the mod, then move the archive to your trashbin.\n"
+"\n"
+"Do you want to continue?"
+msgstr ""
+
+#: qmm/manager.py:254
+#, python-brace-format
+msgid "The archive {item.filename} extracted with errors.\n"
+msgstr ""
+
+#: qmm/manager.py:271
+msgid ""
+"Unable to uninstall mod: mismatched items exists on drive.\n"
+"This is most likely due to another installed mod conflicting with this mod.\n"
+msgstr ""
+
+#: qmm/manager.py:285
+msgid ""
+"The uninstallation process failed at some point. Please report this happened "
+"to the developper alongside the error "
+msgstr ""
+
+#: qmm/manager.py:341
+msgid "A file with the same name already exists in the repository."
+msgstr "Un fichier avec le même nom existe déjà dans le dépôt."
+
+#: qmm/manager.py:363
+msgid "The file you selected is already present in the repository. "
+msgstr ""
+
+#. _translate = QtCore.QCoreApplication.translate
+#: qmm/ui_about.py:65
+msgid "About"
+msgstr ""
+
+#: qmm/ui_about.py:66
+msgid "qModManager © 2020 Bicobus"
+msgstr ""
+
+#: qmm/ui_about.py:67
+msgid "Authors"
+msgstr ""
+
+#: qmm/ui_about.py:68
+msgid ""
+"qModManager is licensed under the European Union Public Licence V. 1.2\n"
+"\n"
+"EUPL © the European Union 2007, 2016\n"
+"\n"
+"This European Union Public Licence (the ‘EUPL’) applies to the Work (as\n"
+"defined below) which is provided under the terms of this Licence. Any use "
+"of\n"
+"the Work, other than as authorised under this Licence is prohibited (to the\n"
+"extent such use is covered by a right of the copyright holder of the Work).\n"
+"\n"
+"The Work is provided under the terms of this Licence when the Licensor (as\n"
+"defined below) has placed the following notice immediately following the\n"
+"copyright notice for the Work: “Licensed under the EUPL”, or has expressed "
+"by\n"
+"any other means his willingness to license under the EUPL.\n"
+"\n"
+"1. Definitions\n"
+"\n"
+"In this Licence, the following terms have the following meaning:\n"
+"— ‘The Licence’: this Licence.\n"
+"— ‘The Original Work’: the work or software distributed or communicated by "
+"the\n"
+"  ‘Licensor under this Licence, available as Source Code and also as\n"
+"  ‘Executable Code as the case may be.\n"
+"— ‘Derivative Works’: the works or software that could be created by the\n"
+"  ‘Licensee, based upon the Original Work or modifications thereof. This\n"
+"  ‘Licence does not define the extent of modification or dependence on the\n"
+"  ‘Original Work required in order to classify a work as a Derivative Work;\n"
+"  ‘this extent is determined by copyright law applicable in the country\n"
+"  ‘mentioned in Article 15.\n"
+"— ‘The Work’: the Original Work or its Derivative Works.\n"
+"— ‘The Source Code’: the human-readable form of the Work which is the most\n"
+"  convenient for people to study and modify.\n"
+"\n"
+"— ‘The Executable Code’: any code which has generally been compiled and "
+"which\n"
+"  is meant to be interpreted by a computer as a program.\n"
+"— ‘The Licensor’: the natural or legal person that distributes or "
+"communicates\n"
+"  the Work under the Licence.\n"
+"— ‘Contributor(s)’: any natural or legal person who modifies the Work under\n"
+"  the Licence, or otherwise contributes to the creation of a Derivative "
+"Work.\n"
+"— ‘The Licensee’ or ‘You’: any natural or legal person who makes any usage "
+"of\n"
+"  the Work under the terms of the Licence.\n"
+"— ‘Distribution’ or ‘Communication’: any act of selling, giving, lending,\n"
+"  renting, distributing, communicating, transmitting, or otherwise making\n"
+"  available, online or offline, copies of the Work or providing access to "
+"its\n"
+"  essential functionalities at the disposal of any other natural or legal\n"
+"  person.\n"
+"\n"
+"2. Scope of the rights granted by the Licence\n"
+"\n"
+"The Licensor hereby grants You a worldwide, royalty-free, non-exclusive,\n"
+"sublicensable licence to do the following, for the duration of copyright\n"
+"vested in the Original Work:\n"
+"\n"
+"— use the Work in any circumstance and for all usage,\n"
+"— reproduce the Work,\n"
+"— modify the Work, and make Derivative Works based upon the Work,\n"
+"— communicate to the public, including the right to make available or "
+"display\n"
+"  the Work or copies thereof to the public and perform publicly, as the "
+"case\n"
+"  may be, the Work,\n"
+"— distribute the Work or copies thereof,\n"
+"— lend and rent the Work or copies thereof,\n"
+"— sublicense rights in the Work or copies thereof.\n"
+"\n"
+"Those rights can be exercised on any media, supports and formats, whether "
+"now\n"
+"known or later invented, as far as the applicable law permits so.\n"
+"\n"
+"In the countries where moral rights apply, the Licensor waives his right to\n"
+"exercise his moral right to the extent allowed by law in order to make\n"
+"effective the licence of the economic rights here above listed.\n"
+"\n"
+"The Licensor grants to the Licensee royalty-free, non-exclusive usage "
+"rights\n"
+"to any patents held by the Licensor, to the extent necessary to make use of\n"
+"the rights granted on the Work under this Licence.\n"
+"\n"
+"3. Communication of the Source Code\n"
+"\n"
+"The Licensor may provide the Work either in its Source Code form, or as\n"
+"Executable Code. If the Work is provided as Executable Code, the Licensor\n"
+"provides in addition a machine-readable copy of the Source Code of the Work\n"
+"along with each copy of the Work that the Licensor distributes or "
+"indicates,\n"
+"in a notice following the copyright notice attached to the Work, a "
+"repository\n"
+"where the Source Code is easily and freely accessible for as long as the\n"
+"Licensor continues to distribute or communicate the Work.\n"
+"\n"
+"4. Limitations on copyright\n"
+"\n"
+"Nothing in this Licence is intended to deprive the Licensee of the benefits\n"
+"from any exception or limitation to the exclusive rights of the rights "
+"owners\n"
+"in the Work, of the exhaustion of those rights or of other applicable\n"
+"limitations thereto.\n"
+"\n"
+"5. Obligations of the Licensee\n"
+"\n"
+"The grant of the rights mentioned above is subject to some restrictions and\n"
+"obligations imposed on the Licensee. Those obligations are the following:\n"
+"\n"
+"Attribution right: The Licensee shall keep intact all copyright, patent or\n"
+"trademarks notices and all notices that refer to the Licence and to the\n"
+"disclaimer of warranties. The Licensee must include a copy of such notices "
+"and\n"
+"a copy of the Licence with every copy of the Work he/she distributes or\n"
+"communicates. The Licensee must cause any Derivative Work to carry "
+"prominent\n"
+"notices stating that the Work has been modified and the date of "
+"modification.\n"
+"\n"
+"Copyleft clause: If the Licensee distributes or communicates copies of the\n"
+"Original Works or Derivative Works, this Distribution or Communication will "
+"be\n"
+"done under the terms of this Licence or of a later version of this Licence\n"
+"unless the Original Work is expressly distributed only under this version "
+"of\n"
+"the Licence — for example by communicating ‘EUPL v. 1.2 only’. The Licensee\n"
+"(becoming Licensor) cannot offer or impose any additional terms or "
+"conditions\n"
+"on the Work or Derivative Work that alter or restrict the terms of the\n"
+"Licence.\n"
+"\n"
+"Compatibility clause: If the Licensee Distributes or Communicates "
+"Derivative\n"
+"Works or copies thereof based upon both the Work and another work licensed\n"
+"under a Compatible Licence, this Distribution or Communication can be done\n"
+"under the terms of this Compatible Licence. For the sake of this clause,\n"
+"‘Compatible Licence’ refers to the licences listed in the appendix attached "
+"to\n"
+"this Licence. Should the Licensee's obligations under the Compatible "
+"Licence\n"
+"conflict with his/her obligations under this Licence, the obligations of "
+"the\n"
+"Compatible Licence shall prevail.\n"
+"\n"
+"Provision of Source Code: When distributing or communicating copies of the\n"
+"Work, the Licensee will provide a machine-readable copy of the Source Code "
+"or\n"
+"indicate a repository where this Source will be easily and freely available\n"
+"for as long as the Licensee continues to distribute or communicate the "
+"Work.\n"
+"\n"
+"Legal Protection: This Licence does not grant permission to use the trade\n"
+"names, trademarks, service marks, or names of the Licensor, except as "
+"required\n"
+"for reasonable and customary use in describing the origin of the Work and\n"
+"reproducing the content of the copyright notice.\n"
+"\n"
+"6. Chain of Authorship\n"
+"\n"
+"The original Licensor warrants that the copyright in the Original Work "
+"granted\n"
+"hereunder is owned by him/her or licensed to him/her and that he/she has "
+"the\n"
+"power and authority to grant the Licence.\n"
+"\n"
+"Each Contributor warrants that the copyright in the modifications he/she\n"
+"brings to the Work are owned by him/her or licensed to him/her and that he/"
+"she\n"
+"has the power and authority to grant the Licence.\n"
+"\n"
+"Each time You accept the Licence, the original Licensor and subsequent\n"
+"Contributors grant You a licence to their contributions to the Work, under "
+"the\n"
+"terms of this Licence.\n"
+"\n"
+"7. Disclaimer of Warranty\n"
+"\n"
+"The Work is a work in progress, which is continuously improved by numerous\n"
+"Contributors. It is not a finished work and may therefore contain defects "
+"or\n"
+"‘bugs’ inherent to this type of development.\n"
+"\n"
+"For the above reason, the Work is provided under the Licence on an ‘as is’\n"
+"basis and without warranties of any kind concerning the Work, including\n"
+"without limitation merchantability, fitness for a particular purpose, "
+"absence\n"
+"of defects or errors, accuracy, non-infringement of intellectual property\n"
+"rights other than copyright as stated in Article 6 of this Licence.\n"
+"\n"
+"This disclaimer of warranty is an essential part of the Licence and a\n"
+"condition for the grant of any rights to the Work.\n"
+"\n"
+"8. Disclaimer of Liability\n"
+"\n"
+"Except in the cases of wilful misconduct or damages directly caused to "
+"natural\n"
+"persons, the Licensor will in no event be liable for any direct or "
+"indirect,\n"
+"material or moral, damages of any kind, arising out of the Licence or of "
+"the\n"
+"use of the Work, including without limitation, damages for loss of "
+"goodwill,\n"
+"work stoppage, computer failure or malfunction, loss of data or any "
+"commercial\n"
+"damage, even if the Licensor has been advised of the possibility of such\n"
+"damage. However, the Licensor will be liable under statutory product "
+"liability\n"
+"laws as far such laws apply to the Work.\n"
+"\n"
+"9. Additional agreements\n"
+"\n"
+"While distributing the Work, You may choose to conclude an additional\n"
+"agreement, defining obligations or services consistent with this Licence.\n"
+"However, if accepting obligations, You may act only on your own behalf and "
+"on\n"
+"your sole responsibility, not on behalf of the original Licensor or any "
+"other\n"
+"Contributor, and only if You agree to indemnify, defend, and hold each\n"
+"Contributor harmless for any liability incurred by, or claims asserted "
+"against\n"
+"such Contributor by the fact You have accepted any warranty or additional\n"
+"liability.\n"
+"\n"
+"10. Acceptance of the Licence\n"
+"\n"
+"The provisions of this Licence can be accepted by clicking on an icon ‘I\n"
+"agree’ placed under the bottom of a window displaying the text of this "
+"Licence\n"
+"or by affirming consent in any other similar way, in accordance with the "
+"rules\n"
+"of applicable law. Clicking on that icon indicates your clear and "
+"irrevocable\n"
+"acceptance of this Licence and all of its terms and conditions.\n"
+"\n"
+"Similarly, you irrevocably accept this Licence and all of its terms and\n"
+"conditions by exercising any rights granted to You by Article 2 of this\n"
+"Licence, such as the use of the Work, the creation by You of a Derivative "
+"Work\n"
+"or the Distribution or Communication by You of the Work or copies thereof.\n"
+"\n"
+"11. Information to the public\n"
+"\n"
+"In case of any Distribution or Communication of the Work by means of\n"
+"electronic communication by You (for example, by offering to download the "
+"Work\n"
+"from a remote location) the distribution channel or media (for example, a\n"
+"website) must at least provide to the public the information requested by "
+"the\n"
+"applicable law regarding the Licensor, the Licence and the way it may be\n"
+"accessible, concluded, stored and reproduced by the Licensee.\n"
+"\n"
+"12. Termination of the Licence\n"
+"\n"
+"The Licence and the rights granted hereunder will terminate automatically "
+"upon\n"
+"any breach by the Licensee of the terms of the Licence. Such a termination\n"
+"will not terminate the licences of any person who has received the Work "
+"from\n"
+"the Licensee under the Licence, provided such persons remain in full\n"
+"compliance with the Licence.\n"
+"\n"
+"13. Miscellaneous\n"
+"\n"
+"Without prejudice of Article 9 above, the Licence represents the complete\n"
+"agreement between the Parties as to the Work.\n"
+"\n"
+"If any provision of the Licence is invalid or unenforceable under "
+"applicable\n"
+"law, this will not affect the validity or enforceability of the Licence as "
+"a\n"
+"whole. Such provision will be construed or reformed so as necessary to make "
+"it\n"
+"valid and enforceable.\n"
+"\n"
+"The European Commission may publish other linguistic versions or new "
+"versions\n"
+"of this Licence or updated versions of the Appendix, so far this is "
+"required\n"
+"and reasonable, without reducing the scope of the rights granted by the\n"
+"Licence. New versions of the Licence will be published with a unique "
+"version\n"
+"number.\n"
+"\n"
+"All linguistic versions of this Licence, approved by the European "
+"Commission,\n"
+"have identical value. Parties can take advantage of the linguistic version "
+"of\n"
+"their choice.\n"
+"\n"
+"14. Jurisdiction\n"
+"\n"
+"Without prejudice to specific agreement between parties,\n"
+"— any litigation resulting from the interpretation of this License, arising\n"
+"  between the European Union institutions, bodies, offices or agencies, as "
+"a\n"
+"  Licensor, and any Licensee, will be subject to the jurisdiction of the "
+"Court\n"
+"  of Justice of the European Union, as laid down in article 272 of the "
+"Treaty\n"
+"  on the Functioning of the European Union,\n"
+"— any litigation arising between other parties and resulting from the\n"
+"  interpretation of this License, will be subject to the exclusive\n"
+"  jurisdiction of the competent court where the Licensor resides or "
+"conducts\n"
+"  its primary business.\n"
+"\n"
+"15. Applicable Law\n"
+"\n"
+"Without prejudice to specific agreement between parties,\n"
+"— this Licence shall be governed by the law of the European Union Member "
+"State\n"
+"  where the Licensor has his seat, resides or has his registered office,\n"
+"— this licence shall be governed by Belgian law if the Licensor has no "
+"seat,\n"
+"  residence or registered office inside a European Union Member State.\n"
+"\n"
+"Appendix\n"
+"\n"
+"‘Compatible Licences’ according to Article 5 EUPL are:\n"
+"— GNU General Public License (GPL) v. 2, v. 3\n"
+"— GNU Affero General Public License (AGPL) v. 3\n"
+"— Open Software License (OSL) v. 2.1, v. 3.0\n"
+"— Eclipse Public License (EPL) v. 1.0\n"
+"— CeCILL v. 2.0, v. 2.1\n"
+"— Mozilla Public Licence (MPL) v. 2\n"
+"— GNU Lesser General Public Licence (LGPL) v. 2.1, v. 3\n"
+"— Creative Commons Attribution-ShareAlike v. 3.0 Unported (CC BY-SA 3.0) "
+"for\n"
+"  works other than software\n"
+"— European Union Public Licence (EUPL) v. 1.1, v. 1.2\n"
+"— Québec Free and Open-Source Licence — Reciprocity (LiLiQ-R) or\n"
+"  Strong Reciprocity (LiLiQ-R+)\n"
+"\n"
+"— The European Commission may update this Appendix to later versions of the\n"
+"  above licences without producing a new version of the EUPL, as long as "
+"they\n"
+"  provide the rights granted in Article 2 of this Licence and protect the\n"
+"  covered Source Code from exclusive appropriation.\n"
+"— All other changes or additions to this Appendix require the production of "
+"a\n"
+"  new EUPL version.\n"
+msgstr ""
+
+#: qmm/ui_about.py:342
+msgid "License"
+msgstr ""
+
+#: qmm/ui_about.py:343
+msgid ""
+"qModManage make use of external libraries, framework and resources:\n"
+"\n"
+"PyQt5 - Copyright © 2019 Riverbank Computing Limited "
+"<info@riverbankcomputing.com> - GPLv3\n"
+"pyxdg - Thomas Kluyver, Heinrich Wendel, Sergey Kuleshov - GPLv2\n"
+"Remix Icon - https://remixicon.com - Apache License"
+msgstr ""
+
+#: qmm/ui_about.py:348
+msgid "Credits"
+msgstr ""
+
+#. _translate = QtCore.QCoreApplication.translate
+#: qmm/ui_mainwindow.py:250
+msgid "MainWindow"
+msgstr ""
+
+#: qmm/ui_mainwindow.py:251
+msgid "Use the + or - button to add or remove items from the list."
+msgstr ""
+
+#: qmm/ui_mainwindow.py:252
+msgid "toolBar"
+msgstr ""
+
+#: qmm/ui_mainwindow.py:253
+msgid "Files"
+msgstr ""
+
+#: qmm/ui_mainwindow.py:254
+msgid "Matched"
+msgstr ""
+
+#: qmm/ui_mainwindow.py:255
+msgid "Missing"
+msgstr ""
+
+#: qmm/ui_mainwindow.py:256
+msgid "Mismatched"
+msgstr ""
+
+#: qmm/ui_mainwindow.py:257
+msgid "Conflicts"
+msgstr ""
+
+#: qmm/ui_mainwindow.py:258
+msgid "Skipped"
+msgstr ""
+
+#: qmm/ui_mainwindow.py:259
+msgid "Name"
+msgstr ""
+
+#: qmm/ui_mainwindow.py:260
+msgid "SHA256:"
+msgstr ""
+
+#: qmm/ui_mainwindow.py:261 qmm/ui_mainwindow.py:263
+msgid "N/A"
+msgstr ""
+
+#: qmm/ui_mainwindow.py:262
+msgid "Added the:"
+msgstr ""
+
+#: qmm/ui_mainwindow.py:264
+msgid "qMM"
+msgstr ""
+
+#: qmm/ui_mainwindow.py:265 qmm/ui_mainwindow.py:270
+msgid "Help"
+msgstr ""
+
+#: qmm/ui_mainwindow.py:266
+msgid "Preferences"
+msgstr ""
+
+#: qmm/ui_mainwindow.py:267
+msgid "Add archive"
+msgstr ""
+
+#: qmm/ui_mainwindow.py:268
+msgid "Quit"
+msgstr ""
+
+#: qmm/ui_mainwindow.py:269
+msgid "Remove file"
+msgstr ""
+
+#: qmm/ui_mainwindow.py:271
+msgid "Add Archive"
+msgstr ""
+
+#: qmm/ui_mainwindow.py:272
+msgid "About qMM"
+msgstr ""
+
+#. _translate = QtCore.QCoreApplication.translate
+#: qmm/ui_mainwindow.py:273 qmm/ui_settings.py:112
+msgid "Settings"
+msgstr ""
+
+#: qmm/ui_mainwindow.py:274
+msgid "Install Mod"
+msgstr ""
+
+#: qmm/ui_mainwindow.py:275
+msgid "Uninstall Mod"
+msgstr ""
+
+#: qmm/ui_mainwindow.py:276
+msgid "Help of qModManager"
+msgstr ""
+
+#. _translate = QtCore.QCoreApplication.translate
+#: qmm/ui_qprogress.py:40
+msgid "Dialog"
+msgstr ""
+
+#: qmm/ui_qprogress.py:41 qmm/ui_qprogress.py:42
+msgid "TextLabel"
+msgstr ""
+
+#: qmm/ui_qprogress.py:43
+msgid "Initializing..."
+msgstr ""
+
+#: qmm/ui_settings.py:113
+msgid "Validate"
+msgstr ""
+
+#: qmm/ui_settings.py:114
+msgid "Path to a folder containing your collection of mods."
+msgstr ""
+
+#: qmm/ui_settings.py:115
+msgid "Archive Repository"
+msgstr ""
+
+#: qmm/ui_settings.py:116 qmm/ui_settings.py:119
+msgid "Browse..."
+msgstr ""
+
+#: qmm/ui_settings.py:117
+msgid "Path to the folder containing the jar or exe of the game."
+msgstr ""
+
+#: qmm/ui_settings.py:118
+msgid "Game Location"
+msgstr ""
+
+#: qmm/ui_settings.py:120
+msgid "Cancel"
+msgstr ""
+
+#: qmm/ui_settings.py:121
+msgid "It has to be the folder containing the res/ subdirectory."
+msgstr ""
+
+#: qmm/ui_settings.py:122
+msgid ""
+"Folder that will contain a local copy of your mods. It should be its own "
+"empty folder, containing nothing else than the game's mod archives."
+msgstr ""

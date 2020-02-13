@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 #  Licensed under the EUPL v1.2
 #  © 2020 bicobus <bicobus@keemail.me>
 """Contains various Qt Widgets used internally by the application."""
@@ -45,6 +46,10 @@ class QSettings(QtWidgets.QWidget, Ui_Settings):
     def __init__(self):
         super().__init__()
         self.setupUi(self)
+        self.repo_hide_help.hide()
+        self.repo_helper.hide()
+        self.game_hide_help.hide()
+        self.game_helper.hide()
 
     def set_mode(self, first_run=False):
         if first_run:

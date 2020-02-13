@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # Licensed under the EUPL v1.2
 # © 2019 bicobus <bicobus@keemail.me>
 __author__ = "Bicobus"
@@ -14,15 +15,24 @@ import platform
 import logging
 
 
+def is_frozen():
+    return bool(getattr(sys, 'frozen', False))
+
+
 def get_base_path():
     r = None
     if getattr(sys, 'frozen', False):
         r = os.path.dirname(sys.executable)
     elif __file__:
-        r = os.path.dirname(os.path.join('run.py'))
+        r = os.path.dirname(os.path.abspath(sys.argv[0]))
     else:
         raise Exception("Unable to find application's path.")
     return r
+
+
+def get_data_path(relpath):
+    path = os.path.join(get_base_path(), relpath)
+    return path
 
 
 logging.getLogger('PyQt5').setLevel(logging.WARNING)
@@ -32,26 +42,8 @@ logging.basicConfig(
     filename=os.path.join(get_base_path(), 'error.log'),
     filemode='w'
 )
-
+logger = logging.getLogger(__name__)
+logger.debug("Base path is %s", get_base_path())
 
 is_windows = platform.system() in ('Windows', 'Microsoft')
 is_linux = platform.system() == 'Linux'
-
-
-SETTINGS_HELP = """Some settings are required to be set for you to be able to use this tool.
-The game folder entry should point towards the location of the jar file.
-Your local mod repository can be set wherever you want.
-"""
-LOCAL_REPO_NOT_SET = """The location of your local repository of archives is unknown.
-
-That folder will be used to store the different archives."""
-GAME_FOLDER_NOT_SET = """The location of your game folder is unknown.
-
-It has to be the folder containing the game 'res' folder, <b>NOT</b> the res/mods folder."""
-INFORMATIVE = "Click on the 'settings' button on the bottom of the main window."
-
-resource_path = os.path.join(os.path.dirname(__file__), 'resources')
-
-
-def file_from_resource_path(file):
-    return os.path.join(resource_path, file)

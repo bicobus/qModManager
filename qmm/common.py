@@ -1,9 +1,10 @@
+# -*- coding: utf-8 -*-
 # Licensed under the EUPL v1.2
 # © 2019 bicobus <bicobus@keemail.me>
 import os
 import logging
 from datetime import datetime
-from . import is_windows, get_base_path
+from . import is_windows, get_data_path
 from .config import Config
 
 
@@ -13,7 +14,8 @@ settings = Config(
     filename="settings.json",
     defaults={
         "local_repository": None,
-        "game_folder": None
+        "game_folder": None,
+        "language": None
     }
 )
 
@@ -31,7 +33,7 @@ def tools_path():
     TODO: needs a better name
     """
     if is_windows:
-        return os.path.join(get_base_path(), 'tools', '7z.exe')
+        return os.path.join(get_data_path('tools'), '7z.exe')
     return '7z'
 
 

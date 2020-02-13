@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 #  Licensed under the EUPL v1.2
 #  © 2020 bicobus <bicobus@keemail.me>
 """Handles the Qt main window."""
@@ -6,6 +7,7 @@ from PyQt5.QtCore import pyqtSlot, QEvent, Qt
 from PyQt5.QtWidgets import QApplication, QMainWindow, QFileDialog, QMenu
 from PyQt5 import QtGui
 from . import dialogs, widgets, filehandler
+from .lang import _
 from .ui_mainwindow import Ui_MainWindow
 from .config import get_config_dir
 from .common import settings_are_set
@@ -95,8 +97,8 @@ class MainWindow(QMainWindow, EventDropFilter, CustomMenu, Ui_MainWindow):
 
     def _init_mods(self):
         p_dialog = dialogs.qProgress(
-            parent=self, title="Computing data",
-            message="Please wait for the software to initialize it's data."
+            parent=self, title=_("Computing data"),
+            message=_("Please wait for the software to initialize it's data.")
         )
         p_dialog.show()
 
@@ -104,10 +106,10 @@ class MainWindow(QMainWindow, EventDropFilter, CustomMenu, Ui_MainWindow):
         filehandler.build_loose_files_crc32(p_dialog.progress)
         self.managed_archives.build_archives_list(p_dialog.progress)
 
-        p_dialog.progress("", category="Conflict detection")
+        p_dialog.progress("", category=_("Conflict detection"))
         filehandler.detect_conflicts_between_archives(self.managed_archives)
 
-        p_dialog.progress("", category="Parsing archives")
+        p_dialog.progress("", category=_("Parsing archives"))
         for archive_name in self.managed_archives.keys():
             item = widgets.ListRowItem(
                 filename=archive_name,
@@ -196,7 +198,7 @@ class MainWindow(QMainWindow, EventDropFilter, CustomMenu, Ui_MainWindow):
     def _do_add_new_mod(self):
         if not settings_are_set():
             dialogs.qWarning(
-                "You must set your game folder location."
+                _("You must set your game folder location.")
             )
             return
 
@@ -220,10 +222,10 @@ class MainWindow(QMainWindow, EventDropFilter, CustomMenu, Ui_MainWindow):
             logger.error("Triggered _do_delete_selected_file without a selection")
             return
 
-        ret = dialogs.qWarningYesNo(
+        ret = dialogs.qWarningYesNo(_(
             "This action will uninstall the mod, then move the archive to your "
             "trashbin.\n\nDo you want to continue?"
-        )
+        ))
         if not ret:
             return
 
@@ -248,10 +250,10 @@ class MainWindow(QMainWindow, EventDropFilter, CustomMenu, Ui_MainWindow):
         logger.info("Installing file %s", item.filename)
         files = filehandler.install_archive(item.filename, item.install_info())
         if not files:
-            dialogs.qWarning(
+            dialogs.qWarning(_(
                 f"The archive {item.filename} extracted with errors.\n"
                 f"Please refer to {get_config_dir('error.log')} for more information."
-            )
+            ))
         else:
             filehandler.detect_conflicts_between_archives(self.managed_archives)
             self._refresh_list_item_strings()
@@ -265,11 +267,11 @@ class MainWindow(QMainWindow, EventDropFilter, CustomMenu, Ui_MainWindow):
             return False
 
         if item.has_mismatched:
-            dialogs.qInformation(
+            dialogs.qInformation(_(
                 "Unable to uninstall mod: mismatched items exists on drive.\n"
                 "This is most likely due to another installed mod conflicting "
                 "with this mod.\n"
-            )
+            ))
             return False
 
         logger.info("Uninstalling files from archive %s", item.filename)
@@ -279,11 +281,11 @@ class MainWindow(QMainWindow, EventDropFilter, CustomMenu, Ui_MainWindow):
             self._on_selection_change()
             return True
 
-        dialogs.qWarning(
+        dialogs.qWarning(_(
             "The uninstallation process failed at some point. Please "
             "report this happened to the developper alongside the error "
             f"file {get_config_dir('error.log')}."
-        )
+        ))
         return False
 
     @pyqtSlot(name="on_actionSettings_triggered")
@@ -336,7 +338,7 @@ class MainWindow(QMainWindow, EventDropFilter, CustomMenu, Ui_MainWindow):
             archive_name = filehandler.copy_archive_to_repository(filename)
             if not archive_name:
                 dialogs.qWarning(
-                    "A file with the same name already exists in the repository."
+                    _("A file with the same name already exists in the repository.")
                 )
                 return False
             self.managed_archives.add_archive(filename, hashsum)
@@ -357,7 +359,7 @@ class MainWindow(QMainWindow, EventDropFilter, CustomMenu, Ui_MainWindow):
             self.listWidget.scrollToItem(item)
             return True
 
-        dialogs.qWarning((
+        dialogs.qWarning(_(
             "The file you selected is already present in the repository. "
             f"It may exists under a different name.\nHashsum matched: {hashsum}"
         ))
