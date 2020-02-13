@@ -251,9 +251,12 @@ class MainWindow(QMainWindow, EventDropFilter, CustomMenu, Ui_MainWindow):
         files = filehandler.install_archive(item.filename, item.install_info())
         if not files:
             dialogs.qWarning(_(
-                f"The archive {item.filename} extracted with errors.\n"
-                f"Please refer to {get_config_dir('error.log')} for more information."
-            ))
+                "The archive {filename} extracted with errors.\n"
+                "Please refer to {loglocation} for more information.").format(
+                    filename=item.filename,
+                    loglocation=get_config_dir('error.log')
+                )
+            )
         else:
             filehandler.detect_conflicts_between_archives(self.managed_archives)
             self._refresh_list_item_strings()
@@ -282,10 +285,10 @@ class MainWindow(QMainWindow, EventDropFilter, CustomMenu, Ui_MainWindow):
             return True
 
         dialogs.qWarning(_(
-            "The uninstallation process failed at some point. Please "
-            "report this happened to the developper alongside the error "
-            f"file {get_config_dir('error.log')}."
-        ))
+            "The uninstallation process failed at some point. Please report "
+            "this happened to the developper alongside with the error file "
+            "{logfile}."
+        ).format(logfile=get_config_dir('error.log')))
         return False
 
     @pyqtSlot(name="on_actionSettings_triggered")
@@ -361,8 +364,8 @@ class MainWindow(QMainWindow, EventDropFilter, CustomMenu, Ui_MainWindow):
 
         dialogs.qWarning(_(
             "The file you selected is already present in the repository. "
-            f"It may exists under a different name.\nHashsum matched: {hashsum}"
-        ))
+            "It may exists under a different name.\nHashsum matched: {hashsum}"
+        ).format(hashsum=hashsum))
         return False
 
 
