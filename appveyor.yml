@@ -61,7 +61,7 @@ build_script:
 
 after_build:
   - ps: move dist\run.exe run.exe
-  - 7z a qModManager.7z run.exe README.md LICENSE tools\
+  - 7z a qModManager.7z run.exe README.md LICENSE tools\ locales\
 
 artifacts:
    - path: qModManager.7z
