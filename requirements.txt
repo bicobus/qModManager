@@ -1,5 +1,5 @@
 -i https://pypi.org/simple
+appdirs==1.4.3
 pyqt5-sip==12.7.1
 pyqt5==5.14.1
-pyxdg==0.26
 send2trash==1.5.0

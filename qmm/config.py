@@ -11,35 +11,20 @@ import gzip
 
 from codecs import getwriter
 from collections.abc import MutableMapping
+from appdirs import AppDirs
 from PyQt5.QtCore import QTimer
 from . import is_windows
-log = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
+dirs = AppDirs(appname='qmm', appauthor=False)
 
 
-if is_windows:
-    def save_config_path(*resource):
-        """Similar in feature than pyxdg's save_config_path"""
-        appdata_path = os.environ.get('APPDATA')
-        if not appdata_path:
-            raise UserWarning("I'm on windows but APPDATA is empty.", os.environ.values())
-        resource = os.path.join(*resource)
-        assert not resource.startswith('/')
-        path = os.path.join(appdata_path, resource)
-        if not os.path.isdir(path):
-            os.makedirs(path, 0o700)
-        return path
-else:
-    from xdg.BaseDirectory import save_config_path
-
-
-def get_config_dir(filename=None, extraDirectories=None):
-    config_path = ['qmm']
-    if extraDirectories and isinstance(extraDirectories, list):
-        config_path.extend(extraDirectories)
-    path = save_config_path(*config_path)
-
+def get_config_dir(filename=None, extra_directories=None):
+    config_path = []
+    if extra_directories and isinstance(extra_directories, list):
+        config_path.extend(extra_directories)
     if filename:
-        return os.path.join(path, filename)
+        config_path.append(filename)
+    path = os.path.join(dirs.user_config_dir, *config_path)
     return path
 
 
@@ -90,14 +75,14 @@ class Config(MutableMapping):
             return
         self._data[key] = value
 
-        log.debug("Config key state changed, save timer state is: %s", self._save_timer)
+        logger.debug("Config key state changed, save timer state is: %s", self._save_timer)
         if not self._save_timer:
             self.delayed_save()
 
     def __delitem__(self, key):
         del(self._data[key])
 
-        log.debug("Deleting config key, save timer state is: %s", self._save_timer)
+        logger.debug("Deleting config key, save timer state is: %s", self._save_timer)
         if not self._save_timer:
             self.delayed_save()
 
@@ -114,7 +99,7 @@ class Config(MutableMapping):
                 with open(filename, 'r', encoding="utf-8") as f:
                     data = json.load(f)
         except IOError as e:
-            log.warning("Unable ti load config file %s: %s", filename, e)
+            logger.warning("Unable ti load config file %s: %s", filename, e)
             return None
         return data
 
@@ -124,7 +109,7 @@ class Config(MutableMapping):
         elif self._compress and os.path.splitext(filename)[1] != ".gz":
             filename = "{}.gz".format(filename)
 
-        log.debug("Loading information from settings file: %s", filename)
+        logger.debug("Loading information from settings file: %s", filename)
         data = self._get_data_from_file(filename)
         if data:
             self._data.update(data)
@@ -133,7 +118,7 @@ class Config(MutableMapping):
         if not self._save_timer:
             QTimer.singleShot(msec, self.save)
             self._save_timer = True
-            log.debug("Changing save timer state to %s", self._save_timer)
+            logger.debug("Changing save timer state to %s", self._save_timer)
 
     def save(self, filename=None):
         if not filename:
@@ -141,19 +126,19 @@ class Config(MutableMapping):
         elif self._compress and os.path.splitext(filename) != ".gz":
             filename = "{}.gz".format(filename)
 
-        log.debug("Saving file %s", filename)
+        logger.debug("Saving file %s", filename)
         # Do not save anything if the contents are the same.
         try:
             data = self._get_data_from_file(filename)
             if self._data == data:
-                log.debug("Save triggered but data is unchanged: doing nothing.")
+                logger.debug("Save triggered but data is unchanged: doing nothing.")
                 if self._save_timer:
                     # self._timer.stop()
                     self._save_timer = False
-                    log.debug("Changing save timer state to %s", self._save_timer)
+                    logger.debug("Changing save timer state to %s", self._save_timer)
                 return True
         except IOError as e:
-            log.warning("Unable to load config file %s: %s", filename, e)
+            logger.warning("Unable to load config file %s: %s", filename, e)
 
         try:
             with tempfile.NamedTemporaryFile(delete=False) as fp:
@@ -165,7 +150,7 @@ class Config(MutableMapping):
                 fp.flush()
                 os.fsync(fp)
         except IOError as e:
-            log.warning("Unable to write temporary config file: %s", e)
+            logger.warning("Unable to write temporary config file: %s", e)
             return False
 
         filename = os.path.realpath(filename)
@@ -173,7 +158,7 @@ class Config(MutableMapping):
         try:
             shutil.move(filename, "{}.bak".format(filename))
         except IOError as e:
-            log.warning("Unable to backup old settings: %s", e)
+            logger.warning("Unable to backup old settings: %s", e)
 
         try:
             if is_windows:
@@ -182,12 +167,12 @@ class Config(MutableMapping):
                     os.makedirs(os.path.dirname(filename))
             shutil.move(filename_tmp, filename)
         except IOError as e:
-            log.error("Error moving new config file: %s", e)
+            logger.error("Error moving new config file: %s", e)
             return False
         else:
-            log.debug("Check save timer at end of save method. State: %s", self._save_timer)
+            logger.debug("Check save timer at end of save method. State: %s", self._save_timer)
             if self._save_timer:  # Disable timed callback
                 self._save_timer = False
-                log.debug("Changing save timer state to %s", self._save_timer)
+                logger.debug("Changing save timer state to %s", self._save_timer)
                 # self._timer.stop()
             return True

@@ -11,9 +11,9 @@ pylint = "*"
 "flake8-comprehensions" = "*"
 
 [packages]
-pyxdg = "*"
 pyqt5 = "~=5.14"
 send2trash = "*"
+appdirs = "*"
 
 [requires]
 python_version = "3.7"
