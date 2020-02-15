@@ -1,3 +1,4 @@
+.DELETE_ON_ERROR:
 POMERGE ?= 0
 RCC := $(shell command -v pyrcc5 2>/dev/null)
 UIC := $(shell command -v pyuic5 2>/dev/null)
@@ -47,11 +48,14 @@ ui: $(PUI)
 
 $(LDIR)/ui_%.py: ui_%.ui
 	$(UIC) $(UIC_FLAGS) -o $@ $<
+# importing _ shouldn't be needed as gettext gets initialized at application
+# start
+#	sed -i -r -e '/^# -\*- coding: [a-z0-9-]+ -\*-/{N;s/$$/from .lang import _/}'
 # $ might be interpreted as a variable, doubling to escape
-	sed -i -r '/^# -\*- coding: [a-z0-9-]+ -\*-/{N;s/$$/from .lang import _/}' $@
 # replace all Qt _translate with gettext's _
-	sed -i -r 's/_translate\(".*?", /_(/; s/, None.*/))/' $@
-	sed -i -r 's/( +)(_translate = .*\.translate)/\1#\2/' $@
+	sed -i -r -e 's/_translate\(".*?", /_(/'\
+		-e 's/, None.*/))/'\
+		-e 's/( +)(_translate = .*\.translate)/\1#\2/' $@
 
 $(LDIR)/%_rc.py: %.qrc
 	$(RCC) -o $@ $<
