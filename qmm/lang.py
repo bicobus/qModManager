@@ -13,7 +13,7 @@ DEFAULT_LANGUAGE = "en"
 # List of maintained translation
 LANGUAGE_CODES = [
     ('English (United States)', 'en_US'),
-    ('French', 'fr_FR')
+    ('Français', 'fr_FR')
 ]
 LANGUAGE_ALIASES = {
     'en': 'en_US',
@@ -58,7 +58,7 @@ def list_available_languages():
     langs.append(DEFAULT_LANGUAGE)
 
     for lang in langs:
-        if any(lang == code[1] for code in LANGUAGE_CODES):
+        if not any(normalize_locale(lang) == c[1] for c in LANGUAGE_CODES):
             logger.warning((
                 "A new translation seems to have been added to the locales "
                 "directory. Please update the list of maintained translations "
@@ -68,13 +68,21 @@ def list_available_languages():
     return langs
 
 
-def set_gettext():
+CURRENT_GETTEXT = None
+
+
+def set_gettext(install=True):
+    global CURRENT_GETTEXT
     lang = get_locale()
     locale_dir = get_data_path('locales')
-    trans = gettext.translation(
+    CURRENT_GETTEXT = gettext.translation(
         "qmm", localedir=locale_dir, languages=[lang], fallback=True
     )
-    return trans.gettext
+    if install:
+        CURRENT_GETTEXT.install()
+    return CURRENT_GETTEXT.gettext
 
 
-_ = set_gettext()
+def _(message):
+    global CURRENT_GETTEXT
+    return CURRENT_GETTEXT.gettext(message)

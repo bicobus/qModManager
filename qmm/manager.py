@@ -7,7 +7,7 @@ from PyQt5.QtCore import pyqtSlot, QEvent, Qt
 from PyQt5.QtWidgets import QApplication, QMainWindow, QFileDialog, QMenu
 from PyQt5 import QtGui
 from . import dialogs, widgets, filehandler
-from .lang import _
+from .lang import set_gettext
 from .ui_mainwindow import Ui_MainWindow
 from .config import get_config_dir
 from .common import settings_are_set
@@ -22,13 +22,13 @@ class CustomMenu:
         self._menu_obj = QMenu()
         self._install_action = self._menu_obj.addAction(
             QtGui.QIcon(QtGui.QPixmap(":/icons/file-install.svg")),
-            "Install")
+            _("Install"))
         self._uninstall_action = self._menu_obj.addAction(
             QtGui.QIcon(QtGui.QPixmap(":/icons/file-uninstall.svg")),
-            "Uninstall")
+            _("Uninstall"))
         self._delete_action = self._menu_obj.addAction(
             QtGui.QIcon(QtGui.QPixmap(":/icons/trash.svg")),
-            "Delete")
+            _("Delete"))
 
     def setup_menu(self, obj):
         obj.setContextMenuPolicy(Qt.CustomContextMenu)
@@ -380,6 +380,8 @@ def main():
 
     logger.info("Starting application")
     try:
+        # set_gettext() install's gettext _ in the builtins
+        set_gettext()
         app = QApplication(sys.argv)
         QtGui.QFontDatabase.addApplicationFont(":/unifont.ttf")  # noqa PyCallByClass, PyArgumentList
         mainwindow = MainWindow()
