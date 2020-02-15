@@ -9,16 +9,21 @@ import shutil
 import atexit
 import gzip
 
-from codecs import getwriter
 from collections.abc import MutableMapping
 from appdirs import AppDirs
 from PyQt5.QtCore import QTimer
-from . import is_windows
+
 logger = logging.getLogger(__name__)
 dirs = AppDirs(appname='qmm', appauthor=False)
 
 
-def get_config_dir(filename=None, extra_directories=None):
+def get_config_dir(filename=None, extra_directories=None) -> str:
+    """Return the full path of the user config dir.
+
+    Args:
+        filename: If provided, gets added at the end of the string.
+        extra_directories: If provided, extends on the returned path.
+    """
     config_path = []
     if extra_directories and isinstance(extra_directories, list):
         config_path.extend(extra_directories)
@@ -29,13 +34,11 @@ def get_config_dir(filename=None, extra_directories=None):
 
 
 class Config(MutableMapping):
-    """
-    Influenced by deluge's config object.
-    """
+    """Influenced by deluge's config object."""
 
     def __init__(self, filename, config_dir=None, defaults=None,
                  compress=False):
-        self._data = dict()
+        self._data = {}
         self._save_timer = False
         self._compress = compress
 
@@ -80,7 +83,7 @@ class Config(MutableMapping):
             self.delayed_save()
 
     def __delitem__(self, key):
-        del(self._data[key])
+        del self._data[key]
 
         logger.debug("Deleting config key, save timer state is: %s", self._save_timer)
         if not self._save_timer:
@@ -106,7 +109,7 @@ class Config(MutableMapping):
     def load(self, filename=None):
         if not filename:
             filename = self._filename
-        elif self._compress and os.path.splitext(filename)[1] != ".gz":
+        if self._compress and os.path.splitext(filename)[1] != ".gz":
             filename = "{}.gz".format(filename)
 
         logger.debug("Loading information from settings file: %s", filename)
@@ -115,10 +118,15 @@ class Config(MutableMapping):
             self._data.update(data)
 
     def delayed_save(self, msec=5000):
+        """Schedule a save in the future if one isn't already planned."""
         if not self._save_timer:
             QTimer.singleShot(msec, self.save)
             self._save_timer = True
-            logger.debug("Changing save timer state to %s", self._save_timer)
+            logger.debug("Initializing delayed save.")
+
+    def _disable_save_timer(self):
+        if self._save_timer:
+            self._save_timer = False
 
     def save(self, filename=None):
         if not filename:
@@ -128,51 +136,32 @@ class Config(MutableMapping):
 
         logger.debug("Saving file %s", filename)
         # Do not save anything if the contents are the same.
-        try:
-            data = self._get_data_from_file(filename)
-            if self._data == data:
-                logger.debug("Save triggered but data is unchanged: doing nothing.")
-                if self._save_timer:
-                    # self._timer.stop()
-                    self._save_timer = False
-                    logger.debug("Changing save timer state to %s", self._save_timer)
-                return True
-        except IOError as e:
-            logger.warning("Unable to load config file %s: %s", filename, e)
+        data = self._get_data_from_file(filename)
+        if self._data == data:
+            logger.debug("Save triggered but data is unchanged: doing nothing.")
+            self._disable_save_timer()
+            return True
 
         try:
             with tempfile.NamedTemporaryFile(delete=False) as fp:
                 filename_tmp = fp.name
+                jdump = json.dumps(self._data, indent=4).encode('utf-8')
                 if self._compress:
-                    fp.write(gzip.compress(json.dumps(self._data, indent=4).encode('utf-8')))
-                else:
-                    json.dump(self._data, getwriter('utf8')(fp), indent=4)
+                    jdump = gzip.compress(jdump)
+                fp.write(jdump)
                 fp.flush()
                 os.fsync(fp)
-        except IOError as e:
-            logger.warning("Unable to write temporary config file: %s", e)
-            return False
 
-        filename = os.path.realpath(filename)
-
-        try:
+            filename = os.path.realpath(filename)
             shutil.move(filename, "{}.bak".format(filename))
-        except IOError as e:
-            logger.warning("Unable to backup old settings: %s", e)
-
-        try:
-            if is_windows:
-                dirname = os.path.dirname(filename)
-                if not os.path.exists(dirname):
-                    os.makedirs(os.path.dirname(filename))
+            os.makedirs(os.path.dirname(filename), exist_ok=True)
             shutil.move(filename_tmp, filename)
         except IOError as e:
-            logger.error("Error moving new config file: %s", e)
+            logger.error("An error occured while saving the settings:\n%s", e)
             return False
         else:
-            logger.debug("Check save timer at end of save method. State: %s", self._save_timer)
-            if self._save_timer:  # Disable timed callback
-                self._save_timer = False
-                logger.debug("Changing save timer state to %s", self._save_timer)
-                # self._timer.stop()
+            logger.debug(
+                "Check save timer at end of save method. Auto save state: %s",
+                self._save_timer)
+            self._disable_save_timer()
             return True
