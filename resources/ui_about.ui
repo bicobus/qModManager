@@ -346,7 +346,7 @@ Appendix
           <bool>true</bool>
          </property>
          <property name="plainText">
-          <string>qModManage make use of external libraries, framework and resources:
+          <string>qModManager make use of external libraries, framework and resources:
 
 PyQt5 - Copyright © 2019 Riverbank Computing Limited &lt;info@riverbankcomputing.com&gt; - GPLv3
 pyxdg - Thomas Kluyver, Heinrich Wendel, Sergey Kuleshov - GPLv2
