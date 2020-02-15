@@ -6,6 +6,7 @@ exclude =
     icons_rc.py
 max-line-length=127
 max-complexity=10
+builtins=_
 show-source=1
 statistics=1
 select=C,E,F,W,B,B9
