@@ -5,7 +5,6 @@
 
 import logging
 from os import path
-# from collections import deque # DetailView
 from typing import Tuple, List
 
 from PyQt5 import QtWidgets, QtGui
@@ -13,18 +12,12 @@ from PyQt5.QtCore import pyqtSlot
 from .common import timestamp_to_string, settings
 from .filehandler import (FILE_MISSING, FILE_MATCHED, FILE_MISMATCHED,
                           FILE_IGNORED, missing_matched_mismatched)
+from .lang import LANGUAGE_CODES, get_locale
+from .dialogs import qInformation
 from .bucket import FileMetadata
 from . import bucket
 from .ui_settings import Ui_Settings
 from .ui_about import Ui_About
-# from .ui_detailedview import Ui_DetailedView # DetailView
-
-# from PyQt5.QtGui import QIcon, QPixmap
-# _detailViewButton = QtWidgets.QPushButton()
-# icon = QIcon()
-# icon.addPixmap(QPixmap(":/icons/info.svg"), QIcon.Normal, QIcon.Off)
-# _detailViewButton.setIcon(icon)
-
 logger = logging.getLogger(__name__)
 
 
@@ -50,6 +43,12 @@ class QSettings(QtWidgets.QWidget, Ui_Settings):
         self.repo_helper.hide()
         self.game_hide_help.hide()
         self.game_helper.hide()
+
+        for lang, code in LANGUAGE_CODES:
+            self.language_combo_box.addItem(lang, code)
+        current = get_locale()
+        current_idx = self.language_combo_box.findData(current)
+        self.language_combo_box.setCurrentIndex(current_idx)
 
     def set_mode(self, first_run=False):
         if first_run:
@@ -95,6 +94,10 @@ class QSettings(QtWidgets.QWidget, Ui_Settings):
         if (self.repo_input.text() != settings['local_repository']
                 and path.isdir(self.repo_input.text())):
             settings['local_repository'] = self.repo_input.text()
+        if (not settings['language']
+                or self.language_combo_box.currentData() != settings['language']):
+            settings['language'] = self.language_combo_box.currentData()
+            qInformation(_("Please restart qMM to finalize language change."))
         self.hide()
 
     @pyqtSlot(name="on_cancel_button_clicked")
@@ -279,25 +282,25 @@ class ListRowItem(QtWidgets.QListWidgetItem):
 
     def _format_strings(self):
         self._files_str = _format_regular(
-            title="Archive's content",
+            title=_("Archive's content"),
             items=self._files)
         self._errored_str = _format_regular(
-            title="ERR: Following file has unknown status",
+            title=_("ERR: Following file has unknown status"),
             items=self._errored)
         self._matched_str = _format_regular(
-            title="Files installed",
+            title=_("Files installed"),
             items=self._matched)
         self._missing_str = _format_regular(
-            title="Missing from the game folder",
+            title=_("Missing from the game folder"),
             items=self._missing)
         self._mismatched_str = _format_regular(
-            title="Same name and different CRC or same CRC with different names",
+            title=_("Same name and different CRC or same CRC with different names"),
             items=self._mismatched)
         self._conflicts_str = _format_conflicts(
-            title="Conflicting files between archives",
+            title=_("Conflicting files between archives"),
             items=self._conflicts.items())
         self._ignored_str = _format_regular(
-            title="Files present in the archive but ignored",
+            title=_("Files present in the archive but ignored"),
             items=self._ignored)
         self._built_strings = True
 
