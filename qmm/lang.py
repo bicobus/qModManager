@@ -5,6 +5,7 @@ import os
 import gettext
 import locale
 import logging
+
 from . import get_data_path
 from .common import settings
 
@@ -68,21 +69,12 @@ def list_available_languages():
     return langs
 
 
-CURRENT_GETTEXT = None
-
-
 def set_gettext(install=True):
-    global CURRENT_GETTEXT
     lang = get_locale()
     locale_dir = get_data_path('locales')
-    CURRENT_GETTEXT = gettext.translation(
+    trans = gettext.translation(
         "qmm", localedir=locale_dir, languages=[lang], fallback=True
     )
     if install:
-        CURRENT_GETTEXT.install()
-    return CURRENT_GETTEXT.gettext
-
-
-def _(message):
-    global CURRENT_GETTEXT
-    return CURRENT_GETTEXT.gettext(message)
+        trans.install()
+    return trans.gettext
