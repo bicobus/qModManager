@@ -47,7 +47,7 @@ endif
 ui: $(PUI)
 
 $(LDIR)/ui_%.py: ui_%.ui
-	$(UIC) $(UIC_FLAGS) -o $@ $<
+	$(UIC) $(UICFLAGS) -o $@ $<
 # importing _ shouldn't be needed as gettext gets initialized at application
 # start
 #	sed -i -r -e '/^# -\*- coding: [a-z0-9-]+ -\*-/{N;s/$$/from .lang import _/}'
