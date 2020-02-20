@@ -3,6 +3,7 @@
 #  © 2020 bicobus <bicobus@keemail.me>
 """Handles the Qt main window."""
 import logging
+import pathlib
 from PyQt5.QtCore import pyqtSlot, QEvent, Qt
 from PyQt5.QtWidgets import QApplication, QMainWindow, QFileDialog, QMenu
 from PyQt5 import QtGui
@@ -10,7 +11,7 @@ from . import dialogs, widgets, filehandler
 from .lang import set_gettext
 from .ui_mainwindow import Ui_MainWindow
 from .config import get_config_dir
-from .common import settings_are_set
+from .common import settings_are_set, valid_suffixes
 from .widgets import QSettings, QAbout
 
 logger = logging.getLogger(__name__)
@@ -203,7 +204,7 @@ class MainWindow(QMainWindow, EventDropFilter, CustomMenu, Ui_MainWindow):
             return
 
         qfd = QFileDialog(self)
-        filters = ["Archives (*.7z *.zip *.rar)"]
+        filters = valid_suffixes()
         qfd.setNameFilters(filters)
         qfd.selectNameFilter(filters[0])
         qfd.fileSelected.connect(self._on_action_open_done)
@@ -254,9 +255,7 @@ class MainWindow(QMainWindow, EventDropFilter, CustomMenu, Ui_MainWindow):
                 "The archive {filename} extracted with errors.\n"
                 "Please refer to {loglocation} for more information.").format(
                     filename=item.filename,
-                    loglocation=get_config_dir('error.log')
-                )
-            )
+                    loglocation=get_config_dir('error.log')))
         else:
             filehandler.detect_conflicts_between_archives(self.managed_archives)
             self._refresh_list_item_strings()
@@ -322,12 +321,21 @@ class MainWindow(QMainWindow, EventDropFilter, CustomMenu, Ui_MainWindow):
         self._about_window.show()
 
     def _on_drop_action(self, e):
-        if e.mimeData().urls():  # Makes sure we have urls
-            logger.info("Received drop event with files %s", [f.path for f in e.mimeData().urls()])
-            for uri in e.mimeData().urls():
+        """Handle the drag&drop event.
+
+        Filter input files through valid suffixes.
+        """
+        if not e.mimeData().urls():  # Makes sure we have urls
+            logger.debug("Received drag&drop event with empty url list.")
+            return False
+
+        logger.info("Received drop event with files %s", [f.path for f in e.mimeData().urls()])
+        for uri in e.mimeData().urls():
+            pl = pathlib.PurePath(uri.path())
+            if pl.suffix in valid_suffixes(output_format="pathlib"):
+                logger.debug("Processing file %s", uri.path())
                 self._on_action_open_done(uri.path())
-            return True
-        return False
+        return True
 
     def _refresh_list_item_strings(self):
         for idx in range(0, self.listWidget.count()):
