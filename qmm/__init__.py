@@ -38,7 +38,7 @@ def get_data_path(relpath):
 logging.getLogger('PyQt5').setLevel(logging.WARNING)
 logging.basicConfig(
     level=logging.DEBUG,
-    format='%(levelname)s:%(name)s:%(module)s:%(funcName)s:%(message)s',
+    format='%(asctime)s - %(levelname)s:%(name)s:%(module)s:%(funcName)s:%(message)s',
     filename=os.path.join(get_base_path(), 'error.log'),
     filemode='w'
 )
