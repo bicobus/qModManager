@@ -54,7 +54,7 @@ def _do_message(mobject, informative=None, detailed=None):
     return mobject.exec_()
 
 
-class qProgress(QDialog, Ui_Dialog):
+class SplashProgress(QDialog, Ui_Dialog):
     def __init__(self, parent, title, message):
         super().__init__(parent=parent)
         self.setupUi(self)

@@ -193,6 +193,10 @@ def sha256hash(filename):
 
 
 class ArchivesCollection(MutableMapping):
+    suffixes = ['.rar', '.zip', '.7z']
+    FileAdded = 1
+    FileRemoved = 2
+
     def __init__(self):
         super().__init__()
         self._data = {}
@@ -200,22 +204,51 @@ class ArchivesCollection(MutableMapping):
         self._stat = {}
 
     def build_archives_list(self, progress, rebuild=False):
-        if not settings_are_set:
+        if not settings_are_set():
             return False
 
         if self._data and not rebuild:
             return False
 
-        suffixes = ['.rar', '.zip', '.7z']
         repo = pathlib.Path(settings['local_repository'])
         for entry in repo.glob("*.*"):
-            if entry.is_file() and entry.suffix in suffixes:
+            if entry.is_file() and entry.suffix in self.suffixes:
                 self.add_archive(entry, progress=progress)
             else:
                 logger.warning("File with suffix '%s' ignored.", entry.suffix)
         return True
 
-    def add_archive(self, path, hashsum=None, progress=None):
+    def refresh(self):
+        if not settings_are_set():
+            return False
+
+        found, to_delete = [], []
+        repo = pathlib.Path(settings['local_repository'])
+        for entry in repo.glob("*.*"):
+            if entry.is_file() and entry.suffix in self.suffixes:
+                if not self.find(archive_name=entry.name):
+                    logger.info("Found new archive: %s", entry.name)
+                    self.add_archive(entry)
+                    found.append(entry.name)
+                    yield self.FileAdded, entry.name, self[entry.name]
+                else:
+                    found.append(entry.name)
+        # Check for ghosts
+        for key in self._data.keys():
+            if key not in found:
+                logger.info("Archive removed: %s", key)
+                to_delete.append(key)
+                yield self.FileRemoved, key, self[key]
+        # Remove ghosts from index
+        for k in to_delete:
+            del self[k]
+
+    def add_archive(self, path, hashsum: str = None, progress=None):
+        """Add an archive to the list of managed archives.
+
+        This method should be used over __setitem__ as it setup the different
+        metadata required by the UI.
+        """
         if not isinstance(path, pathlib.Path):
             path = pathlib.Path(settings['local_repository'], path)
         if not path.is_file():
@@ -226,9 +259,8 @@ class ArchivesCollection(MutableMapping):
         self._set_stat(path.name, path)
         self._set_hashsums(path.name, hashsum)
 
-    def find(self, archive_name=None, hashsum=None):
-        """Try to find a member, then returns its object, either through the name
-        of the archive and/or the sha256sum of the file.
+    def find(self, archive_name: str = None, hashsum: str = None):
+        """Find a member based on the name or hashsum of the archive.
 
         If archiveName is not None, will check if archiveName exists in the
         keys of the collection.
@@ -431,11 +463,13 @@ def conflicts_process_files(files: List[bucket.FileMetadata], archives_list, cur
             bucket.as_conflict(file.path, bad_archives)
 
 
-def detect_conflicts_between_archives(archives_lists: ArchivesCollection):
+def detect_conflicts_between_archives(archives_lists: ArchivesCollection, progress=None):
     assert isinstance(archives_lists, ArchivesCollection), type(archives_lists)
     list_done = []
     # archive_content is a list of objects [FileMetadata, FileMetadata, ...]
     for archive_name, archive_content in archives_lists.items():
+        if progress:
+            progress(archive_name)
         conflicts_process_files(archive_content, archives_lists, archive_name, list_done)
         list_done.append(archive_name)
 

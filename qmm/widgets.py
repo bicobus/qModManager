@@ -222,7 +222,7 @@ class ListRowItem(QtWidgets.QListWidgetItem):
         self._triage_second = False
         self._built_strings = False
 
-        self.setText(self.filename)
+        self.setText(self.filename)  # filename == _key
         self.__setup_buckets()
         self._triage()
         self._format_strings()

@@ -14,6 +14,7 @@ pylint = "*"
 pyqt5 = "~=5.14"
 send2trash = "*"
 appdirs = "*"
+watchdog = "*"
 
 [requires]
 python_version = "3.7"
