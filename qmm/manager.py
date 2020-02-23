@@ -358,8 +358,8 @@ class MainWindow(QMainWindow, QEventFilter, CustomMenu, Ui_MainWindow):
             dialogs.qWarning(_(
                 "The archive {filename} extracted with errors.\n"
                 "Please refer to {loglocation} for more information.").format(
-                filename=item.filename,
-                loglocation=get_config_dir('error.log')))
+                    filename=item.filename,
+                    loglocation=get_config_dir('error.log')))
         else:
             filehandler.detect_conflicts_between_archives(self.managed_archives)
             self._refresh_list_item_strings()

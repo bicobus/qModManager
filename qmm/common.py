@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 # Licensed under the EUPL v1.2
 # © 2019 bicobus <bicobus@keemail.me>
-import os
 import logging
-from typing import List
+import os
 from datetime import datetime
-from . import is_windows, get_data_path
-from .config import Config
+from typing import Any, List, Tuple
 
+from . import get_data_path, is_windows
+from .config import Config
 
 logger = logging.getLogger(__name__)
 
@@ -43,7 +43,7 @@ def timestamp_to_string(timestamp):
     return datetime.strftime(datetime.fromtimestamp(timestamp), "%c")
 
 
-def valid_suffixes(output_format="qfiledialog") -> List[str]:
+def valid_suffixes(output_format="qfiledialog") -> Any[List[str], Tuple[str]]:
     """Properly format a list of filters for QFileDialog.
 
     Args:
@@ -69,4 +69,3 @@ def valid_suffixes(output_format="qfiledialog") -> List[str]:
             filter_on.append(f"{l} ({s})")
         return filter_on
     return suffixes
-

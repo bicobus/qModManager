@@ -220,7 +220,7 @@ class ArchivesCollection(MutableMapping):
 
     def refresh(self):
         if not settings_are_set():
-            return False
+            return
 
         found, to_delete = [], []
         repo = pathlib.Path(settings['local_repository'])
