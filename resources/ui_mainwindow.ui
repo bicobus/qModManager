@@ -47,9 +47,6 @@
          <property name="acceptDrops">
           <bool>true</bool>
          </property>
-         <property name="toolTip">
-          <string>Use the + or - button to add or remove items from the list.</string>
-         </property>
          <property name="dragDropMode">
           <enum>QAbstractItemView::DropOnly</enum>
          </property>
