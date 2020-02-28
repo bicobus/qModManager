@@ -234,7 +234,7 @@ class ArchivesCollection(MutableMapping):
                 else:
                     found.append(entry.name)
         # Check for ghosts
-        for key in self._data.keys():
+        for key in self._data:
             if key not in found:
                 logger.info("Archive removed: %s", key)
                 to_delete.append(key)
