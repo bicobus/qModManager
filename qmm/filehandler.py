@@ -30,11 +30,11 @@ if is_windows:
     startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
 
 # Mods directory structure
-first_level_dir = ('items', 'outfits')  # outfits aren't supported in mods
+first_level_dir = ('items', 'outfits')  # outfits aren't stored under items
 second_level_dir = ('weapons', 'clothing', 'tattoos')
-# --
-reListMatch = re.compile(
-    r"""^(Path|Modified|Attributes|CRC)\s=\s(.*)$""").match
+
+# Regexes to capture 7z's output
+reListMatch = re.compile(r"^(Path|Modified|Attributes|CRC)\s=\s(.*)$").match
 reExtractMatch = re.compile(r'- (.+)$').match
 reErrorMatch = re.compile(r"""^(
     Error:.+|
@@ -430,9 +430,9 @@ def file_in_other_archives(file: bucket.FileMetadata,
         file (FileMetadata):
             file to be found
         archives (ArchivesCollection):
-            instance of ArchivesCollections
+            instance of ArchivesCollection
         ignore (list):
-            list of archives to ignore, for instance already parsed archives
+            list of archives to ignore, for example already parsed archives
 
     Returns:
         List: List of archives containing the same file.
@@ -448,7 +448,11 @@ def file_in_other_archives(file: bucket.FileMetadata,
     return found
 
 
-def conflicts_process_files(files: List[bucket.FileMetadata], archives_list, current_archive, processed):
+def conflicts_process_files(files: List[bucket.FileMetadata],
+                            archives_list,
+                            current_archive,
+                            processed):
+    """Process an archive, verify that each of its files are unique."""
     for file in files:
         if bucket.with_conflict(file.path):
             continue
@@ -608,8 +612,9 @@ def uninstall_files(file_list: list):
             directory.rmdir()
         except OSError as e:  # Probably due to not being empty
             logger.error("Unable to remove directory %s: %s", directory, e)
-            # Success should be True, as folders can belong to multiple mods.
-            # success = False 
+            # Not raising the exception, non-empty folders might belong to
+            # other mods or be intentionally present through external
+            # intervention.
         else:
             logger.debug("Directory removed: %s", directory)
 
