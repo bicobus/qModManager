@@ -62,7 +62,7 @@ build_script:
   - pyinstaller run.py
 
 after_build:
-  - ps: |
+  - ps: >-
     $Shell = New-Object -ComObject ("WScript.Shell");
     $shortcut = $Shell.CreateShortcut(".\qmodmanager.lnk");
     $shortcut.TargetPath = "run.exe";
