@@ -46,22 +46,34 @@ install:
   - make .build/req
   - choco install upx
 
-before_test:
-  - echo Starting Tests
-
-after_test:
-  - echo Finished Tests
-
-test_script:
-  - flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+#
+# before_test:
+#   - echo Starting Tests
+#
+# after_test:
+#   - echo Finished Tests
+#
+# test_script:
+#   - flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+#
 
 build_script:
   - make ui
-  - pyinstaller -F run.py
+  - pyinstaller run.py
 
 after_build:
-  - ps: move dist\run.exe run.exe
-  - 7z a qModManager.7z run.exe README.md LICENSE tools\ locales\
+  - ps: |
+    $Shell = New-Object -ComObject ("WScript.Shell");
+    $shortcut = $Shell.CreateShortcut(".\qmodmanager.lnk");
+    $shortcut.TargetPath = "run.exe";
+    $shortcut.Arguments = "";
+    $shortcut.WorkingDirectory = ".\dist";
+    $shortcut.WindowStyle = 1;
+    $shortcut.Description = "Run qModManager";
+    $shortcut.Save();
+#   - ps: move dist\run.exe run.exe
+#   - 7z a qModManager.7z run.exe README.md LICENSE tools\ locales\
+  - 7z a qModManager.7z dist\ README.md LICENSE tools\ locales\ qmodmanager.lnk
 
 artifacts:
    - path: qModManager.7z
