@@ -63,14 +63,14 @@ build_script:
 
 after_build:
   - ps: >-
-    $Shell = New-Object -ComObject ("WScript.Shell");
-    $shortcut = $Shell.CreateShortcut(".\qmodmanager.lnk");
-    $shortcut.TargetPath = "run.exe";
-    $shortcut.Arguments = "";
-    $shortcut.WorkingDirectory = ".\dist";
-    $shortcut.WindowStyle = 1;
-    $shortcut.Description = "Run qModManager";
-    $shortcut.Save();
+      $Shell = New-Object -ComObject ("WScript.Shell");
+      $shortcut = $Shell.CreateShortcut(".\qmodmanager.lnk");
+      $shortcut.TargetPath = "run.exe";
+      $shortcut.Arguments = "";
+      $shortcut.WorkingDirectory = ".\dist";
+      $shortcut.WindowStyle = 1;
+      $shortcut.Description = "Run qModManager";
+      $shortcut.Save();
 #   - ps: move dist\run.exe run.exe
 #   - 7z a qModManager.7z run.exe README.md LICENSE tools\ locales\
   - 7z a qModManager.7z dist\ README.md LICENSE tools\ locales\ qmodmanager.lnk
