@@ -11,3 +11,4 @@ enabled = true
   [analyzers.meta]
   runtime_version = "3.x.x"
   max_line_length = 127
+  additional_builtins = ["_"]
