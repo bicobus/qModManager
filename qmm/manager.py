@@ -179,7 +179,7 @@ class MainWindow(QMainWindow, QEventFilter, CustomMenu, Ui_MainWindow):
                 if etype == self.managed_archives.FileAdded:
                     row = widgets.ListRowItem(
                         filename=archive_name,
-                        data=filehandler.missing_matched_mismatched(item),
+                        data=filehandler.archive_analysis(item),
                         stat=self.managed_archives.stat(archive_name),
                         hashsum=self.managed_archives.hashsums(archive_name)
                     )
@@ -207,14 +207,16 @@ class MainWindow(QMainWindow, QEventFilter, CustomMenu, Ui_MainWindow):
         self.managed_archives.build_archives_list(p_dialog.progress)
 
         p_dialog.progress("", category=_("Conflict detection"))
-        filehandler.detect_conflicts_between_archives(self.managed_archives, progress=p_dialog.progress)
+        filehandler.detect_conflicts_between_archives(
+            self.managed_archives,
+            progress=p_dialog.progress)
 
         p_dialog.progress("", category=_("Parsing archives"))
         for archive_name in self.managed_archives.keys():
             p_dialog.progress(archive_name)
             item = widgets.ListRowItem(
                 filename=archive_name,
-                data=filehandler.missing_matched_mismatched(
+                data=filehandler.archive_analysis(
                     self.managed_archives[archive_name]),
                 stat=self.managed_archives.stat(archive_name),
                 hashsum=self.managed_archives.hashsums(archive_name)
@@ -225,7 +227,20 @@ class MainWindow(QMainWindow, QEventFilter, CustomMenu, Ui_MainWindow):
     def _add_item_to_list(self, item):
         self.listWidget.addItem(item)
 
-    def _remove_row(self, filename, row, preserve_managed=False):
+    def _remove_row(self, filename: str, row: int, preserve_managed: bool = False):
+        """Remove a row from the interface's list.
+
+        The `filename` argument is only needed if `preserved_managed` is set to
+        `False` (the default). It is needed to remove information stored in the
+        `managed_archives` object.
+        Will refresh the conflicting files once done.
+
+        Args:
+            filename: Only needed if preserve_managed is False
+            row: integer matching the row to remove
+            preserve_managed:
+                if False, delete information from the managed_archives object
+        """
         if not preserve_managed:
             del self.managed_archives[filename]
         self.listWidget.takeItem(row)
@@ -322,6 +337,7 @@ class MainWindow(QMainWindow, QEventFilter, CustomMenu, Ui_MainWindow):
 
     @pyqtSlot(name="on_actionRemove_file_triggered")
     def _do_delete_selected_file(self, menu_item=None):
+        """Method to remove an archive file."""
         item = self._get_selected_item(menu_item)
         if not item:
             logger.error("Triggered _do_delete_selected_file without a selection")
@@ -347,6 +363,7 @@ class MainWindow(QMainWindow, QEventFilter, CustomMenu, Ui_MainWindow):
 
     @pyqtSlot(name="on_actionInstall_Mod_triggered")
     def _do_install_selected_mod(self, menu_item=None):
+        """Method to install an archive's files to the game location."""
         item = self._get_selected_item(menu_item)
         if not item:
             logger.error("Triggered _do_install_selected_mod without a selection")
@@ -367,6 +384,10 @@ class MainWindow(QMainWindow, QEventFilter, CustomMenu, Ui_MainWindow):
 
     @pyqtSlot(name="on_actionUninstall_Mod_triggered")
     def _do_uninstall_selected_mod(self, menu_item=None):
+        """Delete all of the archive matched files from the filesystem.
+
+        Stops if any mismatched item is found.
+        """
         item = self._get_selected_item(menu_item)
         if not item:
             logger.error("triggered without item to process")
@@ -451,7 +472,7 @@ class MainWindow(QMainWindow, QEventFilter, CustomMenu, Ui_MainWindow):
 
             item = widgets.ListRowItem(
                 filename=archive_name,
-                data=filehandler.missing_matched_mismatched(self.managed_archives[archive_name]),
+                data=filehandler.archive_analysis(self.managed_archives[archive_name]),
                 stat=self.managed_archives.stat(archive_name),
                 hashsum=self.managed_archives.hashsums(archive_name))
 
@@ -492,7 +513,8 @@ class MainWindow(QMainWindow, QEventFilter, CustomMenu, Ui_MainWindow):
             logger.debug("Received drag&drop event with empty url list.")
             return False
 
-        logger.info("Received drop event with files %s", [f.path for f in e.mimeData().urls()])
+        logger.debug("Received drop event with files %s",
+                     [f.path for f in e.mimeData().urls()])
         for uri in e.mimeData().urls():
             pl = pathlib.PurePath(uri.path())
             if pl.suffix in valid_suffixes(output_format="pathlib"):
@@ -511,11 +533,15 @@ class MainWindow(QMainWindow, QEventFilter, CustomMenu, Ui_MainWindow):
 
     def _on_fs_deleted(self, e):
         item = pathlib.Path(e[1])
+        logger.debug("WATCHDOG: file deleted on file system: %s", item)
         rows = self.listWidget.findItems(item.name, Qt.MatchExactly)
-        if rows:
-            row = rows[0]
-            self._remove_row(row.filename, self.listWidget.row(row))
-            del row, rows
+        if not rows:
+            logger.debug("WATCHDOG: deleted file not managed, ignoring")
+            return
+        logger.debug("WATCHDOG: Number of file matching exactly: %s", len(rows))
+        row = rows[0]
+        self._remove_row(row.filename, self.listWidget.row(row))
+        del row, rows
         # for idx in self.listWidget.count():
         #     row_item = self.listWidget.index(idx)
         #     if row_item.filename == item.name:
@@ -524,6 +550,7 @@ class MainWindow(QMainWindow, QEventFilter, CustomMenu, Ui_MainWindow):
 
 
 def main():
+    """Start the application proper."""
     import sys  # pylint: disable=import-outside-toplevel
     import signal  # pylint: disable=import-outside-toplevel
     import locale  # pylint: disable=import-outside-toplevel

@@ -11,7 +11,7 @@ from PyQt5 import QtWidgets, QtGui
 from PyQt5.QtCore import pyqtSlot
 from .common import timestamp_to_string, settings
 from .filehandler import (FILE_MISSING, FILE_MATCHED, FILE_MISMATCHED,
-                          FILE_IGNORED, missing_matched_mismatched)
+                          FILE_IGNORED, archive_analysis)
 from .lang import LANGUAGE_CODES, get_locale
 from .dialogs import qInformation
 from .bucket import FileMetadata
@@ -311,7 +311,7 @@ class ListRowItem(QtWidgets.QListWidgetItem):
         all triaging and formatting.
         """
         self.__setup_buckets()
-        self._data = missing_matched_mismatched([i for i, _ in self._data])
+        self._data = archive_analysis([i for i, _ in self._data])
         self._triage_done = False
         self._triage_second = True
         self._triage()

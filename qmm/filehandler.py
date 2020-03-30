@@ -52,6 +52,11 @@ class ArchiveException(FileHandlerException):
 
 
 def ignore_patterns(seven_flag=False):
+    """Output a tuple of patterns to ignore.
+
+    Args:
+        seven_flag (bool): Patterns format following 7z exclude switch.
+    """
     if seven_flag:
         return '-xr!*.DS_Store', '-x!__MACOSX', '-xr!*Thumbs.db'
     return '.DS_Store', '__MACOSX', 'Thumbs.db'
@@ -510,7 +515,18 @@ def file_status(file: bucket.FileMetadata) -> int:
     return FILE_MISSING
 
 
-def missing_matched_mismatched(file_list: List[bucket.FileMetadata]) -> List[Tuple[bucket.FileMetadata, int]]:
+def archive_analysis(file_list: List[bucket.FileMetadata]) -> List[Tuple[bucket.FileMetadata, int]]:
+    """
+    Returns a list of tuples representing the archive.
+    The tuples contains the item of an archive alongside it's status. The status
+    can be either FILE_MATCHED, FILE_MISMATCHED, FILE_IGNORED or FILE_MISSING.
+    Args:
+        file_list: a list containing every items of an archive, must be
+                   bucket.FileMetadata
+
+    Returns:
+        A list of tuples, each tuple being (FileMetadata, int)
+    """
     new_list = []
     for file in file_list:
         new_list.append((file, file_status(file)))
