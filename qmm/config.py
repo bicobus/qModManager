@@ -1,20 +1,20 @@
 # -*- coding: utf-8 -*-
 # Licensed under the EUPL v1.2
-# © 2019 bicobus <bicobus@keemail.me>
-import os
-import json
-import logging
-import tempfile
-import shutil
+# © 2019-2020 bicobus <bicobus@keemail.me>
 import atexit
 import gzip
-
+import json
+import logging
+import os
+import shutil
+import tempfile
 from collections.abc import MutableMapping
-from appdirs import AppDirs
+
 from PyQt5.QtCore import QTimer
+import appdirs
 
 logger = logging.getLogger(__name__)
-dirs = AppDirs(appname='qmm', appauthor=False)
+dirs = appdirs.AppDirs(appname='qmm', appauthor=False)
 
 
 def get_config_dir(filename=None, extra_directories=None) -> str:
@@ -120,7 +120,7 @@ class Config(MutableMapping):
     def delayed_save(self, msec=5000):
         """Schedule a save in the future if one isn't already planned."""
         if not self._save_timer:
-            QTimer.singleShot(msec, self.save)
+            QTimer.singleShot(msec, self.save)  # noqa
             self._save_timer = True
             logger.debug("Initializing delayed save.")
 
@@ -150,7 +150,7 @@ class Config(MutableMapping):
                     jdump = gzip.compress(jdump)
                 fp.write(jdump)
                 fp.flush()
-                os.fsync(fp)
+                os.fsync(fp)  # noqa
 
             filename = os.path.realpath(filename)
             shutil.move(filename, "{}.bak".format(filename))

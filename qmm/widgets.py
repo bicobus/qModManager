@@ -1,23 +1,22 @@
 # -*- coding: utf-8 -*-
 #  Licensed under the EUPL v1.2
-#  © 2020 bicobus <bicobus@keemail.me>
+#  © 2019-2020 bicobus <bicobus@keemail.me>
 """Contains various Qt Widgets used internally by the application."""
 
 import logging
 from os import path
-from typing import Tuple, List
 
-from PyQt5 import QtWidgets, QtGui
-from PyQt5.QtCore import pyqtSlot
-from .common import timestamp_to_string, settings
-from .filehandler import (FILE_MISSING, FILE_MATCHED, FILE_MISMATCHED,
-                          FILE_IGNORED, archive_analysis)
-from .lang import LANGUAGE_CODES, get_locale
-from .dialogs import qInformation
-from .bucket import FileMetadata
-from . import bucket
-from .ui_settings import Ui_Settings
-from .ui_about import Ui_About
+from PyQt5 import QtGui, QtWidgets
+from PyQt5.QtCore import Qt, pyqtSlot
+
+from qmm.bucket import FileMetadata
+from qmm.common import settings, timestamp_to_string
+from qmm.dialogs import qInformation
+from qmm.filehandler import ArchivesCollection
+from qmm.lang import LANGUAGE_CODES, get_locale
+from qmm.ui_about import Ui_About
+from qmm.ui_settings import Ui_Settings
+
 logger = logging.getLogger(__name__)
 
 
@@ -53,8 +52,10 @@ class QSettings(QtWidgets.QWidget, Ui_Settings):
     def set_mode(self, first_run=False):
         if first_run:
             self.cancel_button.setEnabled(False)
+            self.setWindowFlag(Qt.WindowCloseButtonHint)
         else:
             self.cancel_button.setEnabled(True)
+            self.setWindowFlag(Qt.WindowCloseButtonHint, on=True)
 
     def show(self):
         """Show the window and assign internal variables."""
@@ -199,16 +200,17 @@ class QSettings(QtWidgets.QWidget, Ui_Settings):
 
 class ListRowItem(QtWidgets.QListWidgetItem):
     """ListWidgetItem representing one single archive."""
-    _data: List[Tuple[FileMetadata, int]]
 
-    def __init__(self, filename: str, data, stat, hashsum):
+    def __init__(self, filename: str, archive_manager: ArchivesCollection):
         super().__init__()
+        self._filename = filename
+        self.archive_instance = archive_manager[filename]
         self._key = path.basename(filename)
-        self._data = data
-        self._stat = stat
+        self._data = archive_manager[filename].status()
+        self._stat = archive_manager.stat(filename)
         self._name = None
         self._added = None
-        self._hashsum = hashsum
+        self._hashsum = archive_manager.hashsums(filename)
 
         self._files_str = ""
         self._matched_str = ""
@@ -216,92 +218,31 @@ class ListRowItem(QtWidgets.QListWidgetItem):
         self._mismatched_str = ""
         self._ignored_str = ""
         self._conflicts_str = ""
-        self._errored_str = ""
 
-        self._triage_done = False
-        self._triage_second = False
         self._built_strings = False
 
         self.setText(self.filename)  # filename == _key
-        self.__setup_buckets()
-        self._triage()
         self._format_strings()
-
-    def __setup_buckets(self):
-        self._files = []
-        self._folders = []
-        self._matched = []
-        self._missing = []
-        self._mismatched = []
-        self._ignored = []
-        self._conflicts = {}
-        self._errored = []
-
-    def _triage(self):
-        if self._triage_done:
-            return
-        for item, status in self._data:
-            if not self._set_item_status(item, status):
-                self._errored.append(item)
-            if not item.is_dir():
-                self._files.append(item)
-            else:
-                self._folders.append(item)
-            self._conflict_triage(item)
-        self._triage_done = True
-
-    def _set_item_status(self, item, status):
-        if status == FILE_MATCHED:
-            self._matched.append(item)
-        elif status == FILE_MISMATCHED:
-            # File is mismatched against something else, find it and store it
-            for mfile in bucket.loosefiles.values():
-                f = list(filter(lambda x: x.path == item.path, mfile))
-                if f:
-                    logger.debug("Found mismatched as '%s'", f[0])
-                    self._mismatched.append(f[0])
-        elif status == FILE_MISSING:
-            self._missing.append(item)
-        elif status == FILE_IGNORED:
-            self._ignored.append(item)
-        else:
-            return False
-        return True
-
-    def _conflict_triage(self, item: FileMetadata):
-        tmp_conflicts = []
-        # Check other archives
-        if bucket.with_conflict(item.path):
-            tmp_conflicts.extend(bucket.conflicts[item.path])
-        # Check against game files (Path and CRC)
-        if (bucket.with_gamefiles(path=item.path)
-                or bucket.with_gamefiles(crc=item.crc)):
-            tmp_conflicts.append(bucket.gamefiles[item.crc])
-        if tmp_conflicts:
-            self._conflicts[item.path] = tmp_conflicts
 
     def _format_strings(self):
         self._files_str = _format_regular(
             title=_("Archive's content"),
-            items=self._files)
-        self._errored_str = _format_regular(
-            title=_("ERR: Following file has unknown status"),
-            items=self._errored)
+            items=list(self.archive_instance.files(exclude_directories=True)))
         self._matched_str = _format_regular(
             title=_("Files installed"),
-            items=self._matched)
+            items=list(self.archive_instance.matched()))
         self._missing_str = _format_regular(
             title=_("Missing from the game folder"),
-            items=self._missing)
+            items=list(self.archive_instance.missing()))
         self._mismatched_str = _format_regular(
             title=_("Same name and different CRC or same CRC with different names"),
-            items=self._mismatched)
+            items=list(self.archive_instance.mismatched()))
         self._conflicts_str = _format_conflicts(
             title=_("Conflicting files between archives"),
-            items=self._conflicts.items())
+            items=self.archive_instance.conflicts)
         self._ignored_str = _format_regular(
             title=_("Files present in the archive but ignored"),
-            items=self._ignored)
+            items=list(self.archive_instance.ignored()))
         self._built_strings = True
 
     def refresh_strings(self):
@@ -310,33 +251,10 @@ class ListRowItem(QtWidgets.QListWidgetItem):
         Reinitialize the widget's strings, recompute the conflicts then redo
         all triaging and formatting.
         """
-        self.__setup_buckets()
-        self._data = archive_analysis([i for i, _ in self._data])
-        self._triage_done = False
-        self._triage_second = True
-        self._triage()
+        self.archive_instance.reset_status()
+        self.archive_instance.reset_conflicts()
+        self._built_strings = False
         self._format_strings()
-
-    def list_ignored(self):
-        """Returns a list of ignored elements"""
-        return self._ignored
-
-    def install_info(self):
-        return {
-            'matched': self._matched,
-            'mismatched': self._mismatched,
-            'ignored': self._ignored
-        }
-
-    def list_matched(self, include_folders=False):
-        """Returns a list of matched files.
-
-        Args:
-            include_folders (bool): If true, include folders into the list.
-        """
-        if not include_folders:
-            return self._matched
-        return self._matched + self._folders
 
     @property
     def name(self):
@@ -373,9 +291,6 @@ class ListRowItem(QtWidgets.QListWidgetItem):
         if not self._built_strings:
             self._format_strings()
             self._built_strings = True
-
-        if self._errored:
-            return self._errored_str + "\n" + self._files_str
         return self._files_str
 
     @property
@@ -384,23 +299,9 @@ class ListRowItem(QtWidgets.QListWidgetItem):
         return self._matched_str
 
     @property
-    def has_matched(self) -> bool:
-        """Returns True if the archive has matched files on the filesystem"""
-        if self._matched:
-            return True
-        return False
-
-    @property
     def missing(self):
         """Return a string representing the list of missing files."""
         return self._missing_str
-
-    @property
-    def has_missing(self):
-        """Return a boolean based on missing files contained in the archive."""
-        if self._missing:
-            return True
-        return False
 
     @property
     def mismatched(self):
@@ -408,34 +309,15 @@ class ListRowItem(QtWidgets.QListWidgetItem):
         return self._mismatched_str
 
     @property
-    def has_mismatched(self):
-        """Return a boolean based on mismatched files contained in the archive."""
-        if self._mismatched:
-            return True
-        return False
-
-    @property
     def conflicts(self):
         return self._conflicts_str
-
-    @property
-    def has_conflicts(self):
-        if self._conflicts:
-            return True
-        return False
 
     @property
     def skipped(self):
         return self._ignored_str
 
-    @property
-    def has_skipped(self):
-        if self._ignored:
-            return True
-        return False
 
-
-def _format_regular(title, items: List[FileMetadata]):
+def _format_regular(title, items):
     strings = [f"== {title}:\n"]
     for item in items:
         if item.is_dir():
@@ -448,7 +330,7 @@ def _format_regular(title, items: List[FileMetadata]):
 
 def _format_conflicts(title, items):
     strings = [f"== {title}:\n"]
-    for filepath, archives in items:
+    for filepath, archives in items():
         strings.append(f"  - {filepath}\n")
         for element in archives:
             if isinstance(element, list):

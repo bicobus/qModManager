@@ -1,72 +1,133 @@
 # -*- coding: utf-8 -*-
 #  Licensed under the EUPL v1.2
-#  © 2020 bicobus <bicobus@keemail.me>
+#  © 2019-2020 bicobus <bicobus@keemail.me>
 """Handles the Qt main window."""
 import logging
 import pathlib
+from collections import deque
+from typing import Tuple, Union
 
 from PyQt5 import QtGui
 from PyQt5.QtCore import QEvent, QObject, Qt, pyqtSignal, pyqtSlot
-from PyQt5.QtWidgets import QApplication, QFileDialog, QMainWindow, QMenu
-from watchdog.events import (EVENT_TYPE_CREATED, EVENT_TYPE_DELETED, EVENT_TYPE_MODIFIED, EVENT_TYPE_MOVED,
-                             FileSystemEventHandler)
+from PyQt5.QtWidgets import (QApplication, QFileDialog, QMainWindow, QMenu,
+                             QWidget)
+import watchdog.events
 from watchdog.observers import Observer
 
-from . import dialogs, filehandler, widgets
-from .common import settings, settings_are_set, valid_suffixes
-from .config import get_config_dir
-from .lang import set_gettext
-from .ui_mainwindow import Ui_MainWindow
-from .widgets import QAbout, QSettings
+from qmm import bucket, dialogs, filehandler
+from qmm.common import settings, settings_are_set, valid_suffixes
+from qmm.config import get_config_dir
+from qmm.lang import set_gettext
+from qmm.ui_mainwindow import Ui_MainWindow
+from qmm.widgets import ListRowItem, QAbout, QSettings
 
 logger = logging.getLogger(__name__)
 
 
-class ArchiveAddedEventHandler(FileSystemEventHandler, QObject):
+class QmmWdEventHandler:
     sgn_moved = pyqtSignal([tuple])
     sgn_created = pyqtSignal([tuple])
     sgn_deleted = pyqtSignal([tuple])
     sgn_modified = pyqtSignal([tuple])
 
-    def __init__(self):
+    def __init__(self, moved_cb, created_cb, deleted_cb, modified_cb):
         super().__init__()
         self._active = True
-        self._accept = []
         self._ignored = {
-            EVENT_TYPE_MOVED: [],
-            EVENT_TYPE_CREATED: [],
-            EVENT_TYPE_DELETED: [],
-            EVENT_TYPE_MODIFIED: []
+            watchdog.events.EVENT_TYPE_MOVED: [],
+            watchdog.events.EVENT_TYPE_CREATED: [],
+            watchdog.events.EVENT_TYPE_DELETED: [],
+            watchdog.events.EVENT_TYPE_MODIFIED: []
         }
+        if moved_cb:
+            self.sgn_moved.connect(moved_cb)
+        if created_cb:
+            self.sgn_created.connect(created_cb)
+        if deleted_cb:
+            self.sgn_deleted.connect(deleted_cb)
+        if modified_cb:
+            self.sgn_modified.connect(modified_cb)
 
     def ignore(self, src_path, event_type):
+        """Ignore an event if path is found in it's ignore tuple."""
         if src_path in self._ignored[event_type]:
             return
         self._ignored[event_type].append(src_path)
 
     def clear(self, src_path, event_type):
+        """Remove a path from the event's ignore tuple."""
         if src_path not in self._ignored[event_type]:
             return
         self._ignored[event_type].remove(src_path)
 
     def suspend(self, active: bool):
+        """Suspend emitting event from the EventHandler if active is false"""
         if active:
             logger.debug("Window in focus: activating file system watch.")
         else:
             logger.debug("Window out of focus: suspending file system watch.")
         self._active = active
 
-    def on_moved(self, event):
-        if event.is_directory or not self._active:
+
+class GameModEventHandler(QmmWdEventHandler, watchdog.events.PatternMatchingEventHandler, QObject):
+    def __init__(self, moved_cb, created_cb, deleted_cb, modified_cb):
+        super().__init__(
+            moved_cb=moved_cb,
+            created_cb=created_cb,
+            deleted_cb=deleted_cb,
+            modified_cb=modified_cb)
+        self._was_created = []
+        self._patterns = ['*.svg', '*.xml']
+        self._ignore_directories = False
+
+    def on_any_event(self, event):
+        logger.debug(event)
+
+    def on_moved(self, event):  # rename events
+        if not self._active:
             return
         self.sgn_moved.emit(event.key)
 
     def on_created(self, event):
+        if not self._active:
+            return
+        self._was_created.append(event.src_path)
+        self.sgn_created.emit(event.key)
+
+    def on_deleted(self, event):
+        if not self._active:
+            return
+        self.sgn_deleted.emit(event.key)
+
+    def on_modified(self, event):
+        if not self._active:
+            return
+        if event.src_path in self._was_created:
+            self._was_created.remove(event.src_path)
+        self.sgn_modified.emit(event.key)
+
+
+class ArchiveAddedEventHandler(QmmWdEventHandler, watchdog.events.PatternMatchingEventHandler, QObject):
+    def __init__(self, moved_cb, created_cb, deleted_cb, modified_cb):
+        super().__init__(
+            moved_cb=moved_cb,
+            created_cb=created_cb,
+            deleted_cb=deleted_cb,
+            modified_cb=modified_cb)
+        self._accept = []
+        self._patterns = [f"*{x}" for x in valid_suffixes('pathlib')]
+        self._ignore_directories = True
+
+    def on_moved(self, event):
         if event.is_directory or not self._active:
             return
-        if pathlib.PurePath(event.src_path).suffix in valid_suffixes('pathlib'):
-            self._accept.append(event.src_path)
-            self.sgn_created.emit(event.key)
+        self.sgn_moved.emit(event)
+
+    def on_created(self, event):
+        if event.is_directory or not self._active:
+            return
+        self._accept.append(event.src_path)
+        self.sgn_created.emit(event.key)
 
     def on_deleted(self, event):
         if event.is_directory or not self._active:
@@ -76,6 +137,8 @@ class ArchiveAddedEventHandler(FileSystemEventHandler, QObject):
     def on_modified(self, event):
         if not self._active:
             return
+        # We ignore any modified event unless it went through a created event
+        # beforehand.
         if event.src_path in self._accept:
             self._accept.remove(event.src_path)
             self.sgn_modified.emit(event.key)
@@ -96,11 +159,100 @@ class CustomMenu:
             _("Delete"))
 
     def setup_menu(self, obj):
+        """Register self as obj's context menu"""
         obj.setContextMenuPolicy(Qt.CustomContextMenu)
         obj.customContextMenuRequested.connect(self._do_menu_actions)
 
     def _do_menu_actions(self, position):
         raise NotImplementedError()
+
+
+class QAppEventFilter(QObject):
+    """Detect if the application is active then triggers to appropriate events
+
+    The purpose of this object is to enable or disable WatchDog related
+    procedures. We want to disable file system watch on the modules directory
+    when the window is inactive (user has alt-tabbed outside of it or minimized
+    the application), as such delay any activity until the user comes back to
+    the application itself. The intent is to minimize uneeded operations as the
+    user could move and rename multiple files in the folder. We only need to
+    scan the module's repository once the user has finished, thus once the
+    application becomes active.
+
+    The detection of activity needs to be done at the Session Manager, namely
+    `QApplication` (`QGuiApplication` or `QCoreApplication`). That object
+    handles every window and widgets of the application. Each of those window
+    and widgets could become inactive regardless of the status of the whole
+    application. Inactivity could be defined as whenever the application loose
+    focus (keyboard input). This loss also happen whenever the window is being
+    dragged around by the user, which means we need to make sure to not trigger
+    any refresh of the database for those user cases. To achieve that we track
+    the geometry and coordinates of the window and trigger the callback only
+    if those parameters remains the same between an inactive and active event.
+
+    Callbacks are ``on_window_activate`` and ``on_window_deactivate``.
+    """
+    _mainwindow: Union[QWidget, None]
+
+    def __init__(self):
+        super().__init__()
+        self._mainwindow = None
+        self._coords = ()
+        self._geometry = ()
+        self._is_first_activity = True
+        self._previous_state = True
+
+    def set_top_window(self, window: QWidget):
+        """Define the widget that is considered as top window."""
+        self._mainwindow = window
+        self._mainwindow.callback_at_show(self.set_coords)
+        self._mainwindow.callback_at_show(self.set_geometry)
+        self.set_coords()
+        self.set_geometry()
+
+    def get_coords(self) -> Tuple[int, int]:
+        """Return the coordinates of the top window."""
+        return self._mainwindow.frameGeometry().x(), self._mainwindow.frameGeometry().y()
+
+    def get_geometry(self) -> Tuple[int, int]:
+        """Return the geometry of the top window."""
+        return self._mainwindow.frameGeometry().width(), self._mainwindow.frameGeometry().height()
+
+    def set_coords(self):
+        self._coords = self.get_coords()
+
+    def set_geometry(self):
+        self._geometry = self.get_geometry()
+
+    def eventFilter(self, o, e: QEvent) -> bool:
+        if not self._mainwindow:
+            return False
+        if isinstance(o, QApplication) and e.type() == QEvent.ApplicationStateChange:
+            if o.applicationState() == Qt.ApplicationActive:
+                if self._is_first_activity:
+                    self._is_first_activity = False
+                    self.set_coords()
+                    self.set_geometry()
+                    return False
+                logger.debug("The application is visible and selected to be in front.")
+                coords = self.get_coords() == self._coords
+                geo = self.get_geometry() == self._geometry
+                if self.get_coords() != self._coords:
+                    self.set_coords()
+                if self.get_geometry() != self._geometry:
+                    self.set_geometry()
+                if coords and geo and not self._previous_state:
+                    logger.debug("(A) Window became active without moving around.")
+                    self._mainwindow.on_window_activate()
+                    self._previous_state = True
+            if o.applicationState() == Qt.ApplicationInactive:
+                logger.debug("The application is visible, but **not** selected to be in front.")
+                if self.get_coords() != self._coords or self.get_geometry() != self._geometry:
+                    return False
+                logger.debug("(D) Window isn't in focus, disabling WatchDog")
+                self._previous_state = False
+                self._mainwindow.on_window_deactivate()
+        return False
 
 
 class QEventFilter:
@@ -120,6 +272,8 @@ class QEventFilter:
                 return True
             if e.type() == QEvent.Type.Drop:
                 return self._on_drop_action(e)
+        if e.type() == QEvent.Expose:
+            print("FilterShow!")
         # return false ignores the event and allow further propagation
         return False
 
@@ -134,65 +288,113 @@ class MainWindow(QMainWindow, QEventFilter, CustomMenu, Ui_MainWindow):
 
     def __init__(self):
         super().__init__()
+        self._is_mod_repo_dirty = False
+
         self.setupUi(self)
         self.setWindowTitle("qModManager")
+        # self.listWidget is part of the UI file, so we need to take extra
+        # steps in order to setup the widget with the various required
+        # facilities.
         self.setup_filters([self.listWidget])
         self.setup_menu(self.listWidget)
         # Will do style using QT, see TODO file
         # loadQtStyleSheetFile('style.css', self)
 
+        self._cb_after_init = deque()
         self._settings_window = None
         self._about_window = None
         self.managed_archives = filehandler.ArchivesCollection()
         self._qc = {}
-        self.__connection_link = None
+        self.__connection_link = None  # Connect to the settings's save button
         self._window_was_active = None
         self._init_settings()
 
         # File watchers
-        ar_handler = ArchiveAddedEventHandler()
-        # TODO: moved handler
-        # ar_handler.sgn_moved.connect(self.observer_cb)
-        # ar_handler.sgn_created.connect(self.observer_cb)
-        ar_handler.sgn_deleted.connect(self._on_fs_deleted)
-        ar_handler.sgn_modified.connect(self._on_fs_modified)
-        self.fswatch_ignore.connect(ar_handler.ignore)
-        self.fswatch_clear.connect(ar_handler.clear)
-        self.fswatch_suspend.connect(ar_handler.suspend)
+        # Handlers emitting from the watcher to this class
+        self._ar_handler = ArchiveAddedEventHandler(
+            moved_cb=self._on_fs_moved,
+            created_cb=None,
+            deleted_cb=self._on_fs_deleted,
+            modified_cb=self._on_fs_modified
+        )
+
+        self._mod_handler = GameModEventHandler(
+            moved_cb=self._mod_repo_watch_cb,
+            created_cb=self._mod_repo_watch_cb,
+            deleted_cb=self._mod_repo_watch_cb,
+            modified_cb=self._mod_repo_watch_cb)
+
+        # Emitters from this class to the handler
+        self.fswatch_ignore.connect(self._ar_handler.ignore)
+        self.fswatch_clear.connect(self._ar_handler.clear)
+        self.fswatch_suspend.connect(self._ar_handler.suspend)
+        # WatchDog Observer
         self._observer = Observer()
-        self._observer.schedule(ar_handler, settings['local_repository'])
+        self._ar_watch = self._observer.schedule(
+            event_handler=self._ar_handler,
+            path=settings['local_repository'],
+            recursive=False
+        )
+        self._mod_watch = self._observer.schedule(
+            event_handler=self._mod_handler,
+            path=str(filehandler.get_mod_folder(prepend_modpath=True)),
+            recursive=True
+        )
         self._observer.start()
 
-    def __del__(self):
-        if self._observer.is_alive():
-            self._observer.stop()
+    def show(self):
+        super().show()
+        while self._cb_after_init:
+            item = self._cb_after_init.pop()
+            logger.debug("Calling %s", item)
+            item()
 
-    def changeEvent(self, e):
-        """Override to suspend activity in the watchdog handler."""
-        super().changeEvent(e)
-        self.fswatch_suspend.emit(self.isActiveWindow())
-        if (self.isActiveWindow() and
-                isinstance(self._window_was_active, bool) and
-                not self._window_was_active):
-            logger.debug("Refresh archives.")
-            for etype, archive_name, item in self.managed_archives.refresh():
-                if etype == self.managed_archives.FileAdded:
-                    row = widgets.ListRowItem(
-                        filename=archive_name,
-                        data=filehandler.archive_analysis(item),
-                        stat=self.managed_archives.stat(archive_name),
-                        hashsum=self.managed_archives.hashsums(archive_name)
-                    )
-                    self._add_item_to_list(row)
-                if etype == self.managed_archives.FileRemoved:
-                    idx = self.listWidget.row(self.listWidget.findItems(archive_name, Qt.MatchExactly)[0])
-                    self._remove_row(archive_name, idx, preserve_managed=True)
-        self._window_was_active = self.isActiveWindow()
+    def on_window_activate(self):
+        self.fswatch_suspend.emit(True)
+        if self.is_mod_repo_dirty:
+            logger.debug("Loose files are dirty, reparsing...")
+            bucket.loosefiles = {}
+            self.statusbar.showMessage(_("Refreshing loose files..."))
+            filehandler.build_loose_files_crc32()
+            self._mod_watch = self._observer.schedule(
+                event_handler=self._mod_handler,
+                path=str(filehandler.get_mod_folder(prepend_modpath=True)),
+                recursive=True)
+
+        logger.debug("Refreshing managed archives...")
+        msg = " "
+        msg.join([self.statusbar.currentMessage(),
+                  _("Refreshing managed archive...")])
+        self.statusbar.showMessage(msg)
+
+        etype = None
+        for etype, archive_name in self.managed_archives.refresh():
+            if etype == self.managed_archives.FileAdded:
+                self._add_item_to_list(ListRowItem(
+                    filename=archive_name,
+                    archive_manager=self.managed_archives
+                ))
+            if etype == self.managed_archives.FileRemoved:
+                idx = self.get_row_index_by_name(archive_name)
+                self._remove_row(archive_name, idx, preserve_managed=True)
+
+        if etype or self.is_mod_repo_dirty:
+            filehandler.generate_conflicts_between_archives(self.managed_archives)
+            self.managed_archives.initiate_conflicts_detection()
+            self._refresh_list_item_strings()
+            self._is_mod_repo_dirty = False
+
+        msg = " "
+        msg.join([self.statusbar.currentMessage(), _("Refresh done.")])
+        self.statusbar.showMessage(msg, 10000)
+
+    def on_window_deactivate(self):
+        self.fswatch_suspend.emit(False)
 
     def _init_settings(self):
         if not settings_are_set():
             self.do_settings(first_launch=True)
-        else:
+        else:  # On first run, the _init_mods method is called by QSettings
             self._init_mods()
 
     def _init_mods(self):
@@ -207,22 +409,29 @@ class MainWindow(QMainWindow, QEventFilter, CustomMenu, Ui_MainWindow):
         self.managed_archives.build_archives_list(p_dialog.progress)
 
         p_dialog.progress("", category=_("Conflict detection"))
-        filehandler.detect_conflicts_between_archives(
+        filehandler.generate_conflicts_between_archives(
             self.managed_archives,
             progress=p_dialog.progress)
+        self.managed_archives.initiate_conflicts_detection()
 
         p_dialog.progress("", category=_("Parsing archives"))
         for archive_name in self.managed_archives.keys():
             p_dialog.progress(archive_name)
-            item = widgets.ListRowItem(
+            item = ListRowItem(
                 filename=archive_name,
-                data=filehandler.archive_analysis(
-                    self.managed_archives[archive_name]),
-                stat=self.managed_archives.stat(archive_name),
-                hashsum=self.managed_archives.hashsums(archive_name)
+                archive_manager=self.managed_archives
             )
             self._add_item_to_list(item)
+        self.listWidget.setCurrentItem(item)  # noqa reference before assigment
+        self.listWidget.scrollToItem(item)
         p_dialog.done(1)
+
+    def callback_at_show(self, item):
+        logger.debug("Adding item '%s' to deque", item)
+        self._cb_after_init.append(item)
+
+    def get_row_index_by_name(self, name):
+        return self.listWidget.row(self.listWidget.findItems(name, Qt.MatchExactly)[0])
 
     def _add_item_to_list(self, item):
         self.listWidget.addItem(item)
@@ -244,7 +453,7 @@ class MainWindow(QMainWindow, QEventFilter, CustomMenu, Ui_MainWindow):
         if not preserve_managed:
             del self.managed_archives[filename]
         self.listWidget.takeItem(row)
-        filehandler.detect_conflicts_between_archives(self.managed_archives)
+        filehandler.generate_conflicts_between_archives(self.managed_archives)
 
     def set_tab_color(self, index, color: QtGui.QColor = None) -> None:
         """Manage tab text color.
@@ -277,7 +486,7 @@ class MainWindow(QMainWindow, QEventFilter, CustomMenu, Ui_MainWindow):
         if not items:
             return
 
-        item = items[0]
+        item: ListRowItem = items[0]
         self.content_name.setText(item.name)
         self.content_added.setText(item.added)
         self.content_hashsum.setText(item.hashsum)
@@ -285,14 +494,14 @@ class MainWindow(QMainWindow, QEventFilter, CustomMenu, Ui_MainWindow):
         self.tab_files_content.setPlainText(item.files)
 
         matched_idx = self.tabWidget.indexOf(self.tab_matched)
-        if item.has_matched:
+        if item.archive_instance.has_matched:
             self.set_tab_color(matched_idx, QtGui.QColor(91, 135, 33))
         else:
             self.set_tab_color(matched_idx)
         self.tab_matched_content.setPlainText(item.matched)
 
         mismatched_idx = self.tabWidget.indexOf(self.tab_mismatched)
-        if item.has_mismatched:
+        if item.archive_instance.has_mismatched:
             self.set_tab_color(mismatched_idx, QtGui.QColor(78, 33, 135))
         else:
             self.set_tab_color(mismatched_idx)
@@ -301,14 +510,14 @@ class MainWindow(QMainWindow, QEventFilter, CustomMenu, Ui_MainWindow):
         self.tab_missing_content.setPlainText(item.missing)
 
         skipped_idx = self.tabWidget.indexOf(self.tab_skipped)
-        if item.has_skipped:
+        if item.archive_instance.has_ignored:
             self.set_tab_color(skipped_idx, QtGui.QColor(135, 33, 39))
         else:
             self.set_tab_color(skipped_idx)
         self.tab_skipped_content.setPlainText(item.skipped)
 
         conflict_idx = self.tabWidget.indexOf(self.tab_conflicts)
-        if item.has_conflicts:
+        if item.archive_instance.has_conflicts:
             self.set_tab_color(conflict_idx, QtGui.QColor(135, 33, 39))
         else:
             self.set_tab_color(conflict_idx)
@@ -329,7 +538,7 @@ class MainWindow(QMainWindow, QEventFilter, CustomMenu, Ui_MainWindow):
         qfd.fileSelected.connect(self._on_action_open_done)
         qfd.exec_()
 
-    def _get_selected_item(self, default: widgets.ListRowItem = None) -> widgets.ListRowItem:
+    def _get_selected_item(self, default: ListRowItem = None) -> ListRowItem:
         items = self.listWidget.selectedItems()
         if not items or default in items:
             return default
@@ -355,10 +564,12 @@ class MainWindow(QMainWindow, QEventFilter, CustomMenu, Ui_MainWindow):
             ret = self._do_uninstall_selected_mod()
             if not ret:
                 return
-        self.fswatch_ignore.emit(item.filename, EVENT_TYPE_DELETED)
+        # Tell watchdog to ignore the file we are about to remove
+        self.fswatch_ignore.emit(item.filename, watchdog.events.EVENT_TYPE_DELETED)
         filehandler.delete_archive(item.filename)
         self._remove_row(item.filename, self.listWidget.row(item))
-        self.fswatch_clear.emit(item.filename, EVENT_TYPE_DELETED)
+        # Clear the ignore flag for the file
+        self.fswatch_clear.emit(item.filename, watchdog.events.EVENT_TYPE_DELETED)
         del item
 
     @pyqtSlot(name="on_actionInstall_Mod_triggered")
@@ -370,7 +581,7 @@ class MainWindow(QMainWindow, QEventFilter, CustomMenu, Ui_MainWindow):
             return
 
         logger.info("Installing file %s", item.filename)
-        files = filehandler.install_archive(item.filename, item.install_info())
+        files = filehandler.install_archive(item.filename, item.archive_instance.install_info())
         if not files:
             dialogs.qWarning(_(
                 "The archive {filename} extracted with errors.\n"
@@ -378,7 +589,7 @@ class MainWindow(QMainWindow, QEventFilter, CustomMenu, Ui_MainWindow):
                     filename=item.filename,
                     loglocation=get_config_dir('error.log')))
         else:
-            filehandler.detect_conflicts_between_archives(self.managed_archives)
+            filehandler.generate_conflicts_between_archives(self.managed_archives)
             self._refresh_list_item_strings()
             self._on_selection_change()
 
@@ -393,7 +604,7 @@ class MainWindow(QMainWindow, QEventFilter, CustomMenu, Ui_MainWindow):
             logger.error("triggered without item to process")
             return False
 
-        if item.has_mismatched:
+        if item.archive_instance.has_mismatched:
             dialogs.qInformation(_(
                 "Unable to uninstall mod: mismatched items exists on drive.\n"
                 "This is most likely due to another installed mod conflicting "
@@ -402,8 +613,8 @@ class MainWindow(QMainWindow, QEventFilter, CustomMenu, Ui_MainWindow):
             return False
 
         logger.info("Uninstalling files from archive %s", item.filename)
-        if filehandler.uninstall_files(item.list_matched(include_folders=True)):
-            filehandler.detect_conflicts_between_archives(self.managed_archives)
+        if filehandler.uninstall_files(item.archive_instance.uninstall_info()):
+            filehandler.generate_conflicts_between_archives(self.managed_archives)
             self._refresh_list_item_strings()
             self._on_selection_change()
             return True
@@ -422,7 +633,7 @@ class MainWindow(QMainWindow, QEventFilter, CustomMenu, Ui_MainWindow):
         Args:
             first_launch (bool):
                 If true, disable cancel button and bind the save button to
-                MainWindow_init_mods
+                MainWindow._init_mods
         """
         if not self._settings_window:
             self._settings_window = QSettings()
@@ -435,7 +646,7 @@ class MainWindow(QMainWindow, QEventFilter, CustomMenu, Ui_MainWindow):
                 button = self._settings_window.save_button
                 button.disconnect(self.__connection_link)
                 self._settings_window.set_mode(first_run=False)
-        self._settings_window.set_mode(first_launch)
+        # self._settings_window.set_mode(first_launch)
         self._settings_window.show()
 
     @pyqtSlot(name="on_actionAbout_triggered")
@@ -465,21 +676,22 @@ class MainWindow(QMainWindow, QEventFilter, CustomMenu, Ui_MainWindow):
                 return False
             self.managed_archives.add_archive(filename, hashsum)
             filehandler.conflicts_process_files(
-                files=self.managed_archives[archive_name],
+                files=self.managed_archives[archive_name].files,
                 archives_list=self.managed_archives,
                 current_archive=archive_name,
                 processed=None)
 
-            item = widgets.ListRowItem(
+            item = ListRowItem(
                 filename=archive_name,
-                data=filehandler.archive_analysis(self.managed_archives[archive_name]),
-                stat=self.managed_archives.stat(archive_name),
-                hashsum=self.managed_archives.hashsums(archive_name))
+                archive_manager=self.managed_archives
+            )
 
             self._add_item_to_list(item)
             self._refresh_list_item_strings()
             self.listWidget.scrollToItem(item)
-            self.fswatch_clear(filename, EVENT_TYPE_CREATED)
+            self.listWidget.setCurrentItem(item)
+            # Clear the ignore flag for the file
+            self.fswatch_clear.emit(filename, watchdog.events.EVENT_TYPE_CREATED)
             return True
 
         dialogs.qWarning(_(
@@ -519,17 +731,38 @@ class MainWindow(QMainWindow, QEventFilter, CustomMenu, Ui_MainWindow):
             pl = pathlib.PurePath(uri.path())
             if pl.suffix in valid_suffixes(output_format="pathlib"):
                 logger.debug("Processing file %s", uri.path())
-                self.fswatch_ignore(uri.path(), EVENT_TYPE_CREATED)
+                # Tell watchdog to ignore the file we are about to move
+                self.fswatch_ignore(uri.path(), watchdog.events.EVENT_TYPE_CREATED)
                 self._on_action_open_done(uri.path())
         return True
 
     ######################
     # WatchDog callbacks #
     ######################
+    def _mod_repo_watch_cb(self):
+        # Ignore subsequent calls, happens for each file of a directory when
+        # that directory gets renamed.
+        if not self._mod_watch:
+            return
+        logger.debug("Module repository got dirty, flagging as so and disabing unscheduling watchdog.")
+        self._is_mod_repo_dirty = True
+        self._observer.unschedule(self._mod_watch)
+        self._mod_watch = None
+
+    def _on_fs_moved(self, e):
+        src_path = e.src_path
+        dest_path = e.dest_path
+        logger.info("Archive renamed from %s to %s", src_path, dest_path)
+        self.managed_archives.rename_archive(src_path, dest_path)
+
     def _on_fs_modified(self, e):
         filename = e[1]
-        logger.info("New archive detected in the repository folder: %s", filename)
-        self._on_action_open_done(filename, archive=pathlib.Path(filename).name)
+        logger.info(
+            "New archive detected in the repository folder: %s",
+            filename)
+        self._on_action_open_done(
+            filename,
+            archive=pathlib.Path(filename).name)
 
     def _on_fs_deleted(self, e):
         item = pathlib.Path(e[1])
@@ -538,15 +771,23 @@ class MainWindow(QMainWindow, QEventFilter, CustomMenu, Ui_MainWindow):
         if not rows:
             logger.debug("WATCHDOG: deleted file not managed, ignoring")
             return
-        logger.debug("WATCHDOG: Number of file matching exactly: %s", len(rows))
+        logger.debug(
+            "WATCHDOG: Number of file matching exactly: %s",
+            len(rows))
         row = rows[0]
         self._remove_row(row.filename, self.listWidget.row(row))
         del row, rows
-        # for idx in self.listWidget.count():
-        #     row_item = self.listWidget.index(idx)
-        #     if row_item.filename == item.name:
-        #         self._remove_row(item.filename, self.listWidget.row(row_item))
-        # del row_item
+
+    ################
+    # WatchDog End #
+    ################
+    @property
+    def is_mod_repo_dirty(self):
+        return self._is_mod_repo_dirty
+
+    def __del__(self):
+        if self._observer.is_alive():
+            self._observer.stop()
 
 
 def main():
@@ -559,17 +800,20 @@ def main():
     locale.setlocale(locale.LC_ALL, '')
     # Ends the application on CTRL+c
     signal.signal(signal.SIGINT, signal.SIG_DFL)
+    # set_gettext() install's gettext _ in the builtins
+    set_gettext()
 
     logger.info("Starting application")
     try:
-        # set_gettext() install's gettext _ in the builtins
-        set_gettext()
         app = QApplication(sys.argv)
-        QtGui.QFontDatabase.addApplicationFont(":/unifont.ttf")  # noqa PyCallByClass, PyArgumentList
+        QtGui.QFontDatabase.addApplicationFont(":/unifont.ttf")  # noqa
+        aef = QAppEventFilter()
+        app.installEventFilter(aef)
         mainwindow = MainWindow()
+        aef.set_top_window(mainwindow)
         mainwindow.show()
         sys.exit(app.exec_())
-    except Exception as e:
+    except Exception as e:  # Catchall, log then crash.
         logger.exception("Critical error occurred: %s", e)
         raise
     finally:

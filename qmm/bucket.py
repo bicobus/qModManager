@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #  Licensed under the EUPL v1.2
-#  © 2020 bicobus <bicobus@keemail.me>
+#  © 2019-2020 bicobus <bicobus@keemail.me>
 """Buckets of dicts with a set of helpers function.
 
 This module serves has a stand-in database, any function or method it contain
@@ -8,12 +8,13 @@ would be facilitator to either access or transform the data. This module is
 necessary in order to keep track of the state of the different files and make
 that specific state available globally within the other modules.
 """
-from os.path import join, sep
-import pathlib
 import logging
+import pathlib
 from datetime import datetime
-from typing import Dict, List
-from .common import settings
+from os.path import join, sep
+from typing import Dict, List, TypeVar
+
+from qmm.common import settings
 
 logger = logging.getLogger(__name__)
 TYPE_LOOSEFILE = 1
@@ -128,9 +129,10 @@ class FileMetadata:
         )
 
 
+Crc32 = TypeVar("Crc32", int, int)
 Conflict = Dict[str, List]
-LooseFiles = Dict[int, List[FileMetadata]]
-GameFiles = Dict[int, str]
+LooseFiles = Dict[Crc32, List[FileMetadata]]
+GameFiles = Dict[Crc32, str]
 
 conflicts: Conflict = {}
 loosefiles: LooseFiles = {}

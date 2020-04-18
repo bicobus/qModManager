@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 # Licensed under the EUPL v1.2
-# © 2019 bicobus <bicobus@keemail.me>
+# © 2019-2020 bicobus <bicobus@keemail.me>
 import logging
 import os
 from datetime import datetime
-from typing import Any, List, Tuple
+from typing import List, Tuple, Union
 
-from . import get_data_path, is_windows
-from .config import Config
+from qmm import get_data_path, is_windows
+from qmm.config import Config
 
 logger = logging.getLogger(__name__)
 
@@ -43,14 +43,16 @@ def timestamp_to_string(timestamp):
     return datetime.strftime(datetime.fromtimestamp(timestamp), "%c")
 
 
-def valid_suffixes(output_format="qfiledialog") -> Any[List[str], Tuple[str]]:
+def valid_suffixes(
+  output_format="qfiledialog"
+) -> Union[List[str], Tuple[str, str, str], bool]:
     """Properly format a list of filters for QFileDialog.
 
     Args:
         output_format:
-            Accepts either 'qfiledialog' or 'pathlib'. 'pathlib' returns a simple
-            list of suffixes, whereas 'qfiledialog' format the output to be an
-            acceptable filter for QFileDialog.
+            Accepts either 'qfiledialog' or 'pathlib'. 'pathlib' returns a
+            simple list of suffixes, whereas 'qfiledialog' format the output
+            to be an acceptable filter for QFileDialog.
 
     Returns: list
     """
@@ -65,7 +67,7 @@ def valid_suffixes(output_format="qfiledialog") -> Any[List[str], Tuple[str]]:
             tpl.append(f"*{s}")
         string = 'All Archives (' + " ".join(tpl) + ')'
         filter_on.append(string)
-        for l, s in zip(labels, tpl):
-            filter_on.append(f"{l} ({s})")
+        for label, s in zip(labels, tpl):
+            filter_on.append(f"{label} ({s})")
         return filter_on
     return suffixes

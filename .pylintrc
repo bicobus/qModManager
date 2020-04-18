@@ -47,7 +47,8 @@ disable=invalid-name,
         missing-function-docstring,
         missing-class-docstring,
         too-many-instance-attributes,
-        too-many-branches
+        too-many-branches,
+        inherit-non-class
 #disable=all
 
 #enable=import-error,
