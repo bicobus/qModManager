@@ -209,7 +209,7 @@ class ListRowItem(QtWidgets.QListWidgetItem):
         self._data = archive_manager[filename].status()
         self._stat = archive_manager.stat(filename)
         self._name = None
-        self._added = None
+        self._modified = None
         self._hashsum = archive_manager.hashsums(filename)
 
         self._files_str = ""
@@ -272,11 +272,11 @@ class ListRowItem(QtWidgets.QListWidgetItem):
         return self._key
 
     @property
-    def added(self):
-        """Returns time at which the archive got added to the system"""
-        if not self._added:
-            self._added = timestamp_to_string(self._stat.st_mtime)
-        return self._added
+    def modified(self):
+        """Return last modified time for an archive, usually time of creation"""
+        if not self._modified:
+            self._modified = timestamp_to_string(self._stat.st_mtime)
+        return self._modified
 
     @property
     def hashsum(self):

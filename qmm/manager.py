@@ -60,14 +60,6 @@ class QmmWdEventHandler:
             return
         self._ignored[event_type].remove(src_path)
 
-    def suspend(self, active: bool):
-        """Suspend emitting event from the EventHandler if active is false"""
-        if active:
-            logger.debug("Window in focus: activating file system watch.")
-        else:
-            logger.debug("Window out of focus: suspending file system watch.")
-        self._active = active
-
 
 class GameModEventHandler(QmmWdEventHandler, watchdog.events.PatternMatchingEventHandler, QObject):
     def __init__(self, moved_cb, created_cb, deleted_cb, modified_cb):
@@ -282,7 +274,6 @@ class QEventFilter:
 
 
 class MainWindow(QMainWindow, QEventFilter, CustomMenu, Ui_MainWindow):
-    fswatch_suspend = pyqtSignal(bool)
     fswatch_ignore = pyqtSignal(['QString', 'QString'])
     fswatch_clear = pyqtSignal(['QString', 'QString'])
 
@@ -311,6 +302,10 @@ class MainWindow(QMainWindow, QEventFilter, CustomMenu, Ui_MainWindow):
 
         # File watchers
         # Handlers emitting from the watcher to this class
+        self._wd_watchers = {
+            'archives': None,
+            'modules': None
+        }
         self._ar_handler = ArchiveAddedEventHandler(
             moved_cb=self._on_fs_moved,
             created_cb=None,
@@ -327,15 +322,14 @@ class MainWindow(QMainWindow, QEventFilter, CustomMenu, Ui_MainWindow):
         # Emitters from this class to the handler
         self.fswatch_ignore.connect(self._ar_handler.ignore)
         self.fswatch_clear.connect(self._ar_handler.clear)
-        self.fswatch_suspend.connect(self._ar_handler.suspend)
         # WatchDog Observer
         self._observer = Observer()
-        self._ar_watch = self._observer.schedule(
+        self._wd_watchers['archives'] = self._observer.schedule(
             event_handler=self._ar_handler,
             path=settings['local_repository'],
             recursive=False
         )
-        self._mod_watch = self._observer.schedule(
+        self._wd_watchers['modules'] = self._observer.schedule(
             event_handler=self._mod_handler,
             path=str(filehandler.get_mod_folder(prepend_modpath=True)),
             recursive=True
@@ -350,13 +344,19 @@ class MainWindow(QMainWindow, QEventFilter, CustomMenu, Ui_MainWindow):
             item()
 
     def on_window_activate(self):
-        self.fswatch_suspend.emit(True)
+        if not self._wd_watchers['archives']:
+            logger.debug("Window became active, rescheduling archive watch.")
+            self._wd_watchers['archives'] = self._observer.schedule(
+                event_handler=self._ar_handler,
+                path=settings['local_repository'],
+                recursive=False
+            )
         if self.is_mod_repo_dirty:
             logger.debug("Loose files are dirty, reparsing...")
             bucket.loosefiles = {}
             self.statusbar.showMessage(_("Refreshing loose files..."))
             filehandler.build_loose_files_crc32()
-            self._mod_watch = self._observer.schedule(
+            self._wd_watchers['modules'] = self._observer.schedule(
                 event_handler=self._mod_handler,
                 path=str(filehandler.get_mod_folder(prepend_modpath=True)),
                 recursive=True)
@@ -389,7 +389,10 @@ class MainWindow(QMainWindow, QEventFilter, CustomMenu, Ui_MainWindow):
         self.statusbar.showMessage(msg, 10000)
 
     def on_window_deactivate(self):
-        self.fswatch_suspend.emit(False)
+        if self._wd_watchers['archives']:
+            logger.debug("Unscheduling archive watch.")
+            self._observer.unschedule(self._wd_watchers['archives'])
+            self._wd_watchers['archives'] = None
 
     def _init_settings(self):
         if not settings_are_set():
@@ -414,6 +417,7 @@ class MainWindow(QMainWindow, QEventFilter, CustomMenu, Ui_MainWindow):
             progress=p_dialog.progress)
         self.managed_archives.initiate_conflicts_detection()
 
+        item = None
         p_dialog.progress("", category=_("Parsing archives"))
         for archive_name in self.managed_archives.keys():
             p_dialog.progress(archive_name)
@@ -422,8 +426,9 @@ class MainWindow(QMainWindow, QEventFilter, CustomMenu, Ui_MainWindow):
                 archive_manager=self.managed_archives
             )
             self._add_item_to_list(item)
-        self.listWidget.setCurrentItem(item)  # noqa reference before assigment
-        self.listWidget.scrollToItem(item)
+        if item:
+            self.listWidget.setCurrentItem(item)
+            self.listWidget.scrollToItem(item)
         p_dialog.done(1)
 
     def callback_at_show(self, item):
@@ -488,7 +493,7 @@ class MainWindow(QMainWindow, QEventFilter, CustomMenu, Ui_MainWindow):
 
         item: ListRowItem = items[0]
         self.content_name.setText(item.name)
-        self.content_added.setText(item.added)
+        self.content_modified.setText(item.modified)
         self.content_hashsum.setText(item.hashsum)
 
         self.tab_files_content.setPlainText(item.files)
@@ -742,12 +747,12 @@ class MainWindow(QMainWindow, QEventFilter, CustomMenu, Ui_MainWindow):
     def _mod_repo_watch_cb(self):
         # Ignore subsequent calls, happens for each file of a directory when
         # that directory gets renamed.
-        if not self._mod_watch:
+        if not self._wd_watchers['modules']:
             return
         logger.debug("Module repository got dirty, flagging as so and disabing unscheduling watchdog.")
         self._is_mod_repo_dirty = True
-        self._observer.unschedule(self._mod_watch)
-        self._mod_watch = None
+        self._observer.unschedule(self._wd_watchers['modules'])
+        self._wd_watchers['modules'] = None
 
     def _on_fs_moved(self, e):
         src_path = e.src_path
