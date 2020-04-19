@@ -1,2 +1,2 @@
-main.py
+dist\run.exe
 PAUSE
