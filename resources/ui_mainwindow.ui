@@ -75,6 +75,9 @@
          </item>
          <item>
           <widget class="QPushButton" name="list_refresh_button">
+           <property name="enabled">
+            <bool>false</bool>
+           </property>
            <property name="icon">
             <iconset resource="icons.qrc">
              <normaloff>:/icons/refresh.svg</normaloff>:/icons/refresh.svg</iconset>

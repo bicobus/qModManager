@@ -7,11 +7,10 @@ import pathlib
 from collections import deque
 from typing import Tuple, Union
 
+import watchdog.events
 from PyQt5 import QtGui
 from PyQt5.QtCore import QEvent, QObject, Qt, pyqtSignal, pyqtSlot
-from PyQt5.QtWidgets import (QApplication, QFileDialog, QMainWindow, QMenu,
-                             QWidget)
-import watchdog.events
+from PyQt5.QtWidgets import (QApplication, QFileDialog, QMainWindow, QMenu)
 from watchdog.observers import Observer
 
 from qmm import bucket, dialogs, filehandler
@@ -22,6 +21,10 @@ from qmm.ui_mainwindow import Ui_MainWindow
 from qmm.widgets import ListRowItem, QAbout, QSettings
 
 logger = logging.getLogger(__name__)
+
+
+class UnknownContext(Exception):
+    pass
 
 
 class QmmWdEventHandler:
@@ -159,94 +162,6 @@ class CustomMenu:
         raise NotImplementedError()
 
 
-class QAppEventFilter(QObject):
-    """Detect if the application is active then triggers to appropriate events
-
-    The purpose of this object is to enable or disable WatchDog related
-    procedures. We want to disable file system watch on the modules directory
-    when the window is inactive (user has alt-tabbed outside of it or minimized
-    the application), as such delay any activity until the user comes back to
-    the application itself. The intent is to minimize uneeded operations as the
-    user could move and rename multiple files in the folder. We only need to
-    scan the module's repository once the user has finished, thus once the
-    application becomes active.
-
-    The detection of activity needs to be done at the Session Manager, namely
-    `QApplication` (`QGuiApplication` or `QCoreApplication`). That object
-    handles every window and widgets of the application. Each of those window
-    and widgets could become inactive regardless of the status of the whole
-    application. Inactivity could be defined as whenever the application loose
-    focus (keyboard input). This loss also happen whenever the window is being
-    dragged around by the user, which means we need to make sure to not trigger
-    any refresh of the database for those user cases. To achieve that we track
-    the geometry and coordinates of the window and trigger the callback only
-    if those parameters remains the same between an inactive and active event.
-
-    Callbacks are ``on_window_activate`` and ``on_window_deactivate``.
-    """
-    _mainwindow: Union[QWidget, None]
-
-    def __init__(self):
-        super().__init__()
-        self._mainwindow = None
-        self._coords = ()
-        self._geometry = ()
-        self._is_first_activity = True
-        self._previous_state = True
-
-    def set_top_window(self, window: QWidget):
-        """Define the widget that is considered as top window."""
-        self._mainwindow = window
-        self._mainwindow.callback_at_show(self.set_coords)
-        self._mainwindow.callback_at_show(self.set_geometry)
-        self.set_coords()
-        self.set_geometry()
-
-    def get_coords(self) -> Tuple[int, int]:
-        """Return the coordinates of the top window."""
-        return self._mainwindow.frameGeometry().x(), self._mainwindow.frameGeometry().y()
-
-    def get_geometry(self) -> Tuple[int, int]:
-        """Return the geometry of the top window."""
-        return self._mainwindow.frameGeometry().width(), self._mainwindow.frameGeometry().height()
-
-    def set_coords(self):
-        self._coords = self.get_coords()
-
-    def set_geometry(self):
-        self._geometry = self.get_geometry()
-
-    def eventFilter(self, o, e: QEvent) -> bool:
-        if not self._mainwindow:
-            return False
-        if isinstance(o, QApplication) and e.type() == QEvent.ApplicationStateChange:
-            if o.applicationState() == Qt.ApplicationActive:
-                if self._is_first_activity:
-                    self._is_first_activity = False
-                    self.set_coords()
-                    self.set_geometry()
-                    return False
-                logger.debug("The application is visible and selected to be in front.")
-                coords = self.get_coords() == self._coords
-                geo = self.get_geometry() == self._geometry
-                if self.get_coords() != self._coords:
-                    self.set_coords()
-                if self.get_geometry() != self._geometry:
-                    self.set_geometry()
-                if coords and geo and not self._previous_state:
-                    logger.debug("(A) Window became active without moving around.")
-                    self._mainwindow.on_window_activate()
-                    self._previous_state = True
-            if o.applicationState() == Qt.ApplicationInactive:
-                logger.debug("The application is visible, but **not** selected to be in front.")
-                if self.get_coords() != self._coords or self.get_geometry() != self._geometry:
-                    return False
-                logger.debug("(D) Window isn't in focus, disabling WatchDog")
-                self._previous_state = False
-                self._mainwindow.on_window_deactivate()
-        return False
-
-
 class QEventFilter:
     def __init__(self):
         super().__init__()
@@ -324,16 +239,8 @@ class MainWindow(QMainWindow, QEventFilter, CustomMenu, Ui_MainWindow):
         self.fswatch_clear.connect(self._ar_handler.clear)
         # WatchDog Observer
         self._observer = Observer()
-        self._wd_watchers['archives'] = self._observer.schedule(
-            event_handler=self._ar_handler,
-            path=settings['local_repository'],
-            recursive=False
-        )
-        self._wd_watchers['modules'] = self._observer.schedule(
-            event_handler=self._mod_handler,
-            path=str(filehandler.get_mod_folder(prepend_modpath=True)),
-            recursive=True
-        )
+        self._schedule_watchdog('archives')
+        self._schedule_watchdog('modules')
         self._observer.start()
 
     def show(self):
@@ -344,22 +251,15 @@ class MainWindow(QMainWindow, QEventFilter, CustomMenu, Ui_MainWindow):
             item()
 
     def on_window_activate(self):
-        if not self._wd_watchers['archives']:
-            logger.debug("Window became active, rescheduling archive watch.")
-            self._wd_watchers['archives'] = self._observer.schedule(
-                event_handler=self._ar_handler,
-                path=settings['local_repository'],
-                recursive=False
-            )
+        if not self._wd_watchers['archives'] and self.autorefresh_checkbox.isChecked():
+            self._schedule_watchdog('archives')
         if self.is_mod_repo_dirty:
             logger.debug("Loose files are dirty, reparsing...")
             bucket.loosefiles = {}
             self.statusbar.showMessage(_("Refreshing loose files..."))
             filehandler.build_loose_files_crc32()
-            self._wd_watchers['modules'] = self._observer.schedule(
-                event_handler=self._mod_handler,
-                path=str(filehandler.get_mod_folder(prepend_modpath=True)),
-                recursive=True)
+            if self.autorefresh_checkbox.isChecked():
+                self._schedule_watchdog('modules')
 
         logger.debug("Refreshing managed archives...")
         msg = " "
@@ -436,6 +336,14 @@ class MainWindow(QMainWindow, QEventFilter, CustomMenu, Ui_MainWindow):
         self._cb_after_init.append(item)
 
     def get_row_index_by_name(self, name):
+        """Return row if name is found in the list.
+
+        Args:
+            name (str): Filename of the archive, content of the
+                `ListRowItem.text().`
+
+        Returns (int): index of item found
+        """
         return self.listWidget.row(self.listWidget.findItems(name, Qt.MatchExactly)[0])
 
     def _add_item_to_list(self, item):
@@ -661,6 +569,44 @@ class MainWindow(QMainWindow, QEventFilter, CustomMenu, Ui_MainWindow):
             self._about_window = QAbout()
         self._about_window.show()
 
+    @pyqtSlot(bool, name="on_autorefresh_checkbox_toggled")
+    def _do_enable_autorefresh(self, value: bool):
+        if value:
+            logger.debug("Enabling WatchDog Subsystem.")
+            self._schedule_watchdog('modules')
+            self._schedule_watchdog('archives')
+            self.list_refresh_button.setEnabled(False)
+        else:
+            logger.debug("Disabling WatchDog Subsystem.")
+            self._observer.unschedule(self._wd_watchers['modules'])
+            self._observer.unschedule(self._wd_watchers['archives'])
+            self._wd_watchers['modules'] = None
+            self._wd_watchers['archives'] = None
+            self.list_refresh_button.setEnabled(True)
+
+    @pyqtSlot(name="list_refresh_button_triggered")
+    def _do_list_refresh_button_triggered(self):
+        if not self.autorefresh_checkbox.isChecked():
+            logger.debug("Forcing refresh.")
+            self._is_mod_repo_dirty = True
+            self.on_window_activate()
+
+    def _schedule_watchdog(self, context):
+        if context == 'archives':
+            self._wd_watchers['archives'] = self._observer.schedule(
+                event_handler=self._ar_handler,
+                path=settings['local_repository'],
+                recursive=False
+            )
+        elif context == 'modules':
+            self._wd_watchers['modules'] = self._observer.schedule(
+                event_handler=self._mod_handler,
+                path=str(filehandler.get_mod_folder(prepend_modpath=True)),
+                recursive=True
+            )
+        else:
+            raise UnknownContext("Unknown context '{}' for scheduler.".format(context))
+
     def _refresh_list_item_strings(self):
         for idx in range(0, self.listWidget.count()):
             self.listWidget.item(idx).refresh_strings()
@@ -793,6 +739,94 @@ class MainWindow(QMainWindow, QEventFilter, CustomMenu, Ui_MainWindow):
     def __del__(self):
         if self._observer.is_alive():
             self._observer.stop()
+
+
+class QAppEventFilter(QObject):
+    """Detect if the application is active then triggers to appropriate events
+
+    The purpose of this object is to enable or disable WatchDog related
+    procedures. We want to disable file system watch on the modules directory
+    when the window is inactive (user has alt-tabbed outside of it or minimized
+    the application), as such delay any activity until the user comes back to
+    the application itself. The intent is to minimize uneeded operations as the
+    user could move and rename multiple files in the folder. We only need to
+    scan the module's repository once the user has finished, thus once the
+    application becomes active.
+
+    The detection of activity needs to be done at the Session Manager, namely
+    `QApplication` (`QGuiApplication` or `QCoreApplication`). That object
+    handles every window and widgets of the application. Each of those window
+    and widgets could become inactive regardless of the status of the whole
+    application. Inactivity could be defined as whenever the application loose
+    focus (keyboard input). This loss also happen whenever the window is being
+    dragged around by the user, which means we need to make sure to not trigger
+    any refresh of the database for those user cases. To achieve that we track
+    the geometry and coordinates of the window and trigger the callback only
+    if those parameters remains the same between an inactive and active event.
+
+    Callbacks are ``on_window_activate`` and ``on_window_deactivate``.
+    """
+    _mainwindow: Union[MainWindow, None]
+
+    def __init__(self):
+        super().__init__()
+        self._mainwindow = None
+        self._coords = ()
+        self._geometry = ()
+        self._is_first_activity = True
+        self._previous_state = True
+
+    def set_top_window(self, window: MainWindow):
+        """Define the widget that is considered as top window."""
+        self._mainwindow = window
+        self._mainwindow.callback_at_show(self.set_coords)
+        self._mainwindow.callback_at_show(self.set_geometry)
+        self.set_coords()
+        self.set_geometry()
+
+    def get_coords(self) -> Tuple[int, int]:
+        """Return the coordinates of the top window."""
+        return self._mainwindow.frameGeometry().x(), self._mainwindow.frameGeometry().y()
+
+    def get_geometry(self) -> Tuple[int, int]:
+        """Return the geometry of the top window."""
+        return self._mainwindow.frameGeometry().width(), self._mainwindow.frameGeometry().height()
+
+    def set_coords(self):
+        self._coords = self.get_coords()
+
+    def set_geometry(self):
+        self._geometry = self.get_geometry()
+
+    def eventFilter(self, o, e: QEvent) -> bool:
+        if not self._mainwindow or not self._mainwindow.autorefresh_checkbox.isChecked():
+            return False
+        if isinstance(o, QApplication) and e.type() == QEvent.ApplicationStateChange:
+            if o.applicationState() == Qt.ApplicationActive:
+                if self._is_first_activity:
+                    self._is_first_activity = False
+                    self.set_coords()
+                    self.set_geometry()
+                    return False
+                logger.debug("The application is visible and selected to be in front.")
+                coords = self.get_coords() == self._coords
+                geo = self.get_geometry() == self._geometry
+                if self.get_coords() != self._coords:
+                    self.set_coords()
+                if self.get_geometry() != self._geometry:
+                    self.set_geometry()
+                if coords and geo and not self._previous_state:
+                    logger.debug("(A) Window became active without moving around.")
+                    self._mainwindow.on_window_activate()
+                    self._previous_state = True
+            if o.applicationState() == Qt.ApplicationInactive:
+                logger.debug("The application is visible, but **not** selected to be in front.")
+                if self.get_coords() != self._coords or self.get_geometry() != self._geometry:
+                    return False
+                logger.debug("(D) Window isn't in focus, disabling WatchDog")
+                self._previous_state = False
+                self._mainwindow.on_window_deactivate()
+        return False
 
 
 def main():
