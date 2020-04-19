@@ -62,20 +62,20 @@ build_script:
   - pyinstaller run.py
 
 after_build:
-  - ps: >-
-      $Shell = New-Object -ComObject ("WScript.Shell");
-      $shortcut = $Shell.CreateShortcut(".\qmodmanager.lnk");
-      $shortcut.TargetPath = ".\dist\run.exe";
-      $shortcut.Arguments = "";
-      $shortcut.WorkingDirectory = "";
-      $shortcut.WindowStyle = 1;
-      $shortcut.Description = "Run qModManager";
-      $shortcut.Save();
+#  - ps: |
+#    $Shell = New-Object -ComObject ("WScript.Shell");
+#    $shortcut = $Shell.CreateShortcut(".\qmodmanager.lnk");
+#    $shortcut.TargetPath = ".\dist\run.exe";
+#    $shortcut.Arguments = "";
+#    $shortcut.WorkingDirectory = "";
+#    $shortcut.WindowStyle = 1;
+#    $shortcut.Description = "Run qModManager";
+#    $shortcut.Save()
 #  - ps: move dist\run.exe run.exe
 #  - 7z a qModManager.7z run.exe README.md LICENSE tools\ locales\
-#  - mklink qmodmanager.lnk dist\run.exe
-  - C:\cygwin\bin\ls -la
-  - 7z a qModManager.7z dist\ README.md LICENSE tools\ locales\ qmodmanager.lnk
+  - ps: move resources\qmodmanager.lnk qmodmanager.lnk
+  - ls -al dist
+  - 7z a qModManager.7z dist\ README.md LICENSE tools\ locales\ qmodmanager.lnk run.bat
 
 artifacts:
    - path: qModManager.7z
@@ -83,9 +83,9 @@ artifacts:
 
 # clean up pip cache, might not be needed
 on_finish:
-  #- C:\cygwin\bin\find "%LOCALAPPDATA%\pip" -type f -mtime +360 -delete
+  - C:\cygwin\bin\find "%LOCALAPPDATA%\pip" -type f -mtime +360 -delete
   #- C:\cygwin\bin\find "%LOCALAPPDATA%\pip" -type f -size +10M -delete
-  #- C:\cygwin\bin\find "%LOCALAPPDATA%\pip" -empty -delete
+  - C:\cygwin\bin\find "%LOCALAPPDATA%\pip" -empty -delete
   - C:\cygwin\bin\du -hs "%LOCALAPPDATA%\pip\Cache"
 
 deploy:
