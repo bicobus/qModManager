@@ -76,7 +76,7 @@ def extract7z(file_archive: pathlib.Path,
     filepath = file_archive.absolute()
     output_path = output_path.absolute()
     cmd = [
-        tools_path(), 'x', f'{filepath}', f'-o{output_path}',
+        tools_path(), 'x', filepath, f'-o{output_path}',
         '-ba', '-bb1', '-y', '-scsUTF-8', '-sccUTF-8'
     ]
     cmd.extend(ignore_patterns(True))
@@ -141,7 +141,7 @@ def list7z(file_path, progress=None) -> List[bucket.FileMetadata]:
         progress(f'Processing {file_path}...')
 
     cmd = [
-        tools_path(), 'l', f'{file_path}',
+        tools_path(), 'l', file_path,
         '-ba', '-scsUTF-8', '-sccUTF-8', '-slt'
     ]
 
@@ -391,6 +391,11 @@ class ArchivesCollection(MutableMapping, TypeMutableMapping[str, ArchiveInstance
         self._set_hashsums(path.name, hashsum)
 
     def rename_archive(self, src_path, dest_path):
+        """Rename the key pointing to an archive
+
+        Whenever an archive on the drive gets renamed, we need to do the same
+        with the key under which the parsed data is stored.
+        """
         if not isinstance(src_path, pathlib.Path):
             src_path = pathlib.Path(src_path)
         if not isinstance(dest_path, pathlib.Path):
