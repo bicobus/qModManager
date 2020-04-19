@@ -42,9 +42,9 @@ install:
 
   # Install dependencies
   - python -m pip install --disable-pip-version-check --upgrade pip
-  - python -m pip install pyinstaller flake8
+  - python -m pip install pyinstaller
   - make .build/req
-  - choco install upx
+#  - choco install upx
 
 #
 # before_test:
