@@ -1,6 +1,6 @@
 version: '{branch}.{build}'
 # os: Windows
-# image: Visual Studio 2015
+image: Visual Studio 2019
 branches:
   # whitelist tags schemes (e.g.: 1.0.0)
   only:
@@ -59,23 +59,13 @@ install:
 
 build_script:
   - make ui
-  - pyinstaller run.py
+  - pyinstaller run.spec
 
 after_build:
-#  - ps: |
-#    $Shell = New-Object -ComObject ("WScript.Shell");
-#    $shortcut = $Shell.CreateShortcut(".\qmodmanager.lnk");
-#    $shortcut.TargetPath = ".\dist\run.exe";
-#    $shortcut.Arguments = "";
-#    $shortcut.WorkingDirectory = "";
-#    $shortcut.WindowStyle = 1;
-#    $shortcut.Description = "Run qModManager";
-#    $shortcut.Save()
 #  - ps: move dist\run.exe run.exe
 #  - 7z a qModManager.7z run.exe README.md LICENSE tools\ locales\
-  - ps: move resources\qmodmanager.lnk qmodmanager.lnk
-  - ls -al dist
-  - 7z a qModManager.7z dist\ README.md LICENSE tools\ locales\ qmodmanager.lnk run.bat
+  - cd dist\qModManager\
+  - 7z a ..\..\qModManager.7z .
 
 artifacts:
    - path: qModManager.7z
