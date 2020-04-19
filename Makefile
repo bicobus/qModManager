@@ -16,12 +16,12 @@ TRANSLATIONS = $(patsubst %.po,%.mo,$(POFILES))
 vpath %.ui resources
 vpath %.qrc resources
 
-ifndef RCC
-    $(error "pyrcc5 not found in PATH, make not run within virtualenv?")
-endif
-ifndef UIC
-    $(error "pyuic5 not found in PATH, make not run within virtualenv?")
-endif
+#ifndef RCC
+#$(error "pyrcc5 not found in PATH, make not run within virtualenv?")
+#endif
+#ifndef UIC
+#$(error "pyuic5 not found in PATH, make not run within virtualenv?")
+#endif
 
 .PHONY: all clean ui
 
