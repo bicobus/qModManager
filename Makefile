@@ -10,8 +10,8 @@ PUI=${LDIR}/icons_rc.py\
 	${LDIR}/ui_qprogress.py\
 	${LDIR}/ui_about.py
 
-POFILES = $(wildcard locales/*/LC_MESSAGES/qmm.po)
-TRANSLATIONS = $(patsubst %.po,%.mo,$(POFILES))
+POFILES       = $(wildcard locales/*/LC_MESSAGES/qmm.po)
+TRANSLATIONS  = $(patsubst %.po,%.mo,$(POFILES))
 
 vpath %.ui resources
 vpath %.qrc resources
@@ -33,14 +33,20 @@ all: ui .build/i18n
 	pipenv update --dev --outdated && pipenv update --dev
 	pipenv lock -r > requirements.txt
 
+.PHONY: .build/req
 .build/req:
 	pip install -r requirements.txt
+	pip install pyinstaller
 
+.PHONY: .build/i18n .build/i18n-update
 .build/i18n: $(TRANSLATIONS)
 .build/i18n-update: $(POFILES)
 
+.PHONY: .build/pot
 .build/pot:
-	xgettext --default-domain=qmm --language=Python --add-comments=TRANSLATORS: -o locales/qmm.pot qmm/*.py
+	xgettext --default-domain=qmm --language=Python\
+		--add-comments=TRANSLATORS: --add-comments=Translators:\
+		-o locales/qmm.pot qmm/*.py
 
 locales/%/LC_MESSAGES/qmm.mo: locales/%/LC_MESSAGES/qmm.po
 	msgfmt $< --output-file $@
