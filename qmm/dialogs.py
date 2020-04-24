@@ -45,11 +45,13 @@ def qInformation(message, **kwargs):
     _do_message(msg, **kwargs)
 
 
-def _do_message(mobject, informative=None, detailed=None):
+def _do_message(mobject, informative=None, detailed=None, title=None):
     if informative:
         mobject.setInformativeText(informative)
     if detailed:
         mobject.setDetailedText(detailed)
+    if title:
+        mobject.setWindowTitle(title)
 
     return mobject.exec_()
 

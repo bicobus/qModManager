@@ -90,9 +90,6 @@ class Config(MutableMapping):
             self.delayed_save()
 
     def _get_data_from_file(self, filename=None):
-        if not os.path.exists(filename):
-            return None
-
         try:
             if self._compress:
                 with gzip.GzipFile(filename, 'r') as fp:
@@ -102,7 +99,7 @@ class Config(MutableMapping):
                 with open(filename, 'r', encoding="utf-8") as f:
                     data = json.load(f)
         except IOError as e:
-            logger.warning("Unable ti load config file %s: %s", filename, e)
+            logger.warning("Unable to load config file %s: %s", filename, e)
             return None
         return data
 

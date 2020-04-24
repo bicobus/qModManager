@@ -10,7 +10,8 @@ from typing import Tuple, Union
 import watchdog.events
 from PyQt5 import QtGui
 from PyQt5.QtCore import QEvent, QObject, Qt, pyqtSignal, pyqtSlot
-from PyQt5.QtWidgets import (QApplication, QFileDialog, QMainWindow, QMenu)
+from PyQt5.QtWidgets import (QApplication, qApp, QFileDialog, QMainWindow,
+                             QMenu)
 from watchdog.observers import Observer
 
 from qmm import bucket, dialogs, filehandler
@@ -192,8 +193,8 @@ class MainWindow(QMainWindow, QEventFilter, CustomMenu, Ui_MainWindow):
     fswatch_ignore = pyqtSignal(['QString', 'QString'])
     fswatch_clear = pyqtSignal(['QString', 'QString'])
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, parent=None):
+        super().__init__(parent=parent)
         self._is_mod_repo_dirty = False
 
         self.setupUi(self)
@@ -213,35 +214,15 @@ class MainWindow(QMainWindow, QEventFilter, CustomMenu, Ui_MainWindow):
         self._qc = {}
         self.__connection_link = None  # Connect to the settings's save button
         self._window_was_active = None
-        self._init_settings()
-
-        # File watchers
-        # Handlers emitting from the watcher to this class
         self._wd_watchers = {
             'archives': None,
             'modules': None
         }
-        self._ar_handler = ArchiveAddedEventHandler(
-            moved_cb=self._on_fs_moved,
-            created_cb=None,
-            deleted_cb=self._on_fs_deleted,
-            modified_cb=self._on_fs_modified
-        )
-
-        self._mod_handler = GameModEventHandler(
-            moved_cb=self._mod_repo_watch_cb,
-            created_cb=self._mod_repo_watch_cb,
-            deleted_cb=self._mod_repo_watch_cb,
-            modified_cb=self._mod_repo_watch_cb)
-
-        # Emitters from this class to the handler
-        self.fswatch_ignore.connect(self._ar_handler.ignore)
-        self.fswatch_clear.connect(self._ar_handler.clear)
-        # WatchDog Observer
+        self._ar_handler = None
+        self._mod_handler = None
         self._observer = Observer()
-        self._schedule_watchdog('archives')
-        self._schedule_watchdog('modules')
-        self._observer.start()
+        self._init_settings()
+        self.show()
 
     def show(self):
         super().show()
@@ -296,6 +277,13 @@ class MainWindow(QMainWindow, QEventFilter, CustomMenu, Ui_MainWindow):
 
     def _init_settings(self):
         if not settings_are_set():
+            dialogs.qWarning(
+                _("This software requires two path to be set in order to be "
+                  "able to run. You <b>must</b> fill in the game folder and "
+                  "repository folder. The game will crash if either is empty."),
+                # Translators: This is a messagebox's title
+                title=_("First run")
+            )
             self.do_settings(first_launch=True)
         else:  # On first run, the _init_mods method is called by QSettings
             self._init_mods()
@@ -329,7 +317,31 @@ class MainWindow(QMainWindow, QEventFilter, CustomMenu, Ui_MainWindow):
         if item:
             self.listWidget.setCurrentItem(item)
             self.listWidget.scrollToItem(item)
+        self.setup_schedulers()
         p_dialog.done(1)
+
+    def setup_schedulers(self):
+        # File watchers
+        # Handlers emitting from the watcher to this class
+        self._ar_handler = ArchiveAddedEventHandler(
+            moved_cb=self._on_fs_moved,
+            created_cb=None,
+            deleted_cb=self._on_fs_deleted,
+            modified_cb=self._on_fs_modified)
+
+        self._mod_handler = GameModEventHandler(
+            moved_cb=self._mod_repo_watch_cb,
+            created_cb=self._mod_repo_watch_cb,
+            deleted_cb=self._mod_repo_watch_cb,
+            modified_cb=self._mod_repo_watch_cb)
+
+        # Emitters from this class to the handler
+        self.fswatch_ignore.connect(self._ar_handler.ignore)
+        self.fswatch_clear.connect(self._ar_handler.clear)
+        # WatchDog Observer
+        self._schedule_watchdog('archives')
+        self._schedule_watchdog('modules')
+        self._observer.start()
 
     def callback_at_show(self, item):
         logger.debug("Adding item '%s' to deque", item)
@@ -549,17 +561,16 @@ class MainWindow(QMainWindow, QEventFilter, CustomMenu, Ui_MainWindow):
                 MainWindow._init_mods
         """
         if not self._settings_window:
-            self._settings_window = QSettings()
+            self._settings_window = QSettings(parent=self)
         if first_launch:
-            button = self._settings_window.save_button
+            button = self._settings_window.settingwidget.save_button
             self.__connection_link = button.clicked.connect(self._init_mods)
             self._settings_window.set_mode(first_run=True)
         else:
             if self.__connection_link:
-                button = self._settings_window.save_button
+                button = self._settings_window.settingwidget.save_button
                 button.disconnect(self.__connection_link)
                 self._settings_window.set_mode(first_run=False)
-        # self._settings_window.set_mode(first_launch)
         self._settings_window.show()
 
     @pyqtSlot(name="on_actionAbout_triggered")
@@ -850,7 +861,6 @@ def main():
         app.installEventFilter(aef)
         mainwindow = MainWindow()
         aef.set_top_window(mainwindow)
-        mainwindow.show()
         sys.exit(app.exec_())
     except Exception as e:  # Catchall, log then crash.
         logger.exception("Critical error occurred: %s", e)

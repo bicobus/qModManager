@@ -7,7 +7,7 @@ import logging
 from os import path
 
 from PyQt5 import QtGui, QtWidgets
-from PyQt5.QtCore import Qt, pyqtSlot
+from PyQt5.QtCore import Qt, pyqtSlot, QSize
 
 from qmm.bucket import FileMetadata
 from qmm.common import settings, timestamp_to_string
@@ -32,11 +32,50 @@ class QAbout(QtWidgets.QWidget, Ui_About):
         self.text_author.setFont(font)
 
 
-class QSettings(QtWidgets.QWidget, Ui_Settings):
+class QSettings(QtWidgets.QMainWindow):
+
+    def __init__(self, parent=None):
+        super().__init__(parent=parent, flags=Qt.Window)
+        self.setObjectName("Settings")
+        self.setWindowTitle(_("Settings"))
+        self.setWindowModality(Qt.ApplicationModal)
+        self.resize(600, 140)
+        self.setMinimumSize(QSize(600, 140))
+        self.setMaximumSize(QSize(800, 16777215))
+        self.centralwidget = QtWidgets.QWidget(self, flags=Qt.Widget)
+        self.centralwidget.setObjectName("centralwidget")
+        self.settingwidget = QSettingsCentralWidget(self.centralwidget)
+        self.settingwidget.setObjectName("settingwidget")
+        self.setCentralWidget(self.centralwidget)
+        size_policy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Preferred,
+            QtWidgets.QSizePolicy.Preferred)
+        size_policy.setHorizontalStretch(0)
+        size_policy.setVerticalStretch(0)
+        size_policy.setHeightForWidth(self.settingwidget.sizePolicy().hasHeightForWidth())
+
+        self.statusbar = QtWidgets.QStatusBar(self)
+        self.statusbar.setObjectName("statusbar")
+        self.setStatusBar(self.statusbar)
+        newsize = self.sizeHint() + self.settingwidget.sizeHint()
+        self.resize(newsize)
+        # print(newsize)
+        # print(self.centralwidget.sizeHint())
+
+    def set_mode(self, first_run=False):
+        if first_run:
+            self.settingwidget.cancel_button.setEnabled(False)
+            self.setWindowFlag(Qt.WindowCloseButtonHint, on=False)
+        else:
+            self.settingwidget.cancel_button.setEnabled(True)
+            self.setWindowFlag(Qt.WindowCloseButtonHint, on=True)
+
+
+class QSettingsCentralWidget(QtWidgets.QWidget, Ui_Settings):
     """Define the settings windows."""
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, parent=None):
+        super().__init__(parent=parent)
         self.setupUi(self)
         self.repo_hide_help.hide()
         self.repo_helper.hide()
@@ -48,14 +87,7 @@ class QSettings(QtWidgets.QWidget, Ui_Settings):
         current = get_locale()
         current_idx = self.language_combo_box.findData(current)
         self.language_combo_box.setCurrentIndex(current_idx)
-
-    def set_mode(self, first_run=False):
-        if first_run:
-            self.cancel_button.setEnabled(False)
-            self.setWindowFlag(Qt.WindowCloseButtonHint)
-        else:
-            self.cancel_button.setEnabled(True)
-            self.setWindowFlag(Qt.WindowCloseButtonHint, on=True)
+        self.language_combo_box.setDisabled(True)
 
     def show(self):
         """Show the window and assign internal variables."""
