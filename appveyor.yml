@@ -42,9 +42,7 @@ install:
 
   # Install dependencies
   - python -m pip install --disable-pip-version-check --upgrade pip
-  - python -m pip install pyinstaller
-  - make .build/req
-#  - choco install upx
+  - make .build/req  # install pyinstaller
 
 #
 # before_test:
@@ -65,7 +63,7 @@ after_build:
 #  - ps: move dist\run.exe run.exe
 #  - 7z a qModManager.7z run.exe README.md LICENSE tools\ locales\
   - cd dist\qModManager\
-  - 7z a ..\..\qModManager.7z .
+  - 7z a ..\..\qModManager.7z . ..\..\resources\README.txt
 
 artifacts:
    - path: qModManager.7z
