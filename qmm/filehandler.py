@@ -681,6 +681,7 @@ def archive_analysis(
 
     The tuples contains the item of an archive alongside it's status. The status
     can be either FILE_MATCHED, FILE_MISMATCHED, FILE_IGNORED or FILE_MISSING.
+
     Args:
         file_list: a list containing every items of an archive, must be
                    bucket.FileMetadata

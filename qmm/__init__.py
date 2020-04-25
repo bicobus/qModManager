@@ -7,7 +7,7 @@ __license__ = "EUPL V1.2"
 __version__ = "1.0"
 __maintainer__ = "bicobus"
 __email__ = "bicobus@keemail.me"
-__status__ = "Development"
+__status__ = "alpha"
 
 import os
 import sys
@@ -23,6 +23,8 @@ def get_base_path():
     r = None
     if getattr(sys, 'frozen', False):
         r = os.path.dirname(sys.executable)
+    elif 'sphinx' in sys.modules:
+        r = os.path.abspath('..')
     elif __file__:
         r = os.path.dirname(os.path.abspath(sys.argv[0]))
     else:
