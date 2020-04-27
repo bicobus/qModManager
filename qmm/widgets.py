@@ -83,7 +83,7 @@ class QSettings(QtWidgets.QMainWindow):
             self.setWindowFlag(Qt.WindowCloseButtonHint, on=True)
 
     def connect_to_savebutton(self, callback):
-        self.settingwidget.save_button.clicked.connect(callback)
+        return self.settingwidget.save_button.clicked.connect(callback)
 
     def disconnect_from_savebutton(self, callback):
         self.settingwidget.save_button.disconnect(callback)
