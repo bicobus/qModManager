@@ -140,7 +140,7 @@ class ArchiveAddedEventHandler(QmmWdEventHandler, watchdog.events.PatternMatchin
             self.sgn_modified.emit(event.key)
 
 
-class CustomMenu(QObject):
+class CustomMenu:
     def __init__(self):
         super().__init__()
         self._menu_obj = QMenu()
@@ -223,7 +223,6 @@ class MainWindow(QMainWindow, QEventFilter, CustomMenu, Ui_MainWindow):
 
     def show(self):
         super().show()
-        logger.debug(">> Show called.")
         while self._cb_after_init:
             item = self._cb_after_init.pop()
             logger.debug("Calling %s", item)
