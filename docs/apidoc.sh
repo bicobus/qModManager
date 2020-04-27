@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-ARGS='--tocfile api -e -M -a'
+ARGS='--tocfile api -e -M -a -f'
 OUTPUT='.'
 INPUT='../qmm'
 EXCLUDE='../qmm/ui_* ../qmm/*_rc.py'
