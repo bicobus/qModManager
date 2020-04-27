@@ -16,4 +16,4 @@ python:
     - requirements: docs/requirements.txt
 
 build:
-  image: 3.7
+  image: stable
