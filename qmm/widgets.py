@@ -11,9 +11,9 @@ from PyQt5.QtCore import Qt, pyqtSlot, QSize
 
 from qmm.bucket import FileMetadata
 from qmm.common import settings, timestamp_to_string
-from qmm.dialogs import qInformation
+# from qmm.dialogs import qInformation
 from qmm.filehandler import ArchivesCollection
-from qmm.lang import LANGUAGE_CODES, get_locale
+from qmm.lang import LANGUAGE_CODES, get_locale  # , normalize_locale
 from qmm.ui_about import Ui_About
 from qmm.ui_settings import Ui_Settings
 
@@ -23,8 +23,8 @@ logger = logging.getLogger(__name__)
 class QAbout(QtWidgets.QWidget, Ui_About):
     """About window displaying various informations about the software."""
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, parent=None):
+        super().__init__(parent=parent)
         self.setupUi(self)
         font = QtGui.QFont()
         font.setFamily("Unifont")
@@ -34,8 +34,14 @@ class QAbout(QtWidgets.QWidget, Ui_About):
 
 class QSettings(QtWidgets.QMainWindow):
 
-    def __init__(self, parent=None):
-        super().__init__(parent=parent, flags=Qt.Window)
+    def __init__(self):
+        super().__init__(flags=Qt.Window)
+        self.centralwidget = None
+        self.settingwidget = None
+        self.statusbar = None
+        self.setup_ui()
+
+    def setup_ui(self):
         self.setObjectName("Settings")
         self.setWindowTitle(_("Settings"))
         self.setWindowModality(Qt.ApplicationModal)
@@ -59,8 +65,14 @@ class QSettings(QtWidgets.QMainWindow):
         self.setStatusBar(self.statusbar)
         newsize = self.sizeHint() + self.settingwidget.sizeHint()
         self.resize(newsize)
-        # print(newsize)
-        # print(self.centralwidget.sizeHint())
+        self.settingwidget.save_button.clicked.connect(self.hide)
+        self.settingwidget.cancel_button.clicked.connect(self.hide)
+
+    def show(self):
+        """Show the window and assign internal variables."""
+        super().show()
+        self.settingwidget.game_input.setText(settings['game_folder'])
+        self.settingwidget.repo_input.setText(settings['local_repository'])
 
     def set_mode(self, first_run=False):
         if first_run:
@@ -69,6 +81,12 @@ class QSettings(QtWidgets.QMainWindow):
         else:
             self.settingwidget.cancel_button.setEnabled(True)
             self.setWindowFlag(Qt.WindowCloseButtonHint, on=True)
+
+    def connect_to_savebutton(self, callback):
+        self.settingwidget.save_button.clicked.connect(callback)
+
+    def disconnect_from_savebutton(self, callback):
+        self.settingwidget.save_button.disconnect(callback)
 
 
 class QSettingsCentralWidget(QtWidgets.QWidget, Ui_Settings):
@@ -84,16 +102,9 @@ class QSettingsCentralWidget(QtWidgets.QWidget, Ui_Settings):
 
         for lang, code in LANGUAGE_CODES:
             self.language_combo_box.addItem(lang, code)
-        current = get_locale()
-        current_idx = self.language_combo_box.findData(current)
+        current_idx = self.language_combo_box.findData(get_locale())
         self.language_combo_box.setCurrentIndex(current_idx)
         self.language_combo_box.setDisabled(True)
-
-    def show(self):
-        """Show the window and assign internal variables."""
-        super().show()
-        self.game_input.setText(settings['game_folder'])
-        self.repo_input.setText(settings['local_repository'])
 
     @pyqtSlot(name="on_game_button_clicked")
     def _set_game_directory(self):
@@ -127,11 +138,21 @@ class QSettingsCentralWidget(QtWidgets.QWidget, Ui_Settings):
         if (self.repo_input.text() != settings['local_repository']
                 and path.isdir(self.repo_input.text())):
             settings['local_repository'] = self.repo_input.text()
-        if (not settings['language']
-                or self.language_combo_box.currentData() != settings['language']):
-            settings['language'] = self.language_combo_box.currentData()
-            qInformation(_("Please restart qMM to finalize language change."))
-        self.hide()
+        # XXX: disable language settings until feature fully developed
+        # if (not settings['language']
+        #         or self.language_combo_box.currentData() != settings['language']):
+        #     if settings['language'] != normalize_locale(get_locale()):
+        #         logger.debug(
+        #             "New lang: %s; From lang: %s (norm: %s)",
+        #             settings['language'],
+        #             get_locale(),
+        #             normalize_locale(get_locale())
+        #         )
+        #         qInformation(_(
+        #             "You changed the software's locale, changes will be taken "
+        #             "into account at the next software launch."
+        #         ))
+        #     settings['language'] = self.language_combo_box.currentData()
 
     @pyqtSlot(name="on_cancel_button_clicked")
     def on_cancel_button_clicked(self):
@@ -255,6 +276,19 @@ class ListRowItem(QtWidgets.QListWidgetItem):
 
         self.setText(self.filename)  # filename == _key
         self._format_strings()
+        # colors = {
+        #     'matched': (91, 135, 33),  # greenish
+        #     'mismatched': (78, 33, 135),  # blueish
+        #     'ignored': (135, 33, 39),  # missing
+        # }
+        # gradient = QtGui.QLinearGradient()
+        # if self.archive_instance.has_mismatched:
+        #     gradient.setColorAt(0, QtGui.QColor(*colors['mismatched']))
+        # elif self.archive_instance.has_ignored:
+        #     gradient.setColorAt(0, QtGui.QColor(*colors['ignored']))
+        # elif self.archive_instance.has_matched:
+        #     gradient.setColorAt(0, QtGui.QColor(*colors['matched']))
+        # self.setBackground(gradient)
 
     def _format_strings(self):
         self._files_str = _format_regular(

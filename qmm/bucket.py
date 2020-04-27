@@ -12,7 +12,7 @@ import logging
 import pathlib
 from datetime import datetime
 from os.path import join, sep
-from typing import Dict, List, TypeVar
+from typing import Dict, List, TypeVar, Union
 
 from qmm.common import settings
 
@@ -28,7 +28,7 @@ class FileMetadata:
     archive.
     """
 
-    def __init__(self, crc, path, attributes, modified, isfrom):
+    def __init__(self, crc, path: Union[str, pathlib.Path], attributes, modified, isfrom):
         self._CRC = crc
         self._from = isfrom
         if isinstance(path, pathlib.Path):
@@ -48,9 +48,11 @@ class FileMetadata:
         else:
             self._Modified = modified
 
-    def _normalize_path(self,
-                        pathobj: pathlib.Path,
-                        partition=('res', 'mods')):
+    def _normalize_path(
+        self,
+        pathobj: pathlib.Path,
+        partition=('res', 'mods')
+    ):
         """Return a pathlib.Path object with a normalized path.
 
         We want to build a path that is similar to the one present in an
@@ -132,7 +134,7 @@ class FileMetadata:
 Crc32 = TypeVar("Crc32", int, int)
 Conflict = Dict[str, List]
 LooseFiles = Dict[Crc32, List[FileMetadata]]
-GameFiles = Dict[Crc32, str]
+GameFiles = Dict[Crc32, FileMetadata]
 
 conflicts: Conflict = {}
 loosefiles: LooseFiles = {}
@@ -198,7 +200,7 @@ def as_conflict(key: str, value):
         conflicts[key].append(value)
 
 
-def as_gamefile(crc: int, value: pathlib.PurePath):
+def as_gamefile(crc: int, value: pathlib.Path):
     if crc in gamefiles.keys():
         logger.warning(
             "Duplicate file found, crc matches for\n-> %s\n-> %s",
@@ -211,7 +213,7 @@ def as_gamefile(crc: int, value: pathlib.PurePath):
     gamefiles.setdefault(crc, value)
 
 
-def as_loosefile(crc: int, filepath: pathlib.PurePath):
+def as_loosefile(crc: int, filepath: pathlib.Path):
     """Adds filepath to the loosefiles bucket, indexed on given CRC."""
     loosefiles.setdefault(crc, [])
     filepath = FileMetadata(

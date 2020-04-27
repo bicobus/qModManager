@@ -10,8 +10,7 @@ from typing import Tuple, Union
 import watchdog.events
 from PyQt5 import QtGui
 from PyQt5.QtCore import QEvent, QObject, Qt, pyqtSignal, pyqtSlot
-from PyQt5.QtWidgets import (QApplication, qApp, QFileDialog, QMainWindow,
-                             QMenu)
+from PyQt5.QtWidgets import QApplication, QFileDialog, QMainWindow, QMenu
 from watchdog.observers import Observer
 
 from qmm import bucket, dialogs, filehandler
@@ -109,7 +108,8 @@ class ArchiveAddedEventHandler(QmmWdEventHandler, watchdog.events.PatternMatchin
             moved_cb=moved_cb,
             created_cb=created_cb,
             deleted_cb=deleted_cb,
-            modified_cb=modified_cb)
+            modified_cb=modified_cb,
+        )
         self._accept = []
         self._patterns = [f"*{x}" for x in valid_suffixes('pathlib')]
         self._ignore_directories = True
@@ -140,7 +140,7 @@ class ArchiveAddedEventHandler(QmmWdEventHandler, watchdog.events.PatternMatchin
             self.sgn_modified.emit(event.key)
 
 
-class CustomMenu:
+class CustomMenu(QObject):
     def __init__(self):
         super().__init__()
         self._menu_obj = QMenu()
@@ -180,8 +180,6 @@ class QEventFilter:
                 return True
             if e.type() == QEvent.Type.Drop:
                 return self._on_drop_action(e)
-        if e.type() == QEvent.Expose:
-            print("FilterShow!")
         # return false ignores the event and allow further propagation
         return False
 
@@ -193,8 +191,8 @@ class MainWindow(QMainWindow, QEventFilter, CustomMenu, Ui_MainWindow):
     fswatch_ignore = pyqtSignal(['QString', 'QString'])
     fswatch_clear = pyqtSignal(['QString', 'QString'])
 
-    def __init__(self, parent=None):
-        super().__init__(parent=parent)
+    def __init__(self):
+        super().__init__()
         self._is_mod_repo_dirty = False
 
         self.setupUi(self)
@@ -212,7 +210,7 @@ class MainWindow(QMainWindow, QEventFilter, CustomMenu, Ui_MainWindow):
         self._about_window = None
         self.managed_archives = filehandler.ArchivesCollection()
         self._qc = {}
-        self.__connection_link = None  # Connect to the settings's save button
+        self._connection_link = None  # Connect to the settings's save button
         self._window_was_active = None
         self._wd_watchers = {
             'archives': None,
@@ -222,17 +220,20 @@ class MainWindow(QMainWindow, QEventFilter, CustomMenu, Ui_MainWindow):
         self._mod_handler = None
         self._observer = Observer()
         self._init_settings()
-        self.show()
 
     def show(self):
         super().show()
+        logger.debug(">> Show called.")
         while self._cb_after_init:
             item = self._cb_after_init.pop()
             logger.debug("Calling %s", item)
             item()
 
     def on_window_activate(self):
-        if not self._wd_watchers['archives'] and self.autorefresh_checkbox.isChecked():
+        if not self._ar_handler or not self._mod_handler:  # handlers not init
+            return False
+        if (not self._wd_watchers['archives']
+                and self.autorefresh_checkbox.isChecked()):
             self._schedule_watchdog('archives')
         if self.is_mod_repo_dirty:
             logger.debug("Loose files are dirty, reparsing...")
@@ -268,6 +269,7 @@ class MainWindow(QMainWindow, QEventFilter, CustomMenu, Ui_MainWindow):
         msg = " "
         msg.join([self.statusbar.currentMessage(), _("Refresh done.")])
         self.statusbar.showMessage(msg, 10000)
+        return False
 
     def on_window_deactivate(self):
         if self._wd_watchers['archives']:
@@ -290,7 +292,7 @@ class MainWindow(QMainWindow, QEventFilter, CustomMenu, Ui_MainWindow):
 
     def _init_mods(self):
         p_dialog = dialogs.SplashProgress(
-            parent=self, title=_("Computing data"),
+            parent=None, title=_("Computing data"),
             message=_("Please wait for the software to initialize it's data.")
         )
         p_dialog.show()
@@ -319,6 +321,9 @@ class MainWindow(QMainWindow, QEventFilter, CustomMenu, Ui_MainWindow):
             self.listWidget.scrollToItem(item)
         self.setup_schedulers()
         p_dialog.done(1)
+        if self._connection_link:
+            self._settings_window.disconnect_from_savebutton(self._connection_link)
+            self._connection_link = None
 
     def setup_schedulers(self):
         # File watchers
@@ -344,7 +349,6 @@ class MainWindow(QMainWindow, QEventFilter, CustomMenu, Ui_MainWindow):
         self._observer.start()
 
     def callback_at_show(self, item):
-        logger.debug("Adding item '%s' to deque", item)
         self._cb_after_init.append(item)
 
     def get_row_index_by_name(self, name):
@@ -510,9 +514,11 @@ class MainWindow(QMainWindow, QEventFilter, CustomMenu, Ui_MainWindow):
         if not files:
             dialogs.qWarning(_(
                 "The archive {filename} extracted with errors.\n"
-                "Please refer to {loglocation} for more information.").format(
-                    filename=item.filename,
-                    loglocation=get_config_dir('error.log')))
+                "Please refer to {loglocation} for more information."
+            ).format(
+                filename=item.filename,
+                loglocation=get_config_dir('error.log')
+            ))
         else:
             filehandler.generate_conflicts_between_archives(self.managed_archives)
             self._refresh_list_item_strings()
@@ -561,15 +567,13 @@ class MainWindow(QMainWindow, QEventFilter, CustomMenu, Ui_MainWindow):
                 MainWindow._init_mods
         """
         if not self._settings_window:
-            self._settings_window = QSettings(parent=self)
+            self._settings_window = QSettings()
         if first_launch:
-            button = self._settings_window.settingwidget.save_button
-            self.__connection_link = button.clicked.connect(self._init_mods)
+            self._connection_link = self._settings_window.connect_to_savebutton(self._init_mods)
             self._settings_window.set_mode(first_run=True)
         else:
-            if self.__connection_link:
-                button = self._settings_window.settingwidget.save_button
-                button.disconnect(self.__connection_link)
+            if self._connection_link:
+                self._settings_window.disconnect_from_savebutton(self._connection_link)
                 self._settings_window.set_mode(first_run=False)
         self._settings_window.show()
 
@@ -604,12 +608,16 @@ class MainWindow(QMainWindow, QEventFilter, CustomMenu, Ui_MainWindow):
 
     def _schedule_watchdog(self, context):
         if context == 'archives':
+            if not self._ar_handler:
+                raise UnknownContext("Handler is NoneType, must be otherwise.")
             self._wd_watchers['archives'] = self._observer.schedule(
                 event_handler=self._ar_handler,
                 path=settings['local_repository'],
                 recursive=False
             )
         elif context == 'modules':
+            if not self._mod_handler:
+                raise UnknownContext("Handler is NoneType, must be otherwise.")
             self._wd_watchers['modules'] = self._observer.schedule(
                 event_handler=self._mod_handler,
                 path=str(filehandler.get_mod_folder(prepend_modpath=True)),
@@ -749,7 +757,9 @@ class MainWindow(QMainWindow, QEventFilter, CustomMenu, Ui_MainWindow):
 
     def __del__(self):
         if self._observer.is_alive():
+            self._observer.unschedule_all()
             self._observer.stop()
+        self._settings_window = None
 
 
 class QAppEventFilter(QObject):
@@ -786,6 +796,10 @@ class QAppEventFilter(QObject):
         self._geometry = ()
         self._is_first_activity = True
         self._previous_state = True
+        # Whitelisting event to avoid unnecessary eventFilter calls
+        self.accepted_types = [
+            QEvent.ApplicationStateChange,
+        ]
 
     def set_top_window(self, window: MainWindow):
         """Define the widget that is considered as top window."""
@@ -810,6 +824,8 @@ class QAppEventFilter(QObject):
         self._geometry = self.get_geometry()
 
     def eventFilter(self, o, e: QEvent) -> bool:
+        if e.type() not in self.accepted_types:
+            return False
         if not self._mainwindow or not self._mainwindow.autorefresh_checkbox.isChecked():
             return False
         if isinstance(o, QApplication) and e.type() == QEvent.ApplicationStateChange:
@@ -861,6 +877,7 @@ def main():
         app.installEventFilter(aef)
         mainwindow = MainWindow()
         aef.set_top_window(mainwindow)
+        mainwindow.show()
         sys.exit(app.exec_())
     except Exception as e:  # Catchall, log then crash.
         logger.exception("Critical error occurred: %s", e)

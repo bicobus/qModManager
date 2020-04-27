@@ -17,9 +17,9 @@ from zlib import crc32
 
 from send2trash import TrashPermissionError, send2trash
 
-from qmm import bucket
-from qmm import is_windows
+from qmm import bucket, is_windows
 from qmm.common import settings, settings_are_set, tools_path, valid_suffixes
+from qmm.config import SettingsNotSetError
 
 logger = logging.getLogger(__name__)
 
@@ -123,7 +123,7 @@ def extract7z(file_archive: pathlib.Path,
     return f_list
 
 
-def list7z(file_path, progress=None) -> List[bucket.FileMetadata]:
+def list7z(file_path: Union[str, pathlib.Path], progress=None) -> List[bucket.FileMetadata]:
     if not isinstance(file_path, pathlib.Path):
         file_path = pathlib.Path(file_path)
     if not file_path.exists():
@@ -138,10 +138,10 @@ def list7z(file_path, progress=None) -> List[bucket.FileMetadata]:
     }
 
     if progress:
-        progress(f'Processing {file_path}...')
+        progress(f'Processing {file_path.as_posix()}...')
 
     cmd = [
-        tools_path(), 'l', file_path,
+        tools_path(), 'l', str(file_path),
         '-ba', '-scsUTF-8', '-sccUTF-8', '-slt'
     ]
 
@@ -328,12 +328,12 @@ class ArchivesCollection(MutableMapping, TypeMutableMapping[str, ArchiveInstance
 
     def build_archives_list(self, progress, rebuild=False):
         if not settings_are_set():
-            return False
+            raise SettingsNotSetError()
 
         if self._data and not rebuild:
             return False
 
-        repo = pathlib.Path(settings['local_repository'])
+        repo = pathlib.Path(settings["local_repository"])
         for entry in repo.glob("*.*"):
             if entry.is_file() and entry.suffix in valid_suffixes("pathlib"):
                 self.add_archive(entry, progress=progress)
@@ -427,12 +427,6 @@ class ArchivesCollection(MutableMapping, TypeMutableMapping[str, ArchiveInstance
                     return self._data[key]
         return False
 
-    def find_filename_in_archives(self, filename: str):  # TODO write me
-        pass
-
-    def find_crc32_in_archives(self, crc: int):  # TODO write me
-        pass
-
     def initiate_conflicts_detection(self):
         for _, archive_instance in self._data.items():
             archive_instance.reset_conflicts()
@@ -479,6 +473,15 @@ def _ignored_part_in_path(path):
 
 
 def get_mod_folder(with_file: str = None, prepend_modpath=False) -> pathlib.Path:
+    """Return the path to the game folder.
+
+    Args:
+        with_file: append 'with_file' to the path
+        prepend_modpath: if True, adds the module path before 'with_file'
+
+    Returns:
+        PathLike structure representing the game folder.
+    """
     path = [settings['game_folder']]
     if prepend_modpath:
         path.extend(['res', 'mods'])
@@ -487,15 +490,13 @@ def get_mod_folder(with_file: str = None, prepend_modpath=False) -> pathlib.Path
     return pathlib.Path(*path)
 
 
-def _crc32(filename: Union[IO, str]) -> Union[bucket.Crc32, None]:
+def _crc32(filename: Union[IO, str, os.PathLike]) -> Union[bucket.Crc32, None]:
     """Returns the CRC32 hash of the given filename.
 
     Args:
         filename: path to the file to hash
 
-    Returns:
-        string: if successful
-        None: if not successful
+    Returns: a string if successful, None otherwise
     """
     try:
         if hasattr(filename, 'read'):

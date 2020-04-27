@@ -6,12 +6,13 @@ import gettext
 import locale
 import logging
 
-from . import get_data_path
-from .common import settings
+from qmm import get_data_path
+from qmm.common import settings
 
 logger = logging.getLogger(__name__)
 DEFAULT_LANGUAGE = "en"
 # List of maintained translation
+# fmt: off
 LANGUAGE_CODES = [
     ('English (United States)', 'en_US'),
     ('Français', 'fr_FR')
@@ -21,6 +22,7 @@ LANGUAGE_ALIASES = {
     'fr': 'fr_FR',
     'fr_BE': 'fr_FR'
 }
+# fmt: on
 
 
 def normalize_locale(loc: str):
@@ -54,8 +56,11 @@ def get_locale():
 
 def list_available_languages():
     locale_path = get_data_path('locales')
-    langs = [d for d in os.listdir(locale_path)
-             if os.path.isdir(os.path.join(locale_path, d))]
+    langs = [
+        d
+        for d in os.listdir(locale_path)
+        if os.path.isdir(os.path.join(locale_path, d))
+    ]
     langs.append(DEFAULT_LANGUAGE)
 
     for lang in langs:

@@ -17,6 +17,10 @@ logger = logging.getLogger(__name__)
 dirs = appdirs.AppDirs(appname='qmm', appauthor=False)
 
 
+class SettingsNotSetError(Exception):
+    pass
+
+
 def get_config_dir(filename=None, extra_directories=None) -> str:
     """Return the full path of the user config dir.
 
@@ -150,8 +154,10 @@ class Config(MutableMapping):
                 os.fsync(fp)  # noqa
 
             filename = os.path.realpath(filename)
-            shutil.move(filename, "{}.bak".format(filename))
             os.makedirs(os.path.dirname(filename), exist_ok=True)
+            if os.path.exists(filename):
+                shutil.move(filename, "{}.bak".format(filename))
+            logger.debug("Saving new config to %s", filename)
             shutil.move(filename_tmp, filename)
         except IOError as e:
             logger.error("An error occured while saving the settings:\n%s", e)

@@ -16,7 +16,7 @@ settings = Config(
     defaults={
         "local_repository": None,
         "game_folder": None,
-        "language": None
+        "language": None,
     }
 )
 
