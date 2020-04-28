@@ -1,2 +1,0 @@
-dist\run.exe
-PAUSE
