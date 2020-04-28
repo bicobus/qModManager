@@ -20,6 +20,7 @@ User's Guide
    :caption: Contents:
 
    usage.README
+   changelog
    api
 
 Contribute

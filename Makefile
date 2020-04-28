@@ -29,7 +29,7 @@ all: ui .build/i18n
 
 .PHONY: .maint/pipupdate
 .maint/pipupdate:
-	pipenv udpate --outdated && pipenv update
+	pipenv update --outdated && pipenv update
 	pipenv update --dev --outdated && pipenv update --dev
 	pipenv lock -r > requirements.txt
 
