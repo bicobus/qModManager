@@ -19,6 +19,5 @@ for f in ../resources/*.ui
 do
   FILENAME=$(echo "$f" | sed -r 's/.*ui_([^.]+)\.ui/ui_\1.py/')
   CLASSNAME=$(awk '/class>/{ a=gensub(/<\/?class>/, "", "g", $1); print a }' "$f")
-  #CLASSNAME=$(echo "$f" | sed -r 's/.*ui_([^.]+)\.ui/\1/')
   echo "${TEMPLATE/@CLASSNAME@/${CLASSNAME^}}" > "${EXT_PATH}$FILENAME"
 done
