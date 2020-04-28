@@ -19,7 +19,7 @@ User's Guide
    :maxdepth: 2
    :caption: Contents:
 
-   usage.README
+   usage
    changelog
    api
 
