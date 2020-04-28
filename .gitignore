@@ -6,6 +6,7 @@
 # Qt generated
 *_rc.py
 ui_*.py
+!docs/_ext/ui_*.py
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

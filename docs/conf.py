@@ -17,15 +17,14 @@ import sys
 
 TOP_DIR_PATH = os.path.abspath('..')
 SRC_DIR_PATH = os.path.join(TOP_DIR_PATH, 'qmm')
-sys.path.insert(0, SRC_DIR_PATH)
 sys.path.insert(0, TOP_DIR_PATH)
 
-import qmm.version
+import qmm.version  # noqa
 
 # -- Project information -----------------------------------------------------
 
 project = 'PyQModManager'
-copyright = '2020, bicobus'
+copyright = '2020, bicobus'  # noqa
 author = 'bicobus'
 
 # The short X.Y version
@@ -87,7 +86,7 @@ pygments_style = 'sphinx'
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme = 'pyramid'
+# html_theme = 'sphinx_rtd_theme'
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
@@ -99,6 +98,14 @@ html_theme = 'pyramid'
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
+
+html_context = {
+    "display_github": True,  # Integrate GitHub
+    "github_user": "bicobus",  # Username
+    "github_repo": "qmodmanager",  # Repo name
+    "github_version": "master",  # Version
+    "conf_py_path": "/docs/",  # Path in the checkout to the docs root
+}
 
 # Custom sidebar templates, must be a dictionary that maps document names
 # to template names.
@@ -198,3 +205,17 @@ napoleon_numpy_docstring = False
 
 # If true, `todo` and `todoList` produce output, else they produce nothing.
 todo_include_todos = True
+
+
+def setup(app):
+    import os
+    import shutil
+    src = '_ext/'
+    dst = '../qmm/'
+    names = os.listdir('_ext')
+    for name in names:
+        srcname = os.path.join(src, name)
+        dstname = os.path.join(dst, name)
+        if os.path.isdir(srcname):
+            continue
+        shutil.copy2(srcname, dstname)
