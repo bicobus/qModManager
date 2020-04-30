@@ -4,7 +4,19 @@ Version History
 
 `1.0.0-alpha11`_
 ----------------
+Added
+~~~~~
+* Color code each managed item based on their status
 
+  * Each line has a dual color: left and right
+  * Right side can either be transparent or red, to show existing conflicts.
+  * Left side can either be green, blue or yellow
+
+    * Yellow is for missing files
+    * Blue is for mismatched files
+    * Green is when every files of the archive matches on the drive.
+
+  * Greyed out text means the archive contains nothing that can be installed
 
 `1.0.0-alpha10`_
 ----------------
@@ -22,8 +34,8 @@ Version History
      module's repository
    * The software will automatically determine if the game's module directory
      has been modified and regenerate it's database the next time the
-     application gain focus * A checkbox exists to disable this behavior if
-     unchecked.
+     application gain focus
+   * A checkbox exists to disable this behavior if unchecked.
 * Internal dev stuff: changes of libraries used, reworking codebase, etc
 
 
