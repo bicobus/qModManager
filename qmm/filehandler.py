@@ -208,6 +208,7 @@ class ArchiveInstance:
     def __init__(self, archive_name: str, file_list: List[bucket.FileMetadata]):
         self._archive_name = archive_name
         self._file_list = file_list
+        # Meta does contain folders.
         self._meta: List[Tuple[bucket.FileMetadata, int]] = []
         self.reset_status()
         self._conflicts = {}
@@ -246,10 +247,12 @@ class ArchiveInstance:
             yield folder
 
     def matched(self) -> Generator[bucket.FileMetadata, None, None]:
+        """Yield file metadata of matched entries of the archive."""
         for item in filter(lambda x: x[1] == FILE_MATCHED, self._meta):
             yield item[0]
 
     def mismatched(self) -> Generator[bucket.FileMetadata, None, None]:
+        """Yield file metadata of mismatched entries of the archive."""
         if not self.has_mismatched:
             return
         for item in filter(lambda x: x[1] == FILE_MISMATCHED, self._meta):
@@ -260,14 +263,17 @@ class ArchiveInstance:
                     yield f
 
     def missing(self) -> Generator[bucket.FileMetadata, None, None]:
+        """Yield file metadata of missing entries of the archive."""
         for item in filter(lambda x: x[1] == FILE_MISSING, self._meta):
             yield item[0]
 
     def ignored(self) -> Iterable[bucket.FileMetadata]:
+        """Yield file metadata of ignored entries of the archive."""
         for item in filter(lambda x: x[1] == FILE_IGNORED, self._meta):
             yield item[0]
 
     def conflicts(self):
+        """Yield file metadata of conflicting entries of the archive."""
         for path, archives in self._conflicts.items():
             yield path, archives
 
@@ -297,6 +303,12 @@ class ArchiveInstance:
         return self._check_status(FILE_MATCHED)
 
     @property
+    def all_matching(self):
+        """Return True if all files in the archive matches on the drive."""
+        no_directory = filter(lambda x: x[0].attributes != 'D', self._meta)
+        return all(x[1] in (FILE_MATCHED, FILE_IGNORED) for x in no_directory)
+
+    @property
     def has_mismatched(self):
         """Return True if a file of the archive is of status FILE_MISMATCHED."""
         return self._check_status(FILE_MISMATCHED)
@@ -310,6 +322,10 @@ class ArchiveInstance:
     def has_ignored(self):
         """Return True if a file of the archive is of status FILE_IGNORED."""
         return self._check_status(FILE_IGNORED)
+
+    @property
+    def all_ignored(self):
+        return all(x[1] == FILE_IGNORED or x[0].attributes == 'D' for x in self._meta)
 
     @property
     def has_conflicts(self):

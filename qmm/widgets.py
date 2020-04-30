@@ -276,19 +276,35 @@ class ListRowItem(QtWidgets.QListWidgetItem):
 
         self.setText(self.filename)  # filename == _key
         self._format_strings()
-        # colors = {
-        #     'matched': (91, 135, 33),  # greenish
-        #     'mismatched': (78, 33, 135),  # blueish
-        #     'ignored': (135, 33, 39),  # missing
-        # }
-        # gradient = QtGui.QLinearGradient()
-        # if self.archive_instance.has_mismatched:
-        #     gradient.setColorAt(0, QtGui.QColor(*colors['mismatched']))
-        # elif self.archive_instance.has_ignored:
-        #     gradient.setColorAt(0, QtGui.QColor(*colors['ignored']))
-        # elif self.archive_instance.has_matched:
-        #     gradient.setColorAt(0, QtGui.QColor(*colors['matched']))
-        # self.setBackground(gradient)
+        self.set_gradients()
+        self.set_text_color()
+
+    def set_gradients(self):
+        colors = {
+            'matched': (91, 135, 33, 255),  # greenish
+            'mismatched': (132, 161, 225, 255),  # blueish
+            'missing': (225, 185, 132, 255),  # yellowish
+            'conflicts': (135, 33, 39, 255),  # red-ish
+        }
+        gradient = QtGui.QLinearGradient(75, 75, 150, 150)
+        if self.archive_instance.has_mismatched:
+            gradient.setColorAt(0, QtGui.QColor(*colors['mismatched']))
+        elif self.archive_instance.all_matching and not self.archive_instance.all_ignored:
+            gradient.setColorAt(0, QtGui.QColor(*colors['matched']))
+        elif self.archive_instance.has_matched and self.archive_instance.has_missing:
+            gradient.setColorAt(0, QtGui.QColor(*colors['missing']))
+        else:
+            gradient.setColorAt(0, QtGui.QColor(0, 0, 0, 0))
+        if self.archive_instance.has_conflicts:
+            gradient.setColorAt(1, QtGui.QColor(*colors['conflicts']))
+        brush = QtGui.QBrush(gradient)
+        self.setBackground(brush)
+
+    def set_text_color(self):
+        if self.archive_instance.all_ignored:
+            self.setForeground(QtGui.QColor("gray"))
+        else:
+            print(self.name)
 
     def _format_strings(self):
         self._files_str = _format_regular(
@@ -321,6 +337,7 @@ class ListRowItem(QtWidgets.QListWidgetItem):
         self.archive_instance.reset_conflicts()
         self._built_strings = False
         self._format_strings()
+        self.set_gradients()
 
     @property
     def name(self):
