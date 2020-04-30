@@ -21,11 +21,26 @@ TYPE_LOOSEFILE = 1
 TYPE_GAMEFILE = 2
 
 
+def _normalize_attributes(attr):
+    if 'D' in attr:
+        return 'D'
+    if 'A' in attr:
+        return 'F'
+    return None
+
+
 class FileMetadata:
     """Representation of a file.
 
     Can handle game files, mod files or file information comming from an
     archive.
+
+    Args:
+        crc: CRC32 of the represented file, 0 or empty if file is a folder.
+        path: relative path to the represented file.
+        attributes: 'D' for folder, 'F' otherwise.
+        modified: timestamp of the last modification of the file.
+        isfrom: either 'TYPE_GAMEFILE' or 'TYPE_LOOSEFILE'
     """
 
     def __init__(self, crc, path: Union[str, pathlib.Path], attributes, modified, isfrom):
@@ -37,9 +52,9 @@ class FileMetadata:
             self._normalize_path(pathlib.Path(path))
 
         if not attributes:
-            self._Attributes = 'D' if self.pathobj.is_dir() else ''
+            self._Attributes = 'D' if self.pathobj.is_dir() else 'F'
         else:
-            self._Attributes = attributes
+            self._Attributes = _normalize_attributes(attributes)
 
         if not modified and self.pathobj.exists():
             self._Modified = datetime.strftime(
@@ -171,7 +186,7 @@ def file_path_in_loosefiles(filemd: FileMetadata) -> bool:
     def _extract_paths(fmd):
         return [x.path for x in fmd]
 
-    return bool(any(filemd.path in _extract_paths(v) for v in loosefiles.values()))
+    return any(filemd.path in _extract_paths(v) for v in loosefiles.values())
 
 
 def with_gamefiles(crc: int = None, path: str = None):
@@ -200,7 +215,8 @@ def as_conflict(key: str, value):
         conflicts[key].append(value)
 
 
-def as_gamefile(crc: int, value: pathlib.Path):
+def as_gamefile(crc: int, value: Union[pathlib.Path, pathlib.PurePath]):
+    """Add to the gamefiles a path indexed to its target CRC32."""
     if crc in gamefiles.keys():
         logger.warning(
             "Duplicate file found, crc matches for\n-> %s\n-> %s",
