@@ -5,12 +5,14 @@ verify_ssl = true
 
 [dev-packages]
 "flake8" = "*"
-pyinstaller = "*"
+pyinstaller = "~=3.6"
 pylint = "*"
 "flake8-bugbear" = "*"
 "flake8-comprehensions" = "*"
-sphinx = "*"
+sphinx = "~=3.0"
 snakeviz = "*"
+pytest = "~=5.4"
+v = {editable = true,version = "*"}
 
 [packages]
 pyqt5 = "~=5.14"

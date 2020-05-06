@@ -7,12 +7,11 @@ import pathlib
 import re
 import shutil
 import subprocess
-from collections.abc import MutableMapping
 from functools import lru_cache
 from hashlib import sha256
 from tempfile import TemporaryDirectory
 from typing import (Dict, Generator, IO, Iterable, Iterator, List,
-                    MutableMapping as TypeMutableMapping, Tuple, Union)
+                    MutableMapping, Tuple, Union)
 from zlib import crc32
 
 from send2trash import TrashPermissionError, send2trash
@@ -205,18 +204,35 @@ def sha256hash(filename: Union[IO, str]) -> Union[str, None]:
 
 
 class ArchiveInstance:
+    """Represent an archive and its content already analyzed and ready for
+    display."""
+    _conflicts: Dict[str, List[Union[str, bucket.FileMetadata]]]
+    _meta: List[Tuple[bucket.FileMetadata, int]]
+
     def __init__(self, archive_name: str, file_list: List[bucket.FileMetadata]):
         self._archive_name = archive_name
         self._file_list = file_list
-        # Meta does contain folders.
-        self._meta: List[Tuple[bucket.FileMetadata, int]] = []
+        # Note: folders are not filtered out of meta.
+        self._meta = []
         self.reset_status()
+        # Contains a list of archives or, if the conflict is with a game file,
+        # a FileMetadata instance.
         self._conflicts = {}
 
     def reset_status(self):
-        self._meta = archive_analysis(self._file_list)
+        """Called whenever the state of an archive becomes dirty, which is
+        also the default state.
+
+        Populate 'self._meta' with tuples containing the 'FileMetadata' object
+        of each individual file alongside the current status of that file. The
+        status can be either 'FILE_MATCHED', 'FILE_MISMATCHED', 'FILE_IGNORED'
+        or 'FILE_MISSING'."""
+        for item in self._file_list:  # fmd, status in archive_analysis(self._file_list):
+            self._meta.append((item, file_status(item)))
 
     def reset_conflicts(self):
+        """Generate a list of conflicting files, either from in the game
+         folders or in other archives, for each file present in this archive."""
         for item in self._file_list:
             tmp_conflicts = []
             # Check other archives
@@ -243,7 +259,7 @@ class ArchiveInstance:
 
     def folders(self) -> Generator[bucket.FileMetadata, None, None]:
         """Yield folders present in the archive"""
-        for folder in filter(lambda x: x.is_dir(), self._file_list):
+        for folder in filter(lambda x: x.is_dir(), sorted(self._file_list, reverse=True)):
             yield folder
 
     def matched(self) -> Generator[bucket.FileMetadata, None, None]:
@@ -294,13 +310,19 @@ class ArchiveInstance:
             'ignored': list(self.ignored())
         }
 
-    def _check_status(self, status):
+    def get_status(self, file):
+        for f, s in self._meta:
+            if f.path == file:
+                return s
+        return None
+
+    def _has_status(self, status):
         return any(x[1] == status for x in self._meta)
 
     @property
     def has_matched(self):
         """Return True if a file of the archive is of status FILE_MATCHED."""
-        return self._check_status(FILE_MATCHED)
+        return self._has_status(FILE_MATCHED)
 
     @property
     def all_matching(self):
@@ -311,17 +333,17 @@ class ArchiveInstance:
     @property
     def has_mismatched(self):
         """Return True if a file of the archive is of status FILE_MISMATCHED."""
-        return self._check_status(FILE_MISMATCHED)
+        return self._has_status(FILE_MISMATCHED)
 
     @property
     def has_missing(self):
         """Return True if a file of the archive is of status FILE_MISSING."""
-        return self._check_status(FILE_MISSING)
+        return self._has_status(FILE_MISSING)
 
     @property
     def has_ignored(self):
         """Return True if a file of the archive is of status FILE_IGNORED."""
-        return self._check_status(FILE_IGNORED)
+        return self._has_status(FILE_IGNORED)
 
     @property
     def all_ignored(self):
@@ -332,7 +354,7 @@ class ArchiveInstance:
         return bool(self._conflicts)
 
 
-class ArchivesCollection(MutableMapping, TypeMutableMapping[str, ArchiveInstance]):
+class ArchivesCollection(MutableMapping[str, ArchiveInstance]):
     FileAdded = 1
     FileRemoved = 2
 
@@ -689,27 +711,6 @@ def file_status(file: bucket.FileMetadata) -> int:
             and not bucket.file_crc_in_loosefiles(file)):
         return FILE_MISMATCHED
     return FILE_MISSING
-
-
-def archive_analysis(
-    file_list: List[bucket.FileMetadata]
-) -> List[Tuple[bucket.FileMetadata, int]]:
-    """Return a list of tuples representing the archive.
-
-    The tuples contains the item of an archive alongside it's status. The status
-    can be either FILE_MATCHED, FILE_MISMATCHED, FILE_IGNORED or FILE_MISSING.
-
-    Args:
-        file_list: a list containing every items of an archive, must be
-                   bucket.FileMetadata
-
-    Returns:
-        A list of tuples, each tuple being (FileMetadata, int)
-    """
-    new_list = []
-    for file in file_list:
-        new_list.append((file, file_status(file)))
-    return new_list
 
 
 def copy_archive_to_repository(filename):

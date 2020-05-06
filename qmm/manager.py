@@ -10,7 +10,7 @@ from typing import Tuple, Union
 import watchdog.events
 from PyQt5 import QtGui
 from PyQt5.QtCore import QEvent, QObject, Qt, pyqtSignal, pyqtSlot
-from PyQt5.QtWidgets import QApplication, QFileDialog, QMainWindow, QMenu
+from PyQt5.QtWidgets import (QApplication, QFileDialog, QMainWindow, QMenu,)
 from watchdog.observers import Observer
 
 from qmm import bucket, dialogs, filehandler
@@ -18,7 +18,8 @@ from qmm.common import settings, settings_are_set, valid_suffixes
 from qmm.config import get_config_dir
 from qmm.lang import set_gettext
 from qmm.ui_mainwindow import Ui_MainWindow
-from qmm.widgets import ListRowItem, QAbout, QSettings
+from qmm.widgets import (ListRowItem, QAbout, QSettings, autoresize_columns, build_conflict_tree_widget,
+                         build_ignored_tree_widget, build_tree_widget)
 
 logger = logging.getLogger(__name__)
 
@@ -419,37 +420,51 @@ class MainWindow(QMainWindow, QEventFilter, CustomMenu, Ui_MainWindow):
         self.content_modified.setText(item.modified)
         self.content_hashsum.setText(item.hashsum)
 
-        self.tab_files_content.setPlainText(item.files)
+        # Hoping it's lost to the GC.
+        self.tab_files_content.clear()
+        self.tab_conflicts_content.clear()
+        self.tab_skipped_content.clear()
 
-        matched_idx = self.tabWidget.indexOf(self.tab_matched)
-        if item.archive_instance.has_matched:
-            self.set_tab_color(matched_idx, QtGui.QColor(91, 135, 33))
-        else:
-            self.set_tab_color(matched_idx)
-        self.tab_matched_content.setPlainText(item.matched)
+        # tab_files, tab_conflicts, tab_skipped
+        build_tree_widget(self.tab_files_content, item.archive_instance)
+        build_conflict_tree_widget(self.tab_conflicts_content, item.archive_instance)
+        build_ignored_tree_widget(self.tab_skipped_content, item.archive_instance.ignored())
 
-        mismatched_idx = self.tabWidget.indexOf(self.tab_mismatched)
-        if item.archive_instance.has_mismatched:
-            self.set_tab_color(mismatched_idx, QtGui.QColor(78, 33, 135))
-        else:
-            self.set_tab_color(mismatched_idx)
-        self.tab_mismatched_content.setPlainText(item.mismatched)
+        autoresize_columns(self.tab_files_content)
+        autoresize_columns(self.tab_conflicts_content)
+        autoresize_columns(self.tab_skipped_content)
 
-        self.tab_missing_content.setPlainText(item.missing)
+        # self.tab_files_content.setPlainText(item.files)
+
+        # matched_idx = self.tabWidget.indexOf(self.tab_matched)
+        # if item.archive_instance.has_matched:
+        #     self.set_tab_color(matched_idx, QtGui.QColor(91, 135, 33))
+        # else:
+        #     self.set_tab_color(matched_idx)
+        # self.tab_matched_content.setPlainText(item.matched)
+
+        # mismatched_idx = self.tabWidget.indexOf(self.tab_mismatched)
+        # if item.archive_instance.has_mismatched:
+        #     self.set_tab_color(mismatched_idx, QtGui.QColor(78, 33, 135))
+        # else:
+        #     self.set_tab_color(mismatched_idx)
+        # self.tab_mismatched_content.setPlainText(item.mismatched)
+
+        # self.tab_missing_content.setPlainText(item.missing)
 
         skipped_idx = self.tabWidget.indexOf(self.tab_skipped)
         if item.archive_instance.has_ignored:
             self.set_tab_color(skipped_idx, QtGui.QColor(135, 33, 39))
         else:
             self.set_tab_color(skipped_idx)
-        self.tab_skipped_content.setPlainText(item.skipped)
+        # self.tab_skipped_content.setPlainText(item.skipped)
 
         conflict_idx = self.tabWidget.indexOf(self.tab_conflicts)
         if item.archive_instance.has_conflicts:
             self.set_tab_color(conflict_idx, QtGui.QColor(135, 33, 39))
         else:
             self.set_tab_color(conflict_idx)
-        self.tab_conflicts_content.setPlainText(item.conflicts)
+        # self.tab_conflicts_content.setPlainText(item.conflicts)
 
     @pyqtSlot(name="on_actionOpen_triggered")
     def _do_add_new_mod(self):

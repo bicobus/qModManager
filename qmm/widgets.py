@@ -5,14 +5,16 @@
 
 import logging
 from os import path
+from typing import Dict, Iterable, List, Union
 
 from PyQt5 import QtGui, QtWidgets
 from PyQt5.QtCore import Qt, pyqtSlot, QSize
+from PyQt5.QtWidgets import QTreeWidget, QTreeWidgetItem
 
 from qmm.bucket import FileMetadata
 from qmm.common import settings, timestamp_to_string
 # from qmm.dialogs import qInformation
-from qmm.filehandler import ArchivesCollection
+from qmm.filehandler import ArchivesCollection, ArchiveInstance
 from qmm.lang import LANGUAGE_CODES, get_locale  # , normalize_locale
 from qmm.ui_about import Ui_About
 from qmm.ui_settings import Ui_Settings
@@ -167,88 +169,76 @@ class QSettingsCentralWidget(QtWidgets.QWidget, Ui_Settings):
         self.hide()
 
 
-# widgets name:
-#  * content_name
-#  * content_author
-#  * content_version
-#  * content_url
-#  * content_description
-#  * content_tags
-#  * filetreeWidget
-#
-#  Unfinished, will need to be revisited
-# class DetailedView(QtWidgets.QWidget):
-#     def __init__(self, parent=None):
-#         super(DetailedView, self).__init__(parent)
-#         self.ui = Ui_DetailedView()
-#         self.ui.setupUi(self)
-#         self.ui.button_hide.hide()
-#         self.ui.filetreeWidget.hide()
+def autoresize_columns(tree_widget: QTreeWidget):
+    tree_widget.expandAll()
+    for i in range(0, tree_widget.columnCount()-1):
+        tree_widget.resizeColumnToContents(i)
 
-#     def prepare_directoryList(self, directories):
-#         """Returns a dict of lists of files indexed on a tuple of directories.
-#         Example: dict(
-#          ('res/TheShyGuy995/', 'weapons', 'Fire Emblem'): ['/Sheathed Sword.svg', '/Sword.xml']
-#         )
-#         """
-#         dlist = list()
-#         for file in directories:
-#             dirname, _ = path.split(file)
-#             if dirname not in dlist and "/" in dirname:
-#                 dlist.append(dirname)
 
-#         prefix = path.commonpath(dlist)
-#         if "/" in prefix:
-#             prefix = prefix.split("/")
+def _create_treewidget(text: Union[str, List], parent, add_to: Dict = None, tooltip: str = None):
+    w = QTreeWidgetItem(parent)
+    if isinstance(text, str):
+        text = [text]
+    for idx, string in enumerate(text):
+        w.setText(idx, string)
+    if tooltip:
+        w.setToolTip(0, tooltip)
+    if add_to is not None:
+        add_to.setdefault(text[0], w)
+    return w
 
-#         ddir = dict()
-#         for dirname in dlist:
-#             sdir = dirname.split('/')
-#             if isinstance(prefix, list):
-#                 for p in prefix:
-#                     sdir.remove(p)
-#             else:
-#                 sdir.remove(prefix)
-#             dir_str = "/".join(sdir)
 
-#             for ofile in directories:
-#                 if dir_str in ofile:
-#                     start, tmp, cfile = ofile.partition(dir_str)
-#                     path_to_file = tmp.split("/")
-#                     pfile = list()
-#                     pfile.append(start)
-#                     pfile.extend(path_to_file)
-#                     pfile = tuple(pfile)
-#                     if pfile not in ddir.keys():
-#                         ddir[pfile] = deque()
-#                     ddir[pfile].append(cfile)
+def build_tree_from_list(item, parent: QTreeWidget, folders):
+    folder, file = item.split()
+    folder_list = folder.split('/')
+    for idx, folder in enumerate(folder_list):
+        if folder not in folders.keys():
+            if idx > 0:
+                p = folders[folder_list[idx-1]]
+            else:
+                p = parent
+            _create_treewidget(folder, parent=p, add_to=folders)
+    if file != '':
+        _create_treewidget(file, folders[folder_list[-1]], tooltip=item.path)
+    return folders
 
-#         return ddir
 
-#     def build_dirlist(self, pathAndFiles):
-#         dir_map = dict()
-#         for directories, files in pathAndFiles.items():
-#             for directory in directories:
-#                 if directory not in dir_map.keys():
-#                     index = directories.index(directory)
-#                     if index > 0:
-#                         previous = directories[index - 1]
-#                     else:
-#                         previous = self.ui.filetreeWidget
+def build_ignored_tree_widget(tree_widget: QTreeWidget, ignored_iter: Iterable[FileMetadata]):
+    parent_folders = {}
+    for item in ignored_iter:
+        build_tree_from_list(item, tree_widget, parent_folders)
 
-#                 dir_map[directory] = QtWidgets.QTreeWidgetItem(previous, directory)
 
-#             for file in files:
-#                 dir_map[directory].addChild(QtWidgets.QTreeWidgetItem(None, file.strip('/')))
+def build_conflict_tree_widget(container: QTreeWidget, archive_instance: ArchiveInstance):
+    for root, conflicts in archive_instance.conflicts():
+        root_widget = QTreeWidgetItem()
+        root_widget.setText(0, root)
+        root_widget.setText(1, '')
+        for item in conflicts:
+            if isinstance(item, FileMetadata):
+                content = [item.path, item.origin]
+            else:
+                content = [item, 'Archive']
+            _create_treewidget(content, root_widget)
+        container.addTopLevelItem(root_widget)
 
-#     def closeEvent(self, event):
-#         """Ignore the close event and hide the widget instead
 
-#         If the window gets closed, Qt will prune its data and renders it
-#         unavailable for further usage.
-#         """
-#         self.hide()
-#         event.ignore()
+def build_tree_widget(container: QTreeWidget, archive_instance: ArchiveInstance):
+    parent_folders = {}
+    for folder in archive_instance.folders():
+        parts = folder.path.rpartition('/')
+        if parts[1] == '':
+            p = container
+        else:
+            p = parent_folders[parts[0]]
+
+        parent_folders[folder.path] = _create_treewidget([parts[2], str(archive_instance.get_status(folder))], p)
+    for file_item in archive_instance.files(exclude_directories=True):
+        folder, file = file_item.split()
+        _create_treewidget(
+            [file, str(archive_instance.get_status(file_item.path))],
+            parent_folders[folder],
+            tooltip=file_item.path)
 
 
 class ListRowItem(QtWidgets.QListWidgetItem):
@@ -303,8 +293,6 @@ class ListRowItem(QtWidgets.QListWidgetItem):
     def set_text_color(self):
         if self.archive_instance.all_ignored:
             self.setForeground(QtGui.QColor("gray"))
-        else:
-            print(self.name)
 
     def _format_strings(self):
         self._files_str = _format_regular(

@@ -173,64 +173,29 @@
         </attribute>
         <layout class="QVBoxLayout" name="verticalLayout_9">
          <item>
-          <widget class="QPlainTextEdit" name="tab_files_content">
-           <property name="undoRedoEnabled">
-            <bool>false</bool>
+          <widget class="QTreeWidget" name="tab_files_content">
+           <property name="sizeAdjustPolicy">
+            <enum>QAbstractScrollArea::AdjustIgnored</enum>
            </property>
-           <property name="readOnly">
+           <property name="alternatingRowColors">
             <bool>true</bool>
            </property>
-          </widget>
-         </item>
-        </layout>
-       </widget>
-       <widget class="QWidget" name="tab_matched">
-        <attribute name="title">
-         <string>Matched</string>
-        </attribute>
-        <layout class="QVBoxLayout" name="verticalLayout_11">
-         <item>
-          <widget class="QPlainTextEdit" name="tab_matched_content">
-           <property name="undoRedoEnabled">
-            <bool>false</bool>
-           </property>
-           <property name="readOnly">
+           <property name="sortingEnabled">
             <bool>true</bool>
            </property>
-          </widget>
-         </item>
-        </layout>
-       </widget>
-       <widget class="QWidget" name="tab_missing">
-        <attribute name="title">
-         <string>Missing</string>
-        </attribute>
-        <layout class="QVBoxLayout" name="verticalLayout_12">
-         <item>
-          <widget class="QPlainTextEdit" name="tab_missing_content">
-           <property name="undoRedoEnabled">
-            <bool>false</bool>
-           </property>
-           <property name="readOnly">
+           <attribute name="headerCascadingSectionResizes">
             <bool>true</bool>
-           </property>
-          </widget>
-         </item>
-        </layout>
-       </widget>
-       <widget class="QWidget" name="tab_mismatched">
-        <attribute name="title">
-         <string>Mismatched</string>
-        </attribute>
-        <layout class="QVBoxLayout" name="verticalLayout_13">
-         <item>
-          <widget class="QPlainTextEdit" name="tab_mismatched_content">
-           <property name="undoRedoEnabled">
-            <bool>false</bool>
-           </property>
-           <property name="readOnly">
-            <bool>true</bool>
-           </property>
+           </attribute>
+           <column>
+            <property name="text">
+             <string>Path</string>
+            </property>
+           </column>
+           <column>
+            <property name="text">
+             <string>State</string>
+            </property>
+           </column>
           </widget>
          </item>
         </layout>
@@ -241,13 +206,17 @@
         </attribute>
         <layout class="QVBoxLayout" name="verticalLayout_14">
          <item>
-          <widget class="QPlainTextEdit" name="tab_conflicts_content">
-           <property name="undoRedoEnabled">
-            <bool>false</bool>
-           </property>
-           <property name="readOnly">
-            <bool>true</bool>
-           </property>
+          <widget class="QTreeWidget" name="tab_conflicts_content">
+           <column>
+            <property name="text">
+             <string>Path</string>
+            </property>
+           </column>
+           <column>
+            <property name="text">
+             <string>Source</string>
+            </property>
+           </column>
           </widget>
          </item>
         </layout>
@@ -258,13 +227,17 @@
         </attribute>
         <layout class="QVBoxLayout" name="verticalLayout_15">
          <item>
-          <widget class="QPlainTextEdit" name="tab_skipped_content">
-           <property name="undoRedoEnabled">
-            <bool>false</bool>
-           </property>
-           <property name="readOnly">
-            <bool>true</bool>
-           </property>
+          <widget class="QTreeWidget" name="tab_skipped_content">
+           <column>
+            <property name="text">
+             <string>Path</string>
+            </property>
+           </column>
+           <column>
+            <property name="text">
+             <string>State</string>
+            </property>
+           </column>
           </widget>
          </item>
         </layout>
@@ -310,6 +283,9 @@
               <horstretch>0</horstretch>
               <verstretch>0</verstretch>
              </sizepolicy>
+            </property>
+            <property name="cursor">
+             <cursorShape>IBeamCursor</cursorShape>
             </property>
             <property name="text">
              <string>N/A</string>

@@ -21,7 +21,7 @@ TYPE_LOOSEFILE = 1
 TYPE_GAMEFILE = 2
 
 
-def _normalize_attributes(attr):
+def _normalize_attributes(attr: str):
     if 'D' in attr:
         return 'D'
     if 'A' in attr:
@@ -42,10 +42,13 @@ class FileMetadata:
         modified: timestamp of the last modification of the file.
         isfrom: either 'TYPE_GAMEFILE' or 'TYPE_LOOSEFILE'
     """
+    _suffixes = ('.xml', '.svg')
+    _partition = ('res', 'mods')
 
     def __init__(self, crc, path: Union[str, pathlib.Path], attributes, modified, isfrom):
         self._CRC = crc
         self._from = isfrom
+        self._parts = ()
         if isinstance(path, pathlib.Path):
             self._normalize_path(path)
         else:
@@ -63,11 +66,7 @@ class FileMetadata:
         else:
             self._Modified = modified
 
-    def _normalize_path(
-        self,
-        pathobj: pathlib.Path,
-        partition=('res', 'mods')
-    ):
+    def _normalize_path(self, pathobj: pathlib.Path):
         """Return a pathlib.Path object with a normalized path.
 
         We want to build a path that is similar to the one present in an
@@ -76,12 +75,12 @@ class FileMetadata:
         ...blah/res/mods/namespace/category/ -> namespace/category/
         """
         if pathobj.is_absolute():
-            self._Path = pathobj.as_posix().partition(join(*partition) + sep)[2]
+            self._Path = pathobj.as_posix().partition(join(*self._partition) + sep)[2]
             self.pathobj = pathobj
         else:  # assume we already have the normalized string, fed from the archive
             self._Path = pathobj.as_posix()
             self.pathobj = pathlib.Path(settings['game_folder'],
-                                        *partition,
+                                        *self._partition,
                                         pathobj)
 
     def is_dir(self):
@@ -100,7 +99,17 @@ class FileMetadata:
         """Check if the file exists on the disk"""
         return self.pathobj.exists()
 
+    def split(self):
+        if self.is_dir():
+            parts = (self._Path, '')
+        else:
+            pos = self._Path.rfind('/')
+            # path and file
+            parts = (self._Path[:pos], self._Path[pos+1:])
+        return parts
+
     def path_as_posix(self):
+        """Return 'pathlib.PurePosixPath' with self._Path as value."""
         return pathlib.PurePosixPath(self._Path)
 
     @property
@@ -145,6 +154,15 @@ class FileMetadata:
             f"from: {self.origin})"
         )
 
+    def __eq__(self, other):
+        return other == self._Path
+
+    def __lt__(self, other):
+        return len(other) < len(self._Path)
+
+    def __len__(self):
+        return len(self._Path)
+
 
 Crc32 = TypeVar("Crc32", int, int)
 Conflict = Dict[str, List]
@@ -156,7 +174,8 @@ loosefiles: LooseFiles = {}
 gamefiles: GameFiles = {}
 
 
-def _find_index_from(lbucket, crc, path):
+def _find_index_from(lbucket: LooseFiles, crc: Crc32, path: str):
+    """Find index of 'path' in bucket 'lbucket'"""
     for item in lbucket[crc]:
         if item.path == path:
             return lbucket[crc].index(item)
@@ -189,7 +208,7 @@ def file_path_in_loosefiles(filemd: FileMetadata) -> bool:
     return any(filemd.path in _extract_paths(v) for v in loosefiles.values())
 
 
-def with_gamefiles(crc: int = None, path: str = None):
+def with_gamefiles(crc: Crc32 = None, path: str = None):
     """First check if a CRC32 exist within the gamefiles bucket, if no CRC is
     given or the check fails, will then check if a path is present in the
     gamefiles's bucket values.
@@ -215,7 +234,7 @@ def as_conflict(key: str, value):
         conflicts[key].append(value)
 
 
-def as_gamefile(crc: int, value: Union[pathlib.Path, pathlib.PurePath]):
+def as_gamefile(crc: Crc32, value: Union[pathlib.Path, pathlib.PurePath]):
     """Add to the gamefiles a path indexed to its target CRC32."""
     if crc in gamefiles.keys():
         logger.warning(
@@ -229,7 +248,7 @@ def as_gamefile(crc: int, value: Union[pathlib.Path, pathlib.PurePath]):
     gamefiles.setdefault(crc, value)
 
 
-def as_loosefile(crc: int, filepath: pathlib.Path):
+def as_loosefile(crc: Crc32, filepath: pathlib.Path):
     """Adds filepath to the loosefiles bucket, indexed on given CRC."""
     loosefiles.setdefault(crc, [])
     filepath = FileMetadata(
