@@ -2,8 +2,8 @@
 Version History
 ===============
 
-`1.0.0-alpha11`_
-----------------
+`1.0.0-alpha11`_ (???)
+----------------------
 Added
 ~~~~~
 * Color code each managed item based on their status
@@ -18,6 +18,19 @@ Added
 
   * Greyed out text means the archive contains nothing that can be installed
 
+Changed
+~~~~~~~
+
+* Each file is now beautifully displayed in a tree instead of using a TextInput
+* Files are color coded depending on their states.
+* The conflicts tab details where a file as been found as duplicate: *GameFile*
+  or *Archive*
+
+Fixed
+~~~~~
+
+* Fix crash related to file system watch (watchdog)
+
 `1.0.0-alpha10`_
 ----------------
 
@@ -30,12 +43,14 @@ Added
 * Foundations for the internationalisation (l10n) of the software through
   gettext
 * A Watchdog to monitor both the module's repository and the game's module path
-   * The software will automatically add whatever archive dropped in the
-     module's repository
-   * The software will automatically determine if the game's module directory
-     has been modified and regenerate it's database the next time the
-     application gain focus
-   * A checkbox exists to disable this behavior if unchecked.
+
+  * The software will automatically add whatever archive dropped in the
+    module's repository
+  * The software will automatically determine if the game's module directory
+    has been modified and regenerate it's database the next time the
+    application gain focus
+  * A checkbox exists to disable this behavior if unchecked.
+
 * Internal dev stuff: changes of libraries used, reworking codebase, etc
 
 
