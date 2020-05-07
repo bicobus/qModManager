@@ -14,12 +14,19 @@ from PyQt5.QtWidgets import QTreeWidget, QTreeWidgetItem
 from qmm.bucket import FileMetadata
 from qmm.common import settings, timestamp_to_string
 # from qmm.dialogs import qInformation
-from qmm.filehandler import ArchivesCollection, ArchiveInstance
+from qmm.filehandler import ArchivesCollection, ArchiveInstance, LITERALS, TRANSLATED_LITERALS
 from qmm.lang import LANGUAGE_CODES, get_locale  # , normalize_locale
 from qmm.ui_about import Ui_About
 from qmm.ui_settings import Ui_Settings
 
 logger = logging.getLogger(__name__)
+FILESTATE_COLORS = {
+    'matched': (91, 135, 33, 255),  # greenish
+    'mismatched': (132, 161, 225, 255),  # blueish
+    'missing': (237, 213, 181, 255),  # (225, 185, 132, 255),  # yellowish
+    'conflicts': (135, 33, 39, 255),  # red-ish
+    'ignored': (219, 219, 219, 255),  # gray
+}
 
 
 class QAbout(QtWidgets.QWidget, Ui_About):
@@ -170,17 +177,20 @@ class QSettingsCentralWidget(QtWidgets.QWidget, Ui_Settings):
 
 
 def autoresize_columns(tree_widget: QTreeWidget):
+    """Resize all columns of a QTreeWidget to fit content."""
     tree_widget.expandAll()
     for i in range(0, tree_widget.columnCount()-1):
         tree_widget.resizeColumnToContents(i)
 
 
-def _create_treewidget(text: Union[str, List], parent, add_to: Dict = None, tooltip: str = None):
+def _create_treewidget(text: Union[str, List], parent, add_to: Dict = None, tooltip: str = None, color=None):
     w = QTreeWidgetItem(parent)
     if isinstance(text, str):
         text = [text]
     for idx, string in enumerate(text):
         w.setText(idx, string)
+        if color:
+            w.setBackground(idx, QtGui.QColor(*color))
     if tooltip:
         w.setToolTip(0, tooltip)
     if add_to is not None:
@@ -232,13 +242,16 @@ def build_tree_widget(container: QTreeWidget, archive_instance: ArchiveInstance)
         else:
             p = parent_folders[parts[0]]
 
-        parent_folders[folder.path] = _create_treewidget([parts[2], str(archive_instance.get_status(folder))], p)
+        status = TRANSLATED_LITERALS[archive_instance.get_status(folder)]
+        parent_folders[folder.path] = _create_treewidget([parts[2], status], p)
     for file_item in archive_instance.files(exclude_directories=True):
         folder, file = file_item.split()
+        status = archive_instance.get_status(file_item.path)
         _create_treewidget(
-            [file, str(archive_instance.get_status(file_item.path))],
+            [file, TRANSLATED_LITERALS[status]],
             parent_folders[folder],
-            tooltip=file_item.path)
+            tooltip=file_item.path,
+            color=FILESTATE_COLORS[LITERALS[status]])
 
 
 class ListRowItem(QtWidgets.QListWidgetItem):
@@ -255,65 +268,30 @@ class ListRowItem(QtWidgets.QListWidgetItem):
         self._modified = None
         self._hashsum = archive_manager.hashsums(filename)
 
-        self._files_str = ""
-        self._matched_str = ""
-        self._missing_str = ""
-        self._mismatched_str = ""
-        self._ignored_str = ""
-        self._conflicts_str = ""
-
         self._built_strings = False
 
         self.setText(self.filename)  # filename == _key
-        self._format_strings()
         self.set_gradients()
         self.set_text_color()
 
     def set_gradients(self):
-        colors = {
-            'matched': (91, 135, 33, 255),  # greenish
-            'mismatched': (132, 161, 225, 255),  # blueish
-            'missing': (225, 185, 132, 255),  # yellowish
-            'conflicts': (135, 33, 39, 255),  # red-ish
-        }
         gradient = QtGui.QLinearGradient(75, 75, 150, 150)
         if self.archive_instance.has_mismatched:
-            gradient.setColorAt(0, QtGui.QColor(*colors['mismatched']))
+            gradient.setColorAt(0, QtGui.QColor(*FILESTATE_COLORS['mismatched']))
         elif self.archive_instance.all_matching and not self.archive_instance.all_ignored:
-            gradient.setColorAt(0, QtGui.QColor(*colors['matched']))
+            gradient.setColorAt(0, QtGui.QColor(*FILESTATE_COLORS['matched']))
         elif self.archive_instance.has_matched and self.archive_instance.has_missing:
-            gradient.setColorAt(0, QtGui.QColor(*colors['missing']))
+            gradient.setColorAt(0, QtGui.QColor(*FILESTATE_COLORS['missing']))
         else:
             gradient.setColorAt(0, QtGui.QColor(0, 0, 0, 0))
         if self.archive_instance.has_conflicts:
-            gradient.setColorAt(1, QtGui.QColor(*colors['conflicts']))
+            gradient.setColorAt(1, QtGui.QColor(*FILESTATE_COLORS['conflicts']))
         brush = QtGui.QBrush(gradient)
         self.setBackground(brush)
 
     def set_text_color(self):
         if self.archive_instance.all_ignored:
             self.setForeground(QtGui.QColor("gray"))
-
-    def _format_strings(self):
-        self._files_str = _format_regular(
-            title=_("Archive's content"),
-            items=list(self.archive_instance.files(exclude_directories=True)))
-        self._matched_str = _format_regular(
-            title=_("Files installed"),
-            items=list(self.archive_instance.matched()))
-        self._missing_str = _format_regular(
-            title=_("Missing from the game folder"),
-            items=list(self.archive_instance.missing()))
-        self._mismatched_str = _format_regular(
-            title=_("Same name and different CRC or same CRC with different names"),
-            items=list(self.archive_instance.mismatched()))
-        self._conflicts_str = _format_conflicts(
-            title=_("Conflicting files between archives"),
-            items=self.archive_instance.conflicts)
-        self._ignored_str = _format_regular(
-            title=_("Files present in the archive but ignored"),
-            items=list(self.archive_instance.ignored()))
-        self._built_strings = True
 
     def refresh_strings(self):
         """Called when the game's folder state changed
@@ -323,8 +301,6 @@ class ListRowItem(QtWidgets.QListWidgetItem):
         """
         self.archive_instance.reset_status()
         self.archive_instance.reset_conflicts()
-        self._built_strings = False
-        self._format_strings()
         self.set_gradients()
 
     @property
@@ -355,37 +331,6 @@ class ListRowItem(QtWidgets.QListWidgetItem):
         if self._hashsum:
             return self._hashsum
         return ""
-
-    @property
-    def files(self):
-        """Returns a formatted string containing all the files of the archive"""
-        if not self._built_strings:
-            self._format_strings()
-            self._built_strings = True
-        return self._files_str
-
-    @property
-    def matched(self):
-        """Returns a formatted string containing all files matched on the filesystem"""
-        return self._matched_str
-
-    @property
-    def missing(self):
-        """Return a string representing the list of missing files."""
-        return self._missing_str
-
-    @property
-    def mismatched(self):
-        """Return a string representing the mismatched elements."""
-        return self._mismatched_str
-
-    @property
-    def conflicts(self):
-        return self._conflicts_str
-
-    @property
-    def skipped(self):
-        return self._ignored_str
 
 
 def _format_regular(title, items):

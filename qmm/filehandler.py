@@ -47,6 +47,18 @@ FILE_MATCHED = 1
 FILE_MISSING = 2
 FILE_MISMATCHED = 3
 FILE_IGNORED = 4
+LITERALS = {
+    FILE_MATCHED: 'matched',
+    FILE_MISSING: 'missing',
+    FILE_MISMATCHED: 'mismatched',
+    FILE_IGNORED: 'ignored',
+}
+TRANSLATED_LITERALS = {
+    FILE_MATCHED: _("Matched"),
+    FILE_MISSING: _("Missing"),
+    FILE_MISMATCHED: _("Mismatched"),
+    FILE_IGNORED: _("Ignored"),
+}
 
 
 class FileHandlerException(Exception):
@@ -75,7 +87,7 @@ def extract7z(file_archive: pathlib.Path,
     filepath = file_archive.absolute()
     output_path = output_path.absolute()
     cmd = [
-        tools_path(), 'x', filepath, f'-o{output_path}',
+        tools_path(), 'x', str(filepath), f'-o{output_path}',
         '-ba', '-bb1', '-y', '-scsUTF-8', '-sccUTF-8'
     ]
     cmd.extend(ignore_patterns(True))
@@ -213,7 +225,6 @@ class ArchiveInstance:
         self._archive_name = archive_name
         self._file_list = file_list
         # Note: folders are not filtered out of meta.
-        self._meta = []
         self.reset_status()
         # Contains a list of archives or, if the conflict is with a game file,
         # a FileMetadata instance.
@@ -227,6 +238,7 @@ class ArchiveInstance:
         of each individual file alongside the current status of that file. The
         status can be either 'FILE_MATCHED', 'FILE_MISMATCHED', 'FILE_IGNORED'
         or 'FILE_MISSING'."""
+        self._meta = []
         for item in self._file_list:  # fmd, status in archive_analysis(self._file_list):
             self._meta.append((item, file_status(item)))
 

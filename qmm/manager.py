@@ -16,7 +16,6 @@ from watchdog.observers import Observer
 from qmm import bucket, dialogs, filehandler
 from qmm.common import settings, settings_are_set, valid_suffixes
 from qmm.config import get_config_dir
-from qmm.lang import set_gettext
 from qmm.ui_mainwindow import Ui_MainWindow
 from qmm.widgets import (ListRowItem, QAbout, QSettings, autoresize_columns, build_conflict_tree_widget,
                          build_ignored_tree_widget, build_tree_widget)
@@ -263,7 +262,7 @@ class MainWindow(QMainWindow, QEventFilter, CustomMenu, Ui_MainWindow):
         if etype or self.is_mod_repo_dirty:
             filehandler.generate_conflicts_between_archives(self.managed_archives)
             self.managed_archives.initiate_conflicts_detection()
-            self._refresh_list_item_strings()
+            self._refresh_list_item_state()
             self._is_mod_repo_dirty = False
 
         msg = " "
@@ -434,37 +433,17 @@ class MainWindow(QMainWindow, QEventFilter, CustomMenu, Ui_MainWindow):
         autoresize_columns(self.tab_conflicts_content)
         autoresize_columns(self.tab_skipped_content)
 
-        # self.tab_files_content.setPlainText(item.files)
-
-        # matched_idx = self.tabWidget.indexOf(self.tab_matched)
-        # if item.archive_instance.has_matched:
-        #     self.set_tab_color(matched_idx, QtGui.QColor(91, 135, 33))
-        # else:
-        #     self.set_tab_color(matched_idx)
-        # self.tab_matched_content.setPlainText(item.matched)
-
-        # mismatched_idx = self.tabWidget.indexOf(self.tab_mismatched)
-        # if item.archive_instance.has_mismatched:
-        #     self.set_tab_color(mismatched_idx, QtGui.QColor(78, 33, 135))
-        # else:
-        #     self.set_tab_color(mismatched_idx)
-        # self.tab_mismatched_content.setPlainText(item.mismatched)
-
-        # self.tab_missing_content.setPlainText(item.missing)
-
         skipped_idx = self.tabWidget.indexOf(self.tab_skipped)
         if item.archive_instance.has_ignored:
             self.set_tab_color(skipped_idx, QtGui.QColor(135, 33, 39))
         else:
             self.set_tab_color(skipped_idx)
-        # self.tab_skipped_content.setPlainText(item.skipped)
 
         conflict_idx = self.tabWidget.indexOf(self.tab_conflicts)
         if item.archive_instance.has_conflicts:
             self.set_tab_color(conflict_idx, QtGui.QColor(135, 33, 39))
         else:
             self.set_tab_color(conflict_idx)
-        # self.tab_conflicts_content.setPlainText(item.conflicts)
 
     @pyqtSlot(name="on_actionOpen_triggered")
     def _do_add_new_mod(self):
@@ -523,8 +502,10 @@ class MainWindow(QMainWindow, QEventFilter, CustomMenu, Ui_MainWindow):
             logger.error("Triggered _do_install_selected_mod without a selection")
             return
 
+        self._do_enable_autorefresh(False)
         logger.info("Installing file %s", item.filename)
         files = filehandler.install_archive(item.filename, item.archive_instance.install_info())
+        self._do_enable_autorefresh(True)
         if not files:
             dialogs.qWarning(_(
                 "The archive {filename} extracted with errors.\n"
@@ -535,7 +516,7 @@ class MainWindow(QMainWindow, QEventFilter, CustomMenu, Ui_MainWindow):
             ))
         else:
             filehandler.generate_conflicts_between_archives(self.managed_archives)
-            self._refresh_list_item_strings()
+            self._refresh_list_item_state()
             self._on_selection_change()
 
     @pyqtSlot(name="on_actionUninstall_Mod_triggered")
@@ -557,10 +538,13 @@ class MainWindow(QMainWindow, QEventFilter, CustomMenu, Ui_MainWindow):
             ))
             return False
 
+        self._do_enable_autorefresh(False)
         logger.info("Uninstalling files from archive %s", item.filename)
-        if filehandler.uninstall_files(item.archive_instance.uninstall_info()):
+        uninstall_status = filehandler.uninstall_files(item.archive_instance.uninstall_info())
+        self._do_enable_autorefresh(True)
+        if uninstall_status:
             filehandler.generate_conflicts_between_archives(self.managed_archives)
-            self._refresh_list_item_strings()
+            self._refresh_list_item_state()
             self._on_selection_change()
             return True
 
@@ -607,8 +591,12 @@ class MainWindow(QMainWindow, QEventFilter, CustomMenu, Ui_MainWindow):
             self.list_refresh_button.setEnabled(False)
         else:
             logger.debug("Disabling WatchDog Subsystem.")
-            self._observer.unschedule(self._wd_watchers['modules'])
-            self._observer.unschedule(self._wd_watchers['archives'])
+            if self._wd_watchers['modules']:
+                self._observer.unschedule(self._wd_watchers['modules'])
+                logger.debug("Modules watcher disabled")
+            if self._wd_watchers['archives']:
+                self._observer.unschedule(self._wd_watchers['archives'])
+                logger.debug("Archives watcher disabled")
             self._wd_watchers['modules'] = None
             self._wd_watchers['archives'] = None
             self.list_refresh_button.setEnabled(True)
@@ -640,9 +628,12 @@ class MainWindow(QMainWindow, QEventFilter, CustomMenu, Ui_MainWindow):
         else:
             raise UnknownContext("Unknown context '{}' for scheduler.".format(context))
 
-    def _refresh_list_item_strings(self):
+    def _refresh_list_item_state(self):
         for idx in range(0, self.listWidget.count()):
-            self.listWidget.item(idx).refresh_strings()
+            item: ListRowItem = self.listWidget.item(idx)
+            item.archive_instance.reset_status()
+            item.archive_instance.reset_conflicts()
+            item.set_gradients()
 
     def _on_action_open_done(self, filename, archive=None):
         """Callback to QFileDialog once a file is selected."""
@@ -671,7 +662,7 @@ class MainWindow(QMainWindow, QEventFilter, CustomMenu, Ui_MainWindow):
             )
 
             self._add_item_to_list(item)
-            self._refresh_list_item_strings()
+            self._refresh_list_item_state()
             self.listWidget.scrollToItem(item)
             self.listWidget.setCurrentItem(item)
             # Clear the ignore flag for the file
@@ -880,8 +871,6 @@ def main():
     locale.setlocale(locale.LC_ALL, '')
     # Ends the application on CTRL+c
     signal.signal(signal.SIGINT, signal.SIG_DFL)
-    # set_gettext() install's gettext _ in the builtins
-    set_gettext()
 
     logger.info("Starting application")
     try:

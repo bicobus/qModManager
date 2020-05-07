@@ -20,7 +20,6 @@ def is_frozen():
 
 
 def get_base_path():
-    r = None
     if getattr(sys, 'frozen', False):
         r = os.path.dirname(sys.executable)
     elif 'sphinx' in sys.modules:
