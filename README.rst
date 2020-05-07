@@ -1,90 +1,110 @@
-[![DeepSource](https://static.deepsource.io/deepsource-badge-light-mini.svg)](https://deepsource.io/gh/bicobus/qModManager/?ref=repository-badge)
-[![Build status](https://ci.appveyor.com/api/projects/status/hn7a0oa12qhg62ds?svg=true)](https://ci.appveyor.com/project/bicobus/qmodmanager)
-[![Documentation Status](https://readthedocs.org/projects/qmodmanager/badge/?version=latest)](https://qmodmanager.readthedocs.io/en/latest/?badge=latest)
+.. image:: https://static.deepsource.io/deepsource-badge-light-mini.svg
+    :target: https://deepsource.io/gh/bicobus/qModManager/?ref=repository-badge
 
-# PyQModManager
+.. image:: https://ci.appveyor.com/api/projects/status/hn7a0oa12qhg62ds?svg=true
+    :target: https://ci.appveyor.com/project/bicobus/qmodmanager
+
+.. image:: https://readthedocs.org/projects/qmodmanager/badge/?version=latest
+    :target: https://qmodmanager.readthedocs.io/en/latest/?badge=latest
+
+=============
+PyQModManager
+=============
 
 Simple tool to manage a set of archives. Written to manage mods available for
-[Lilith's Throne](https://github.com/Innoxia/liliths-throne-public)
+the game `Lilith's Throne`_.
 
- * Track the state of the different files bundled with each archives
- * Unpack into a designated directory
+* Track the state of the different files bundled with each archives
+* Unpack into a designated directory
 
-## Installation and Requirements
+Installation and Requirements
+------------------------------
 
-### Windows
+Windows
+^^^^^^^
 
 If you are running windows, a self contained binary is provided at each release.
-Please check the [releases](https://github.com/bicobus/qModManager/releases)
+Please check the releases_
 page to download the archive. Running the application is a simple as double
 clicking the .exe file present in the archive.
 
-### Linux
+Linux
+^^^^^
 
 You'll need to install python3 with whatever package manager your distribution
 provides you. This application has been developped using python 3.7, any prior
 version might work, but untested. If you feel adventurous, you can checkout
-[pyenv](https://github.com/pyenv/pyenv).
+pyenv_.
 
 This software being a python script, it doesn't need to be installed. However
 requirements are needed for that purpose.
 
-You'll need whatever is presesent in the [requirements file][requirements]. As
+You'll need whatever is presesent in the `requirements.txt`_. As
 Linux distributions such as debian are commonly out of date, I'd recommend
 installing the requirement locally, under your user directory, with the
 following command.
 
-```
-~$ pip install --user -r requirements.txt
-```
+::
+
+    ~$ pip install --user -r requirements.txt
+
 
 You could also opt to install in a virtual environment through pipenv.
-`pipenv install` will use the Pipfile already present in the repository.
-```
-~$ pip install pipenv
-~$ pipenv install
-```
+``pipenv install`` will use the Pipfile already present in the repository.
 
-#### Running the app
+::
 
+    ~$ pip install pipenv
+    ~$ pipenv install
+
+
+Running the app
++++++++++++++++
 If you chose pipenv, you can then start the application using the following,
 provided you are in the same folder as the run.py file.
-```
-~$ pipenv run ./run.py
-```
+
+::
+
+    ~$ pipenv run ./run.py
+
 
 If you opted for the simple pip install, simply execute run.py.
-```
-~$ python run.py
-```
 
-## Known issues
+::
 
+    ~$ python run.py
+
+
+Known issues
+------------
 The software is currently being rewritten, as such no known limitation exists.
 This might change once we get out of alpha.
 
-## Hacking
-
+Hacking
+-------
 If you want to hack around, you only require the dependencies listed in the
-[requirements.txt file][requirements]. The Pipfile has a list of dev-packages,
+`requirements.txt`_ file. The Pipfile has a list of dev-packages,
 which is unneeded to actually run and develop the software. They're helper
-tools, like pylint or flake8 
+tools, like pylint or flake8
 
-### Documentation generator
-
+Documentation generator
+^^^^^^^^^^^^^^^^^^^^^^^
 The documentation is currently available at https://qmodmanager.rtfd.io/
 
 The generation of the documentation on readthedocs.org necessitate some extra
 steps in order to successfuly generate the api documentation. We have to
 generate ui files at build time, which are not included in the repository nor
-available to rtd. Therefore [a script][apidoc] has been provided as helper.
+available to rtd. Therefore a script apidoc_ has been provided as helper.
 
-The [apidoc script][apidoc] will forcefully generate the required files for the
+The apidoc_ script will forcefully generate the required files for the
 api. In addition of that, it will also parse the various UI files present in the
-resources folder and generate stubs in the [_ext folder][_extfolder]. Those
+resources folder and generate stubs in the `_ext folder`_. Those
 stubs needs to be regenerated whenever a UI file is added to the resources
-folder. 
+folder.
 
-[apidoc]: docs/apidoc.sh
-[_extfolder]: docs/_ext/
-[requirements]: requirements.txt
+.. _apidoc: docs/apidoc.sh
+.. _\_ext folder: docs/_ext/
+.. _requirements.txt: requirement.txt
+.. _releases: https://github.com/bicobus/qModManager/releases
+.. _lilith's throne: https://github.com/Innoxia/liliths-throne-public
+.. _pyenv: https://github.com/pyenv/pyenv
