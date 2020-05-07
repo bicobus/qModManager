@@ -3,6 +3,8 @@ name: Bug report
 about: Create a report to inform against a bug
 title: "[BUG]: "
 labels: bug, needs triage
+assignees: ''
+
 ---
 <!-- Provide a general summary of the issue in the Title above -->
 

@@ -3,6 +3,7 @@ name: Feature request
 about: Suggest an idea for this project
 labels: needs triage, feature
 title: '[FEATURE]'
+assignees: ''
 
 ---
 
