@@ -9,9 +9,9 @@
 .. |installfile| image:: ../resources/icons/install-line.svg
 .. |uninstallfile| image:: ../resources/icons/uninstall-line.svg
 
-=============
-PyQModManager
-=============
+=====
+Usage
+=====
 In this document will inform you about various elements of the graphical user
 interface of PyQModManager.
 
