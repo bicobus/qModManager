@@ -200,7 +200,7 @@ epub_exclude_files = ['search.html']
 intersphinx_mapping = {
     'PyQt5': ('https://www.riverbankcomputing.com/static/Docs/PyQt5/', None),
     'watchdog': ('https://pythonhosted.org/watchdog/', None),
-    'python': ('https://docs.python.org/', None),
+    'python': ('https://docs.python.org/3', None),
 }
 qt_documentation = 'Qt5'
 

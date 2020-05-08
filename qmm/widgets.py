@@ -217,10 +217,10 @@ def build_tree_from_path(item: FileMetadata, parent: QTreeWidget, folders, color
     folder_list = folder.split('/')
     key = None
     for idx, folder in enumerate(folder_list):
-        key = '.'.join([folder_list[i] for i in range(0, idx+1)])
+        key = '.'.join(folder_list[i] for i in range(0, idx+1))
         if key not in folders.keys():
             if idx > 0:
-                pkey = '.'.join([folder_list[i] for i in range(0, idx)])
+                pkey = '.'.join(folder_list[i] for i in range(0, idx))
                 p = folders[pkey]
             else:
                 p = parent
