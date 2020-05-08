@@ -354,12 +354,16 @@ class MainWindow(QMainWindow, QEventFilter, CustomMenu, Ui_MainWindow):
         """Return row if name is found in the list.
 
         Args:
-            name (str): Filename of the archive, content of the
-                `ListRowItem.text().`
+            name (str): Filename of the archive to find, matches content of the
+                :py:meth:`ListRowItem text method <PyQt5.QtWidgets.QListWidgetItem.text>`.
 
-        Returns (int): index of item found
+        Returns:
+            int: index of item found, or `None` if `name` matches nothing.
         """
-        return self.listWidget.row(self.listWidget.findItems(name, Qt.MatchExactly)[0])
+        try:
+            return self.listWidget.row(self.listWidget.findItems(name, Qt.MatchExactly)[0])
+        except IndexError:
+            return None
 
     def _add_item_to_list(self, item):
         self.listWidget.addItem(item)
@@ -386,14 +390,14 @@ class MainWindow(QMainWindow, QEventFilter, CustomMenu, Ui_MainWindow):
     def set_tab_color(self, index, color: QtGui.QColor = None) -> None:
         """Manage tab text color.
 
-        Helper to _on_selection_change.
+        Helper to :obj:`MainWindow._on_selection_change`.
 
         Store the default text color of a tab in order to restore it
         whenever the selected element in the linked list changes.
 
         Args:
-            index: index of the tab
-            color: new color of the text
+            index (int): index of the tab
+            color (QtGui.QColor): new color of the text
         """
         if index not in self._qc.keys():  # Cache default color
             self._qc[index] = self.tabWidget.tabBar().tabTextColor(index)
@@ -560,9 +564,8 @@ class MainWindow(QMainWindow, QEventFilter, CustomMenu, Ui_MainWindow):
         """Show the settings window.
 
         Args:
-            first_launch (bool):
-                If true, disable cancel button and bind the save button to
-                MainWindow._init_mods
+            first_launch (bool): If true, disable cancel button and bind the
+                save button to :obj:`qmm.MainWindow._init_mods`
         """
         if not self._settings_window:
             self._settings_window = QSettings()
@@ -780,15 +783,16 @@ class QAppEventFilter(QObject):
     application becomes active.
 
     The detection of activity needs to be done at the Session Manager, namely
-    `QApplication` (`QGuiApplication` or `QCoreApplication`). That object
-    handles every window and widgets of the application. Each of those window
-    and widgets could become inactive regardless of the status of the whole
-    application. Inactivity could be defined as whenever the application loose
-    focus (keyboard input). This loss also happen whenever the window is being
+    :py:class:`PyQt5:QApplication` (:py:class:`PyQt5.QtGui.QGuiApplication`
+    or :py:class:`PyQt5.QtCore.QCoreApplication`). That object handles every
+    window and widgets of the application. Each of those window and widgets
+    could become inactive regardless of the status of the whole application.
+    Inactivity could be defined as whenever the application loose focus
+    (keyboard input). This loss also happen whenever the window is being
     dragged around by the user, which means we need to make sure to not trigger
     any refresh of the database for those user cases. To achieve that we track
-    the geometry and coordinates of the window and trigger the callback only
-    if those parameters remains the same between an inactive and active event.
+    the geometry and coordinates of the window and trigger the callback only if
+    those parameters remains the same between an inactive and active event.
 
     Callbacks are ``on_window_activate`` and ``on_window_deactivate``.
     """

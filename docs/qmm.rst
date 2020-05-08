@@ -3,6 +3,7 @@ qmm package
 
 .. automodule:: qmm
    :members:
+   :undoc-members:
    :show-inheritance:
 
 Submodules

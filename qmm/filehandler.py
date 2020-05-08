@@ -42,10 +42,13 @@ reErrorMatch = re.compile(r"""^(
     Sub\sitems\sErrors:.+
 )""", re.X | re.I).match
 
-
+#: Indicate that the file is found on the drive, and match in content.
 FILE_MATCHED = 1
+#: Indicate that the file is absent from the drive.
 FILE_MISSING = 2
+#: Indicate that the file to exists on drive, but not matching in content.
 FILE_MISMATCHED = 3
+#: Indicate that the file will be ignored by the software.
 FILE_IGNORED = 4
 LITERALS = {
     FILE_MATCHED: 'matched',
@@ -199,8 +202,7 @@ def sha256hash(filename: Union[IO, str]) -> Union[str, None]:
         filename: path to the file to hash
 
     Returns:
-        string: if successful
-        None: if not successful
+        str or None: a string if successful, otherwise None
     """
     try:
         if hasattr(filename, 'read'):
@@ -310,11 +312,13 @@ class ArchiveInstance:
         return list(self.matched()) + list(self.folders())
 
     def install_info(self):
-        """
-        Return a dictionnary of list useful to the installation process
+        """Return a several lists useful to the installation process.
 
         The content in matched and ignored key will be compiled into a set of
         exclude flags, whereas the content of mismatched key will be overridden
+
+        See Also:
+            :func:`install_archive`
         """
         return {
             'matched': list(self.matched()),
@@ -333,41 +337,45 @@ class ArchiveInstance:
 
     @property
     def has_matched(self):
-        """Return True if a file of the archive is of status FILE_MATCHED."""
+        """Return True if a file of the archive is of status :py:attr:`FILE_MATCHED`."""
         return self._has_status(FILE_MATCHED)
 
     @property
     def all_matching(self):
-        """Return True if all files in the archive matches on the drive."""
+        """Return `True` if all files in the archive matches on the drive."""
         no_directory = filter(lambda x: x[0].attributes != 'D', self._meta)
         return all(x[1] in (FILE_MATCHED, FILE_IGNORED) for x in no_directory)
 
     @property
     def has_mismatched(self):
-        """Return True if a file of the archive is of status FILE_MISMATCHED."""
+        """Value is `True` if a file of the archive is of status :py:attr:`FILE_MISMATCHED`."""
         return self._has_status(FILE_MISMATCHED)
 
     @property
     def has_missing(self):
-        """Return True if a file of the archive is of status FILE_MISSING."""
+        """Value is `True` if a file of the archive is of status :py:attr:`FILE_MISSING`."""
         return self._has_status(FILE_MISSING)
 
     @property
     def has_ignored(self):
-        """Return True if a file of the archive is of status FILE_IGNORED."""
+        """Value is `True` if a file of the archive is of status :py:attr:`FILE_IGNORED`."""
         return self._has_status(FILE_IGNORED)
 
     @property
     def all_ignored(self):
+        """Value is `True` if all files of the archive are of status :py:attr:`FILE_IGNORED`."""
         return all(x[1] == FILE_IGNORED or x[0].attributes == 'D' for x in self._meta)
 
     @property
     def has_conflicts(self):
+        """Value is `True` if conflicts exists for this archive."""
         return bool(self._conflicts)
 
 
 class ArchivesCollection(MutableMapping[str, ArchiveInstance]):
+    #: State of a file yielded through :meth:`refresh`
     FileAdded = 1
+    #: State of a file yielded through :meth:`refresh`
     FileRemoved = 2
 
     def __init__(self):
@@ -398,7 +406,7 @@ class ArchivesCollection(MutableMapping[str, ArchiveInstance]):
         changes on the filesystem.
 
         Yields:
-            event_type, name of archive, List[Filemetadata]
+            (Union[:attr:`FileAdded`, :attr:`FileRemoved`], str): State and name of the file
         """
         if not settings_are_set():
             return
@@ -419,7 +427,7 @@ class ArchivesCollection(MutableMapping[str, ArchiveInstance]):
             if key not in found:
                 logger.info("Archive removed: %s", key)
                 to_delete.append(key)
-                yield self.FileRemoved, key, self[key]
+                yield self.FileRemoved, key
         # Remove ghosts from index
         for k in to_delete:
             del self[k]
@@ -546,7 +554,8 @@ def _crc32(filename: Union[IO, str, os.PathLike]) -> Union[bucket.Crc32, None]:
     Args:
         filename: path to the file to hash
 
-    Returns: a string if successful, None otherwise
+    Returns:
+         str or None: a string if successful, None otherwise
     """
     try:
         if hasattr(filename, 'read'):
@@ -588,7 +597,7 @@ def build_game_files_crc32(progress=None):
     in order to compare the mod files with the existing game files.
 
     Args:
-        progress (dialogs.qProgress.progress):
+        progress (:meth:`~.dialogs.SplashProgress.progress`):
             Callback to a method accepting strings as argument.
     """
     target_folder = os.path.join(settings['game_folder'], 'res')
@@ -614,11 +623,8 @@ def build_loose_files_crc32(progress=None):
     """Build the CRC32 value of all loose files.
 
     Args:
-        progress (dialogs.qProgress.progress):
+        progress (:meth:`~.dialogs.SplashProgress.progress`):
             Callback to a method accepting strings as argument.
-
-    Returns:
-        None
 
     """
     if progress:
@@ -759,14 +765,17 @@ def install_archive(
     """Install the content of an archive into the game mod folder.
 
     Args:
-        file_to_extract:
-            path to the archive to extract.
-        file_context:
-            A dict containing the keys matched, mismatched, ignored. Each of
-            these entries point to a list containing FileMetadata objects.
+        file_to_extract (str): path to the archive to extract.
+        file_context (dict): A dict containing the keys `matched`, `mismatched`,
+            `ignored`. Each of these entries point to a list containing
+            :obj:`FileMetadata <qmm.bucket.FileMetadata>` objects.
+
+            The content in matched and ignored key will be compiled into a set
+            of exclude flags, whereas the content of mismatched key will be
+            overridden. See :meth:`ArchiveInstance.install_info`
 
     Returns:
-        Output of function extract7z() or False
+        Output of function :func:`extract7z` or :py:data:`False`
     """
     if not settings['game_folder']:
         logger.warning("Unable to unpack archive: game location is unknown.")
@@ -808,8 +817,21 @@ def install_archive(
     return files
 
 
-def uninstall_files(file_list: list):
-    """Removes a list of files and directory from the filesystem."""
+def uninstall_files(file_list: List[bucket.FileMetadata]):
+    """Removes a list of files and directory from the filesystem.
+
+    Args:
+        file_list (list[FileMetadata]): A list of :obj:`FileMetadata <qmm.bucket.FileMetadata>`
+            objects.
+
+    Returns:
+        bool: :py:data:`True` on success, :py:data:`False` if an error occurred
+        during the deleting process.
+
+    Notes:
+        Any error will be logged silently to the application configured
+        facility.
+    """
     dlist = []
     success = True
     for item in file_list:

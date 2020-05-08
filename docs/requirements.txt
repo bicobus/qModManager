@@ -1,0 +1,3 @@
+-r ../requirements.txt
+sphinx-qt-documentation==0.2
+

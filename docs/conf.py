@@ -51,6 +51,8 @@ extensions = [
     'sphinx.ext.ifconfig',
     'sphinx.ext.viewcode',
     'sphinx.ext.napoleon',
+    'sphinx.ext.intersphinx',
+    'sphinx_qt_documentation',
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -195,6 +197,12 @@ epub_exclude_files = ['search.html']
 
 # -- Extension configuration -------------------------------------------------
 
+intersphinx_mapping = {
+    'PyQt5': ('https://www.riverbankcomputing.com/static/Docs/PyQt5/', None),
+    'watchdog': ('https://pythonhosted.org/watchdog/', None),
+    'python': ('https://docs.python.org/', None),
+}
+qt_documentation = 'Qt5'
 
 # -- Options for napoleon extension ------------------------------------------
 
@@ -210,6 +218,8 @@ todo_include_todos = True
 def setup(app):
     import os
     import shutil
+    from qmm.lang import set_gettext
+    set_gettext()
     src = '_ext/'
     dst = '../qmm/'
     names = os.listdir('_ext')

@@ -9,7 +9,8 @@ EXT_PATH="./_ext/"
 
 rm qmm.* api.rst ${EXT_PATH}ui_*.py
 
-SPHINX_APIDOC_OPTIONS=members,show-inheritance sphinx-apidoc $ARGS -o $OUTPUT $INPUT $EXCLUDE
+# SPHINX_APIDOC_OPTIONS=members,show-inheritance
+sphinx-apidoc $ARGS -o $OUTPUT $INPUT $EXCLUDE
 
 TEMPLATE="class Ui_@CLASSNAME@:
     def setupUi(self):
