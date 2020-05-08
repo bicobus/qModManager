@@ -5,7 +5,7 @@
 
 import logging
 from os import path
-from typing import Dict, Iterable, List, Union
+from typing import Iterable, List, Union
 
 from PyQt5 import QtGui, QtWidgets
 from PyQt5.QtCore import Qt, pyqtSlot, QSize
@@ -13,7 +13,6 @@ from PyQt5.QtWidgets import QTreeWidget, QTreeWidgetItem
 
 from qmm.bucket import FileMetadata
 from qmm.common import settings, timestamp_to_string
-# from qmm.dialogs import qInformation
 from qmm.filehandler import ArchivesCollection, ArchiveInstance, LITERALS, TRANSLATED_LITERALS
 from qmm.lang import LANGUAGE_CODES, get_locale  # , normalize_locale
 from qmm.ui_about import Ui_About
@@ -183,7 +182,7 @@ def autoresize_columns(tree_widget: QTreeWidget):
         tree_widget.resizeColumnToContents(i)
 
 
-def _create_treewidget(text: Union[str, List], parent, add_to: Dict = None, tooltip: str = None, color=None):
+def _create_treewidget(text: Union[str, List], parent, tooltip: str = None, color=None):
     w = QTreeWidgetItem(parent)
     if isinstance(text, str):
         text = [text]
@@ -193,30 +192,60 @@ def _create_treewidget(text: Union[str, List], parent, add_to: Dict = None, tool
             w.setBackground(idx, QtGui.QColor(*color))
     if tooltip:
         w.setToolTip(0, tooltip)
-    if add_to is not None:
-        add_to.setdefault(text[0], w)
     return w
 
 
-def build_tree_from_list(item, parent: QTreeWidget, folders):
+def build_tree_from_path(item: FileMetadata, parent: QTreeWidget, folders, color=None, extra_column=None):
+    """Generate a set of related :func:`PyQt5.QtWidgets.QTreeWidgetItem` based on a file path.
+
+    Args:
+        item: a :obj:`qmm.bucket.FileMetadata` object.
+        parent: The container widget to anchor the first node to.
+        folders: A dict containing the parents widgets.
+        color: Background color value for the widget.
+        extra_column: Extra values to pass down to :func:`_create_treewidget`
+
+    Returns:
+        dict: A dictionnary containing the folders ancestry.
+    """
+    def _gv(val):
+        x = [val]
+        if extra_column:
+            x.extend(extra_column)
+        return x
     folder, file = item.split()
     folder_list = folder.split('/')
+    key = None
     for idx, folder in enumerate(folder_list):
-        if folder not in folders.keys():
+        key = '.'.join([folder_list[i] for i in range(0, idx+1)])
+        if key not in folders.keys():
             if idx > 0:
-                p = folders[folder_list[idx-1]]
+                pkey = '.'.join([folder_list[i] for i in range(0, idx)])
+                p = folders[pkey]
             else:
                 p = parent
-            _create_treewidget(folder, parent=p, add_to=folders)
+            folders.setdefault(key, _create_treewidget(_gv(folder), parent=p))
     if file != '':
-        _create_treewidget(file, folders[folder_list[-1]], tooltip=item.path)
+        _create_treewidget(_gv(file), folders[key], tooltip=item.path, color=color)
     return folders
 
 
 def build_ignored_tree_widget(tree_widget: QTreeWidget, ignored_iter: Iterable[FileMetadata]):
     parent_folders = {}
     for item in ignored_iter:
-        build_tree_from_list(item, tree_widget, parent_folders)
+        build_tree_from_path(item, tree_widget, parent_folders)
+
+
+def build_tree_widget(container: QTreeWidget, archive_instance: ArchiveInstance):
+    parent_folders = {}
+    for item in archive_instance.files():
+        status = archive_instance.get_status(item)
+        build_tree_from_path(
+            item,
+            container,
+            parent_folders,
+            color=FILESTATE_COLORS[LITERALS[status]],
+            extra_column=[TRANSLATED_LITERALS[status]])
 
 
 def build_conflict_tree_widget(container: QTreeWidget, archive_instance: ArchiveInstance):
@@ -231,27 +260,6 @@ def build_conflict_tree_widget(container: QTreeWidget, archive_instance: Archive
                 content = [item, 'Archive']
             _create_treewidget(content, root_widget)
         container.addTopLevelItem(root_widget)
-
-
-def build_tree_widget(container: QTreeWidget, archive_instance: ArchiveInstance):
-    parent_folders = {}
-    for folder in archive_instance.folders():
-        parts = folder.path.rpartition('/')
-        if parts[1] == '':
-            p = container
-        else:
-            p = parent_folders[parts[0]]
-
-        status = TRANSLATED_LITERALS[archive_instance.get_status(folder)]
-        parent_folders[folder.path] = _create_treewidget([parts[2], status], p)
-    for file_item in archive_instance.files(exclude_directories=True):
-        folder, file = file_item.split()
-        status = archive_instance.get_status(file_item.path)
-        _create_treewidget(
-            [file, TRANSLATED_LITERALS[status]],
-            parent_folders[folder],
-            tooltip=file_item.path,
-            color=FILESTATE_COLORS[LITERALS[status]])
 
 
 class ListRowItem(QtWidgets.QListWidgetItem):
