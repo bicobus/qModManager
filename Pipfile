@@ -14,6 +14,7 @@ snakeviz = "*"
 pytest = "~=5.4"
 v = {editable = true,version = "*"}
 sphinx-qt-documentation = "*"
+black = "==19.10b0"
 
 [packages]
 pyqt5 = "~=5.14"

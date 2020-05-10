@@ -1,12 +1,13 @@
 [flake8]
+ignore = E203, E266, E501, W503
 exclude = 
     .git,
     __pycache__,
     ui_*.py,
     icons_rc.py
-max-line-length=127
+max-line-length=80
 max-complexity=10
 builtins=_
 show-source=1
 statistics=1
-select=C,E,F,W,B,B9
+select=C,E,F,W,B,T4,B9
