@@ -204,7 +204,8 @@ def _create_treewidget(text: Union[str, List], parent, tooltip: str = None, colo
 def build_tree_from_path(
     item: FileMetadata, parent: QTreeWidget, folders, color=None, extra_column=None
 ):
-    """Generate a set of related :func:`PyQt5.QtWidgets.QTreeWidgetItem` based on a file path.
+    """Generate a set of related :func:`PyQt5.QtWidgets.QTreeWidgetItem` based
+    on a file path.
 
     Args:
         item: a :obj:`qmm.bucket.FileMetadata` object.

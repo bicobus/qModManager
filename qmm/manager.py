@@ -372,10 +372,11 @@ class MainWindow(QMainWindow, QEventFilter, CustomMenu, Ui_MainWindow):
 
         Args:
             name (str): Filename of the archive to find, matches content of the
-                :py:meth:`ListRowItem text method <PyQt5.QtWidgets.QListWidgetItem.text>`.
+                :py:meth:`ListRowItem <PyQt5.QtWidgets.QListWidgetItem.text>`
+                text method.
 
         Returns:
-            int: index of item found, or `None` if `name` matches nothing.
+            int or None: index of item found, `None` if `name` matches nothing.
         """
         try:
             return self.listWidget.row(
@@ -758,7 +759,8 @@ class MainWindow(QMainWindow, QEventFilter, CustomMenu, Ui_MainWindow):
         if not self._wd_watchers["modules"]:
             return
         logger.debug(
-            "Module repository got dirty, flagging as so and disabing unscheduling watchdog."
+            "Module repository got dirty, flagging as so and disabing "
+            "unscheduling watchdog."
         )
         self._is_mod_repo_dirty = True
         self._observer.unschedule(self._wd_watchers["modules"])

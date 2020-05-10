@@ -153,9 +153,7 @@ class FileMetadata:
         }
 
     def __str__(self):
-        return (
-            f"{self.__class__}({self._Path}, crc: {self._CRC}, from: {self.origin})"
-        )
+        return f"{self.__class__}({self._Path}, crc: {self._CRC}, from: {self.origin})"
 
     def __eq__(self, other):
         return other == self._Path

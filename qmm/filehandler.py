@@ -31,7 +31,7 @@ from qmm.config import SettingsNotSetError
 
 logger = logging.getLogger(__name__)
 
-# this shit: https://docs.microsoft.com/en-us/windows/win32/api/processthreadsapi/ns-processthreadsapi-startupinfoa
+# this shit: https://docs.microsoft.com/en-us/windows/win32/api/processthreadsapi/ns-processthreadsapi-startupinfoa # noqa: E501
 # Internet wisdom tells me STARTF_USESHOWWINDOW is used to hide the would be console
 startupinfo = None
 if is_windows:
@@ -294,9 +294,13 @@ class ArchiveInstance:
             if bucket.with_conflict(item.path):
                 tmp_conflicts.extend(bucket.conflicts[item.path])
             # Check against game files (Path and CRC)
-            if (bucket.with_gamefiles(path=item.path)
-                    or bucket.with_gamefiles(crc=item.crc)):
+            # fmt: off
+            if (
+                bucket.with_gamefiles(path=item.path)
+                or bucket.with_gamefiles(crc=item.crc)
+            ):
                 tmp_conflicts.append(bucket.gamefiles[item.crc])
+            # fmt: on
             if tmp_conflicts:
                 self._conflicts[item.path] = tmp_conflicts
 
@@ -393,22 +397,26 @@ class ArchiveInstance:
 
     @property
     def has_mismatched(self):
-        """Value is `True` if a file of the archive is of status :py:attr:`FILE_MISMATCHED`."""
+        """Value is `True` if a file of the archive is of status
+        :py:attr:`FILE_MISMATCHED`."""
         return self._has_status(FILE_MISMATCHED)
 
     @property
     def has_missing(self):
-        """Value is `True` if a file of the archive is of status :py:attr:`FILE_MISSING`."""
+        """Value is `True` if a file of the archive is of status
+        :py:attr:`FILE_MISSING`."""
         return self._has_status(FILE_MISSING)
 
     @property
     def has_ignored(self):
-        """Value is `True` if a file of the archive is of status :py:attr:`FILE_IGNORED`."""
+        """Value is `True` if a file of the archive is of status
+        :py:attr:`FILE_IGNORED`."""
         return self._has_status(FILE_IGNORED)
 
     @property
     def all_ignored(self):
-        """Value is `True` if all files of the archive are of status :py:attr:`FILE_IGNORED`."""
+        """Value is `True` if all files of the archive are of status
+        :py:attr:`FILE_IGNORED`."""
         return all(x[1] == FILE_IGNORED or x[0].attributes == "D" for x in self._meta)
 
     @property
@@ -451,7 +459,8 @@ class ArchivesCollection(MutableMapping[str, ArchiveInstance]):
         changes on the filesystem.
 
         Yields:
-            (Union[:attr:`FileAdded`, :attr:`FileRemoved`], str): State and name of the file
+            (Union[:attr:`FileAdded`, :attr:`FileRemoved`], str): State and name of
+                the file
         """
         if not settings_are_set():
             return
@@ -863,8 +872,8 @@ def uninstall_files(file_list: List[bucket.FileMetadata]):
     """Removes a list of files and directory from the filesystem.
 
     Args:
-        file_list (list[FileMetadata]): A list of :obj:`FileMetadata <qmm.bucket.FileMetadata>`
-            objects.
+        file_list (list[FileMetadata]): A list of
+            :obj:`FileMetadata <qmm.bucket.FileMetadata>` objects.
 
     Returns:
         bool: :py:data:`True` on success, :py:data:`False` if an error occurred

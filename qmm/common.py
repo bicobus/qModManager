@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 settings = Config(
     filename="settings.json",
-    defaults={"local_repository": None, "game_folder": None, "language": None,},
+    defaults={"local_repository": None, "game_folder": None, "language": None},
 )
 
 
