@@ -4,7 +4,6 @@ repos:
     hooks:
       - id: black
         language_version: python3.7
-        args: [--force-exclude='/docs|tests/']
 
   - repo: https://gitlab.com/pycqa/flake8
     rev: 3.7.9
