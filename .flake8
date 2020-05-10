@@ -6,7 +6,7 @@ exclude =
     ui_*.py,
     icons_rc.py
 max-line-length=80
-max-complexity=10
+max-complexity=12
 builtins=_
 show-source=1
 statistics=1
