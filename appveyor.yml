@@ -1,4 +1,4 @@
-version: '{branch}.{build}'
+version: "{branch}.{build}"
 # os: Windows
 # image: Visual Studio 2019
 branches:
@@ -37,12 +37,12 @@ install:
 
   # Check version and architecture of python
   - python --version
-  - python -c "import sys, platform, struct;
-    print(sys.platform, platform.machine(), struct.calcsize('P')*8)"
+  - python -c "import sys, platform, struct; print(sys.platform, platform.machine(),
+    struct.calcsize('P')*8)"
 
   # Install dependencies
   - python -m pip install --disable-pip-version-check --upgrade pip
-  - make .build/req  # install pyinstaller
+  - make .build/req # install pyinstaller
 
 #
 # before_test:
@@ -60,14 +60,14 @@ build_script:
   - pyinstaller run.spec
 
 after_build:
-#  - ps: move dist\run.exe run.exe
-#  - 7z a qModManager.7z run.exe README.md LICENSE tools\ locales\
+  #  - ps: move dist\run.exe run.exe
+  #  - 7z a qModManager.7z run.exe README.md LICENSE tools\ locales\
   - cd dist\qModManager\
   - 7z a ..\..\qModManager.7z . ..\..\resources\README.txt
 
 artifacts:
-   - path: qModManager.7z
-     name: qModManager
+  - path: qModManager.7z
+    name: qModManager
 
 # clean up pip cache, might not be needed
 on_finish:

@@ -7,7 +7,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ['3.7']
+        python-version: ["3.7"]
 
     steps:
       - uses: actions/checkout@v1
@@ -20,7 +20,6 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install --upgrade pre-commit
           python -m pip install --upgrade black==19.10b0
-      
+
       - name: Lint
         run: pre-commit run --all-files
-
