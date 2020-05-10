@@ -10,15 +10,27 @@ from typing import Tuple, Union
 import watchdog.events
 from PyQt5 import QtGui
 from PyQt5.QtCore import QEvent, QObject, Qt, pyqtSignal, pyqtSlot
-from PyQt5.QtWidgets import (QApplication, QFileDialog, QMainWindow, QMenu,)
+from PyQt5.QtWidgets import (
+    QApplication,
+    QFileDialog,
+    QMainWindow,
+    QMenu,
+)
 from watchdog.observers import Observer
 
 from qmm import bucket, dialogs, filehandler
 from qmm.common import settings, settings_are_set, valid_suffixes
 from qmm.config import get_config_dir
 from qmm.ui_mainwindow import Ui_MainWindow
-from qmm.widgets import (ListRowItem, QAbout, QSettings, autoresize_columns, build_conflict_tree_widget,
-                         build_ignored_tree_widget, build_tree_widget)
+from qmm.widgets import (
+    ListRowItem,
+    QAbout,
+    QSettings,
+    autoresize_columns,
+    build_conflict_tree_widget,
+    build_ignored_tree_widget,
+    build_tree_widget,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -40,7 +52,7 @@ class QmmWdEventHandler:
             watchdog.events.EVENT_TYPE_MOVED: [],
             watchdog.events.EVENT_TYPE_CREATED: [],
             watchdog.events.EVENT_TYPE_DELETED: [],
-            watchdog.events.EVENT_TYPE_MODIFIED: []
+            watchdog.events.EVENT_TYPE_MODIFIED: [],
         }
         if moved_cb:
             self.sgn_moved.connect(moved_cb)
@@ -64,15 +76,18 @@ class QmmWdEventHandler:
         self._ignored[event_type].remove(src_path)
 
 
-class GameModEventHandler(QmmWdEventHandler, watchdog.events.PatternMatchingEventHandler, QObject):
+class GameModEventHandler(
+    QmmWdEventHandler, watchdog.events.PatternMatchingEventHandler, QObject
+):
     def __init__(self, moved_cb, created_cb, deleted_cb, modified_cb):
         super().__init__(
             moved_cb=moved_cb,
             created_cb=created_cb,
             deleted_cb=deleted_cb,
-            modified_cb=modified_cb)
+            modified_cb=modified_cb,
+        )
         self._was_created = []
-        self._patterns = ['*.svg', '*.xml']
+        self._patterns = ["*.svg", "*.xml"]
         self._ignore_directories = False
 
     def on_any_event(self, event):
@@ -102,7 +117,9 @@ class GameModEventHandler(QmmWdEventHandler, watchdog.events.PatternMatchingEven
         self.sgn_modified.emit(event.key)
 
 
-class ArchiveAddedEventHandler(QmmWdEventHandler, watchdog.events.PatternMatchingEventHandler, QObject):
+class ArchiveAddedEventHandler(
+    QmmWdEventHandler, watchdog.events.PatternMatchingEventHandler, QObject
+):
     def __init__(self, moved_cb, created_cb, deleted_cb, modified_cb):
         super().__init__(
             moved_cb=moved_cb,
@@ -111,7 +128,7 @@ class ArchiveAddedEventHandler(QmmWdEventHandler, watchdog.events.PatternMatchin
             modified_cb=modified_cb,
         )
         self._accept = []
-        self._patterns = [f"*{x}" for x in valid_suffixes('pathlib')]
+        self._patterns = [f"*{x}" for x in valid_suffixes("pathlib")]
         self._ignore_directories = True
 
     def on_moved(self, event):
@@ -145,14 +162,14 @@ class CustomMenu:
         super().__init__()
         self._menu_obj = QMenu()
         self._install_action = self._menu_obj.addAction(
-            QtGui.QIcon(QtGui.QPixmap(":/icons/file-install.svg")),
-            _("Install"))
+            QtGui.QIcon(QtGui.QPixmap(":/icons/file-install.svg")), _("Install")
+        )
         self._uninstall_action = self._menu_obj.addAction(
-            QtGui.QIcon(QtGui.QPixmap(":/icons/file-uninstall.svg")),
-            _("Uninstall"))
+            QtGui.QIcon(QtGui.QPixmap(":/icons/file-uninstall.svg")), _("Uninstall")
+        )
         self._delete_action = self._menu_obj.addAction(
-            QtGui.QIcon(QtGui.QPixmap(":/icons/trash.svg")),
-            _("Delete"))
+            QtGui.QIcon(QtGui.QPixmap(":/icons/trash.svg")), _("Delete")
+        )
 
     def setup_menu(self, obj):
         """Register self as obj's context menu"""
@@ -188,8 +205,8 @@ class QEventFilter:
 
 
 class MainWindow(QMainWindow, QEventFilter, CustomMenu, Ui_MainWindow):
-    fswatch_ignore = pyqtSignal(['QString', 'QString'])
-    fswatch_clear = pyqtSignal(['QString', 'QString'])
+    fswatch_ignore = pyqtSignal(["QString", "QString"])
+    fswatch_clear = pyqtSignal(["QString", "QString"])
 
     def __init__(self):
         super().__init__()
@@ -212,10 +229,7 @@ class MainWindow(QMainWindow, QEventFilter, CustomMenu, Ui_MainWindow):
         self._qc = {}
         self._connection_link = None  # Connect to the settings's save button
         self._window_was_active = None
-        self._wd_watchers = {
-            'archives': None,
-            'modules': None
-        }
+        self._wd_watchers = {"archives": None, "modules": None}
         self._ar_handler = None
         self._mod_handler = None
         self._observer = Observer()
@@ -231,30 +245,29 @@ class MainWindow(QMainWindow, QEventFilter, CustomMenu, Ui_MainWindow):
     def on_window_activate(self):
         if not self._ar_handler or not self._mod_handler:  # handlers not init
             return False
-        if (not self._wd_watchers['archives']
-                and self.autorefresh_checkbox.isChecked()):
-            self._schedule_watchdog('archives')
+        if not self._wd_watchers["archives"] and self.autorefresh_checkbox.isChecked():
+            self._schedule_watchdog("archives")
         if self.is_mod_repo_dirty:
             logger.debug("Loose files are dirty, reparsing...")
             bucket.loosefiles = {}
             self.statusbar.showMessage(_("Refreshing loose files..."))
             filehandler.build_loose_files_crc32()
             if self.autorefresh_checkbox.isChecked():
-                self._schedule_watchdog('modules')
+                self._schedule_watchdog("modules")
 
         logger.debug("Refreshing managed archives...")
         msg = " "
-        msg.join([self.statusbar.currentMessage(),
-                  _("Refreshing managed archive...")])
+        msg.join([self.statusbar.currentMessage(), _("Refreshing managed archive...")])
         self.statusbar.showMessage(msg)
 
         etype = None
         for etype, archive_name in self.managed_archives.refresh():
             if etype == self.managed_archives.FileAdded:
-                self._add_item_to_list(ListRowItem(
-                    filename=archive_name,
-                    archive_manager=self.managed_archives
-                ))
+                self._add_item_to_list(
+                    ListRowItem(
+                        filename=archive_name, archive_manager=self.managed_archives
+                    )
+                )
             if etype == self.managed_archives.FileRemoved:
                 idx = self.get_row_index_by_name(archive_name)
                 self._remove_row(archive_name, idx, preserve_managed=True)
@@ -271,19 +284,21 @@ class MainWindow(QMainWindow, QEventFilter, CustomMenu, Ui_MainWindow):
         return False
 
     def on_window_deactivate(self):
-        if self._wd_watchers['archives']:
+        if self._wd_watchers["archives"]:
             logger.debug("Unscheduling archive watch.")
-            self._observer.unschedule(self._wd_watchers['archives'])
-            self._wd_watchers['archives'] = None
+            self._observer.unschedule(self._wd_watchers["archives"])
+            self._wd_watchers["archives"] = None
 
     def _init_settings(self):
         if not settings_are_set():
             dialogs.qWarning(
-                _("This software requires two path to be set in order to be "
-                  "able to run. You <b>must</b> fill in the game folder and "
-                  "repository folder. The game will crash if either is empty."),
+                _(
+                    "This software requires two path to be set in order to be "
+                    "able to run. You <b>must</b> fill in the game folder and "
+                    "repository folder. The game will crash if either is empty."
+                ),
                 # Translators: This is a messagebox's title
-                title=_("First run")
+                title=_("First run"),
             )
             self.do_settings(first_launch=True)
         else:  # On first run, the _init_mods method is called by QSettings
@@ -291,8 +306,9 @@ class MainWindow(QMainWindow, QEventFilter, CustomMenu, Ui_MainWindow):
 
     def _init_mods(self):
         p_dialog = dialogs.SplashProgress(
-            parent=None, title=_("Computing data"),
-            message=_("Please wait for the software to initialize it's data.")
+            parent=None,
+            title=_("Computing data"),
+            message=_("Please wait for the software to initialize it's data."),
         )
         p_dialog.show()
 
@@ -302,8 +318,8 @@ class MainWindow(QMainWindow, QEventFilter, CustomMenu, Ui_MainWindow):
 
         p_dialog.progress("", category=_("Conflict detection"))
         filehandler.generate_conflicts_between_archives(
-            self.managed_archives,
-            progress=p_dialog.progress)
+            self.managed_archives, progress=p_dialog.progress
+        )
         self.managed_archives.initiate_conflicts_detection()
 
         item = None
@@ -311,8 +327,7 @@ class MainWindow(QMainWindow, QEventFilter, CustomMenu, Ui_MainWindow):
         for archive_name in self.managed_archives.keys():
             p_dialog.progress(archive_name)
             item = ListRowItem(
-                filename=archive_name,
-                archive_manager=self.managed_archives
+                filename=archive_name, archive_manager=self.managed_archives
             )
             self._add_item_to_list(item)
         if item:
@@ -331,20 +346,22 @@ class MainWindow(QMainWindow, QEventFilter, CustomMenu, Ui_MainWindow):
             moved_cb=self._on_fs_moved,
             created_cb=None,
             deleted_cb=self._on_fs_deleted,
-            modified_cb=self._on_fs_modified)
+            modified_cb=self._on_fs_modified,
+        )
 
         self._mod_handler = GameModEventHandler(
             moved_cb=self._mod_repo_watch_cb,
             created_cb=self._mod_repo_watch_cb,
             deleted_cb=self._mod_repo_watch_cb,
-            modified_cb=self._mod_repo_watch_cb)
+            modified_cb=self._mod_repo_watch_cb,
+        )
 
         # Emitters from this class to the handler
         self.fswatch_ignore.connect(self._ar_handler.ignore)
         self.fswatch_clear.connect(self._ar_handler.clear)
         # WatchDog Observer
-        self._schedule_watchdog('archives')
-        self._schedule_watchdog('modules')
+        self._schedule_watchdog("archives")
+        self._schedule_watchdog("modules")
         self._observer.start()
 
     def callback_at_show(self, item):
@@ -361,7 +378,9 @@ class MainWindow(QMainWindow, QEventFilter, CustomMenu, Ui_MainWindow):
             int: index of item found, or `None` if `name` matches nothing.
         """
         try:
-            return self.listWidget.row(self.listWidget.findItems(name, Qt.MatchExactly)[0])
+            return self.listWidget.row(
+                self.listWidget.findItems(name, Qt.MatchExactly)[0]
+            )
         except IndexError:
             return None
 
@@ -431,7 +450,9 @@ class MainWindow(QMainWindow, QEventFilter, CustomMenu, Ui_MainWindow):
         # tab_files, tab_conflicts, tab_skipped
         build_tree_widget(self.tab_files_content, item.archive_instance)
         build_conflict_tree_widget(self.tab_conflicts_content, item.archive_instance)
-        build_ignored_tree_widget(self.tab_skipped_content, item.archive_instance.ignored())
+        build_ignored_tree_widget(
+            self.tab_skipped_content, item.archive_instance.ignored()
+        )
 
         autoresize_columns(self.tab_files_content)
         autoresize_columns(self.tab_conflicts_content)
@@ -452,9 +473,7 @@ class MainWindow(QMainWindow, QEventFilter, CustomMenu, Ui_MainWindow):
     @pyqtSlot(name="on_actionOpen_triggered")
     def _do_add_new_mod(self):
         if not settings_are_set():
-            dialogs.qWarning(
-                _("You must set your game folder location.")
-            )
+            dialogs.qWarning(_("You must set your game folder location."))
             return
 
         qfd = QFileDialog(self)
@@ -478,10 +497,12 @@ class MainWindow(QMainWindow, QEventFilter, CustomMenu, Ui_MainWindow):
             logger.error("Triggered _do_delete_selected_file without a selection")
             return
 
-        ret = dialogs.qWarningYesNo(_(
-            "This action will uninstall the mod, then move the archive to your "
-            "trashbin.\n\nDo you want to continue?"
-        ))
+        ret = dialogs.qWarningYesNo(
+            _(
+                "This action will uninstall the mod, then move the archive to your "
+                "trashbin.\n\nDo you want to continue?"
+            )
+        )
         if not ret:
             return
 
@@ -508,16 +529,19 @@ class MainWindow(QMainWindow, QEventFilter, CustomMenu, Ui_MainWindow):
 
         self._do_enable_autorefresh(False)
         logger.info("Installing file %s", item.filename)
-        files = filehandler.install_archive(item.filename, item.archive_instance.install_info())
+        files = filehandler.install_archive(
+            item.filename, item.archive_instance.install_info()
+        )
         self._do_enable_autorefresh(True)
         if not files:
-            dialogs.qWarning(_(
-                "The archive {filename} extracted with errors.\n"
-                "Please refer to {loglocation} for more information."
-            ).format(
-                filename=item.filename,
-                loglocation=get_config_dir('error.log')
-            ))
+            dialogs.qWarning(
+                _(
+                    "The archive {filename} extracted with errors.\n"
+                    "Please refer to {loglocation} for more information."
+                ).format(
+                    filename=item.filename, loglocation=get_config_dir("error.log")
+                )
+            )
         else:
             filehandler.generate_conflicts_between_archives(self.managed_archives)
             self._refresh_list_item_state()
@@ -535,16 +559,20 @@ class MainWindow(QMainWindow, QEventFilter, CustomMenu, Ui_MainWindow):
             return False
 
         if item.archive_instance.has_mismatched:
-            dialogs.qInformation(_(
-                "Unable to uninstall mod: mismatched items exists on drive.\n"
-                "This is most likely due to another installed mod conflicting "
-                "with this mod.\n"
-            ))
+            dialogs.qInformation(
+                _(
+                    "Unable to uninstall mod: mismatched items exists on drive.\n"
+                    "This is most likely due to another installed mod conflicting "
+                    "with this mod.\n"
+                )
+            )
             return False
 
         self._do_enable_autorefresh(False)
         logger.info("Uninstalling files from archive %s", item.filename)
-        uninstall_status = filehandler.uninstall_files(item.archive_instance.uninstall_info())
+        uninstall_status = filehandler.uninstall_files(
+            item.archive_instance.uninstall_info()
+        )
         self._do_enable_autorefresh(True)
         if uninstall_status:
             filehandler.generate_conflicts_between_archives(self.managed_archives)
@@ -552,11 +580,13 @@ class MainWindow(QMainWindow, QEventFilter, CustomMenu, Ui_MainWindow):
             self._on_selection_change()
             return True
 
-        dialogs.qWarning(_(
-            "The uninstallation process failed at some point. Please report "
-            "this happened to the developper alongside with the error file "
-            "{logfile}."
-        ).format(logfile=get_config_dir('error.log')))
+        dialogs.qWarning(
+            _(
+                "The uninstallation process failed at some point. Please report "
+                "this happened to the developper alongside with the error file "
+                "{logfile}."
+            ).format(logfile=get_config_dir("error.log"))
+        )
         return False
 
     @pyqtSlot(name="on_actionSettings_triggered")
@@ -570,7 +600,9 @@ class MainWindow(QMainWindow, QEventFilter, CustomMenu, Ui_MainWindow):
         if not self._settings_window:
             self._settings_window = QSettings()
         if first_launch:
-            self._connection_link = self._settings_window.connect_to_savebutton(self._init_mods)
+            self._connection_link = self._settings_window.connect_to_savebutton(
+                self._init_mods
+            )
             self._settings_window.set_mode(first_run=True)
         else:
             if self._connection_link:
@@ -589,19 +621,19 @@ class MainWindow(QMainWindow, QEventFilter, CustomMenu, Ui_MainWindow):
     def _do_enable_autorefresh(self, value: bool):
         if value:
             logger.debug("Enabling WatchDog Subsystem.")
-            self._schedule_watchdog('modules')
-            self._schedule_watchdog('archives')
+            self._schedule_watchdog("modules")
+            self._schedule_watchdog("archives")
             self.list_refresh_button.setEnabled(False)
         else:
             logger.debug("Disabling WatchDog Subsystem.")
-            if self._wd_watchers['modules']:
-                self._observer.unschedule(self._wd_watchers['modules'])
+            if self._wd_watchers["modules"]:
+                self._observer.unschedule(self._wd_watchers["modules"])
                 logger.debug("Modules watcher disabled")
-            if self._wd_watchers['archives']:
-                self._observer.unschedule(self._wd_watchers['archives'])
+            if self._wd_watchers["archives"]:
+                self._observer.unschedule(self._wd_watchers["archives"])
                 logger.debug("Archives watcher disabled")
-            self._wd_watchers['modules'] = None
-            self._wd_watchers['archives'] = None
+            self._wd_watchers["modules"] = None
+            self._wd_watchers["archives"] = None
             self.list_refresh_button.setEnabled(True)
 
     @pyqtSlot(name="list_refresh_button_triggered")
@@ -612,21 +644,21 @@ class MainWindow(QMainWindow, QEventFilter, CustomMenu, Ui_MainWindow):
             self.on_window_activate()
 
     def _schedule_watchdog(self, context):
-        if context == 'archives':
+        if context == "archives":
             if not self._ar_handler:
                 raise UnknownContext("Handler is NoneType, must be otherwise.")
-            self._wd_watchers['archives'] = self._observer.schedule(
+            self._wd_watchers["archives"] = self._observer.schedule(
                 event_handler=self._ar_handler,
-                path=settings['local_repository'],
-                recursive=False
+                path=settings["local_repository"],
+                recursive=False,
             )
-        elif context == 'modules':
+        elif context == "modules":
             if not self._mod_handler:
                 raise UnknownContext("Handler is NoneType, must be otherwise.")
-            self._wd_watchers['modules'] = self._observer.schedule(
+            self._wd_watchers["modules"] = self._observer.schedule(
                 event_handler=self._mod_handler,
                 path=str(filehandler.get_mod_folder(prepend_modpath=True)),
-                recursive=True
+                recursive=True,
             )
         else:
             raise UnknownContext("Unknown context '{}' for scheduler.".format(context))
@@ -657,11 +689,11 @@ class MainWindow(QMainWindow, QEventFilter, CustomMenu, Ui_MainWindow):
                 files=self.managed_archives[archive_name].files,
                 archives_list=self.managed_archives,
                 current_archive=archive_name,
-                processed=None)
+                processed=None,
+            )
 
             item = ListRowItem(
-                filename=archive_name,
-                archive_manager=self.managed_archives
+                filename=archive_name, archive_manager=self.managed_archives
             )
 
             self._add_item_to_list(item)
@@ -672,10 +704,12 @@ class MainWindow(QMainWindow, QEventFilter, CustomMenu, Ui_MainWindow):
             self.fswatch_clear.emit(filename, watchdog.events.EVENT_TYPE_CREATED)
             return True
 
-        dialogs.qWarning(_(
-            "The file you selected is already present in the repository. "
-            "It may exists under a different name.\nHashsum matched: {hashsum}"
-        ).format(hashsum=hashsum))
+        dialogs.qWarning(
+            _(
+                "The file you selected is already present in the repository. "
+                "It may exists under a different name.\nHashsum matched: {hashsum}"
+            ).format(hashsum=hashsum)
+        )
         return False
 
     ##########################
@@ -703,8 +737,9 @@ class MainWindow(QMainWindow, QEventFilter, CustomMenu, Ui_MainWindow):
             logger.debug("Received drag&drop event with empty url list.")
             return False
 
-        logger.debug("Received drop event with files %s",
-                     [f.path for f in e.mimeData().urls()])
+        logger.debug(
+            "Received drop event with files %s", [f.path for f in e.mimeData().urls()]
+        )
         for uri in e.mimeData().urls():
             pl = pathlib.PurePath(uri.path())
             if pl.suffix in valid_suffixes(output_format="pathlib"):
@@ -720,12 +755,14 @@ class MainWindow(QMainWindow, QEventFilter, CustomMenu, Ui_MainWindow):
     def _mod_repo_watch_cb(self):
         # Ignore subsequent calls, happens for each file of a directory when
         # that directory gets renamed.
-        if not self._wd_watchers['modules']:
+        if not self._wd_watchers["modules"]:
             return
-        logger.debug("Module repository got dirty, flagging as so and disabing unscheduling watchdog.")
+        logger.debug(
+            "Module repository got dirty, flagging as so and disabing unscheduling watchdog."
+        )
         self._is_mod_repo_dirty = True
-        self._observer.unschedule(self._wd_watchers['modules'])
-        self._wd_watchers['modules'] = None
+        self._observer.unschedule(self._wd_watchers["modules"])
+        self._wd_watchers["modules"] = None
 
     def _on_fs_moved(self, e):
         src_path = e.src_path
@@ -735,12 +772,8 @@ class MainWindow(QMainWindow, QEventFilter, CustomMenu, Ui_MainWindow):
 
     def _on_fs_modified(self, e):
         filename = e[1]
-        logger.info(
-            "New archive detected in the repository folder: %s",
-            filename)
-        self._on_action_open_done(
-            filename,
-            archive=pathlib.Path(filename).name)
+        logger.info("New archive detected in the repository folder: %s", filename)
+        self._on_action_open_done(filename, archive=pathlib.Path(filename).name)
 
     def _on_fs_deleted(self, e):
         item = pathlib.Path(e[1])
@@ -749,9 +782,7 @@ class MainWindow(QMainWindow, QEventFilter, CustomMenu, Ui_MainWindow):
         if not rows:
             logger.debug("WATCHDOG: deleted file not managed, ignoring")
             return
-        logger.debug(
-            "WATCHDOG: Number of file matching exactly: %s",
-            len(rows))
+        logger.debug("WATCHDOG: Number of file matching exactly: %s", len(rows))
         row = rows[0]
         self._remove_row(row.filename, self.listWidget.row(row))
         del row, rows
@@ -796,6 +827,7 @@ class QAppEventFilter(QObject):
 
     Callbacks are ``on_window_activate`` and ``on_window_deactivate``.
     """
+
     _mainwindow: Union[MainWindow, None]
 
     def __init__(self):
@@ -820,11 +852,17 @@ class QAppEventFilter(QObject):
 
     def get_coords(self) -> Tuple[int, int]:
         """Return the coordinates of the top window."""
-        return self._mainwindow.frameGeometry().x(), self._mainwindow.frameGeometry().y()
+        return (
+            self._mainwindow.frameGeometry().x(),
+            self._mainwindow.frameGeometry().y(),
+        )
 
     def get_geometry(self) -> Tuple[int, int]:
         """Return the geometry of the top window."""
-        return self._mainwindow.frameGeometry().width(), self._mainwindow.frameGeometry().height()
+        return (
+            self._mainwindow.frameGeometry().width(),
+            self._mainwindow.frameGeometry().height(),
+        )
 
     def set_coords(self):
         self._coords = self.get_coords()
@@ -835,7 +873,10 @@ class QAppEventFilter(QObject):
     def eventFilter(self, o, e: QEvent) -> bool:
         if e.type() not in self.accepted_types:
             return False
-        if not self._mainwindow or not self._mainwindow.autorefresh_checkbox.isChecked():
+        if (
+            not self._mainwindow
+            or not self._mainwindow.autorefresh_checkbox.isChecked()
+        ):
             return False
         if isinstance(o, QApplication) and e.type() == QEvent.ApplicationStateChange:
             if o.applicationState() == Qt.ApplicationActive:
@@ -856,8 +897,13 @@ class QAppEventFilter(QObject):
                     self._mainwindow.on_window_activate()
                     self._previous_state = True
             if o.applicationState() == Qt.ApplicationInactive:
-                logger.debug("The application is visible, but **not** selected to be in front.")
-                if self.get_coords() != self._coords or self.get_geometry() != self._geometry:
+                logger.debug(
+                    "The application is visible, but **not** selected to be in front."
+                )
+                if (
+                    self.get_coords() != self._coords
+                    or self.get_geometry() != self._geometry
+                ):
                     return False
                 logger.debug("(D) Window isn't in focus, disabling WatchDog")
                 self._previous_state = False
@@ -872,7 +918,7 @@ def main():
     import locale  # pylint: disable=import-outside-toplevel
 
     # Sets locale according to $LANG variable instead of C locale
-    locale.setlocale(locale.LC_ALL, '')
+    locale.setlocale(locale.LC_ALL, "")
     # Ends the application on CTRL+c
     signal.signal(signal.SIGINT, signal.SIG_DFL)
 

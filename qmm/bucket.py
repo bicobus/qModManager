@@ -22,10 +22,10 @@ TYPE_GAMEFILE = 2
 
 
 def _normalize_attributes(attr: str):
-    if 'D' in attr:
-        return 'D'
-    if 'A' in attr:
-        return 'F'
+    if "D" in attr:
+        return "D"
+    if "A" in attr:
+        return "F"
     return None
 
 
@@ -42,10 +42,13 @@ class FileMetadata:
         modified: timestamp of the last modification of the file.
         isfrom: either 'TYPE_GAMEFILE' or 'TYPE_LOOSEFILE'
     """
-    _suffixes = ('.xml', '.svg')
-    _partition = ('res', 'mods')
 
-    def __init__(self, crc, path: Union[str, pathlib.Path], attributes, modified, isfrom):
+    _suffixes = (".xml", ".svg")
+    _partition = ("res", "mods")
+
+    def __init__(
+        self, crc, path: Union[str, pathlib.Path], attributes, modified, isfrom
+    ):
         self._CRC = crc
         self._from = isfrom
         self._parts = ()
@@ -55,14 +58,15 @@ class FileMetadata:
             self._normalize_path(pathlib.Path(path))
 
         if not attributes:
-            self._Attributes = 'D' if self.pathobj.is_dir() else 'F'
+            self._Attributes = "D" if self.pathobj.is_dir() else "F"
         else:
             self._Attributes = _normalize_attributes(attributes)
 
         if not modified and self.pathobj.exists():
             self._Modified = datetime.strftime(
                 datetime.fromtimestamp(self.pathobj.stat().st_mtime),
-                "%Y-%m-%d %H:%M:%S")
+                "%Y-%m-%d %H:%M:%S",
+            )
         else:
             self._Modified = modified
 
@@ -79,20 +83,20 @@ class FileMetadata:
             self.pathobj = pathobj
         else:  # assume we already have the normalized string, fed from the archive
             self._Path = pathobj.as_posix()
-            self.pathobj = pathlib.Path(settings['game_folder'],
-                                        *self._partition,
-                                        pathobj)
+            self.pathobj = pathlib.Path(
+                settings["game_folder"], *self._partition, pathobj
+            )
 
     def is_dir(self):
         """Check if the represented item is a directory"""
         if not self.pathobj.exists():
-            return bool('D' in self._Attributes)
+            return bool("D" in self._Attributes)
         return self.pathobj.is_dir()
 
     def is_file(self):
         """Check if the represented item is a file"""
         if not self.pathobj.exists():
-            return bool('D' not in self._Attributes)
+            return bool("D" not in self._Attributes)
         return self.pathobj.is_file()
 
     def exists(self):
@@ -101,11 +105,11 @@ class FileMetadata:
 
     def split(self):
         if self.is_dir():
-            parts = (self._Path, '')
+            parts = (self._Path, "")
         else:
-            pos = self._Path.rfind('/')
+            pos = self._Path.rfind("/")
             # path and file
-            parts = (self._Path[:pos], self._Path[pos+1:])
+            parts = (self._Path[:pos], self._Path[pos + 1 :])
         return parts
 
     def path_as_posix(self):
@@ -132,26 +136,25 @@ class FileMetadata:
     def origin(self):
         r = self._from
         if self._from == TYPE_LOOSEFILE:
-            r = 'Loosefile'
+            r = "Loosefile"
         elif self._from == TYPE_GAMEFILE:
-            r = 'GameFile'
+            r = "GameFile"
         return r
 
     def as_dict(self):
         """Return this object as a dict (kinda)."""
         return {
-            'CRC': self._CRC,
-            'Path': self._Path,
-            'Attributes': self._Attributes,
-            'Modified': self._Modified,
-            'From': self._from,
-            '_self': self
+            "CRC": self._CRC,
+            "Path": self._Path,
+            "Attributes": self._Attributes,
+            "Modified": self._Modified,
+            "From": self._from,
+            "_self": self,
         }
 
     def __str__(self):
         return (
-            f"{self.__class__}({self._Path}, crc: {self._CRC}, "
-            f"from: {self.origin})"
+            f"{self.__class__}({self._Path}, crc: {self._CRC}, from: {self.origin})"
         )
 
     def __eq__(self, other):
@@ -202,6 +205,7 @@ def file_crc_in_loosefiles(filemd: FileMetadata) -> bool:
 
 def file_path_in_loosefiles(filemd: FileMetadata) -> bool:
     """Check if a file's path exists within the different loosefile lists."""
+
     def _extract_paths(fmd):
         return [x.path for x in fmd]
 
@@ -238,13 +242,12 @@ def as_gamefile(crc: Crc32, value: Union[pathlib.Path, pathlib.PurePath]):
     """Add to the gamefiles a path indexed to its target CRC32."""
     if crc in gamefiles.keys():
         logger.warning(
-            "Duplicate file found, crc matches for\n-> %s\n-> %s",
-            gamefiles[crc],
-            value)
+            "Duplicate file found, crc matches for\n-> %s\n-> %s", gamefiles[crc], value
+        )
         return
     value = FileMetadata(
-        crc=crc, path=value, modified=None,
-        attributes=None, isfrom=TYPE_GAMEFILE)
+        crc=crc, path=value, modified=None, attributes=None, isfrom=TYPE_GAMEFILE
+    )
     gamefiles.setdefault(crc, value)
 
 
@@ -252,8 +255,7 @@ def as_loosefile(crc: Crc32, filepath: pathlib.Path):
     """Adds filepath to the loosefiles bucket, indexed on given CRC."""
     loosefiles.setdefault(crc, [])
     filepath = FileMetadata(
-        crc=crc, path=filepath, modified=None,
-        attributes=None, isfrom=TYPE_LOOSEFILE
+        crc=crc, path=filepath, modified=None, attributes=None, isfrom=TYPE_LOOSEFILE
     )
     loosefiles[crc].append(filepath)
 

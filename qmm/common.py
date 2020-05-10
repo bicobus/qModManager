@@ -13,17 +13,13 @@ logger = logging.getLogger(__name__)
 
 settings = Config(
     filename="settings.json",
-    defaults={
-        "local_repository": None,
-        "game_folder": None,
-        "language": None,
-    }
+    defaults={"local_repository": None, "game_folder": None, "language": None,},
 )
 
 
 def settings_are_set():
     """Returns False if either 'local_repository' or 'game_folder' isn't set."""
-    if not settings['local_repository'] or not settings['game_folder']:
+    if not settings["local_repository"] or not settings["game_folder"]:
         return False
     return True
 
@@ -34,8 +30,8 @@ def tools_path():
     TODO: needs a better name
     """
     if is_windows:
-        return os.path.join(get_data_path('tools'), '7z.exe')
-    return '7z'
+        return os.path.join(get_data_path("tools"), "7z.exe")
+    return "7z"
 
 
 def timestamp_to_string(timestamp):
@@ -44,7 +40,7 @@ def timestamp_to_string(timestamp):
 
 
 def valid_suffixes(
-  output_format="qfiledialog"
+    output_format="qfiledialog",
 ) -> Union[List[str], Tuple[str, str, str], bool]:
     """Properly format a list of filters for QFileDialog.
 
@@ -56,16 +52,16 @@ def valid_suffixes(
 
     Returns: list
     """
-    if output_format not in ('qfiledialog', 'pathlib'):
+    if output_format not in ("qfiledialog", "pathlib"):
         return False
 
-    labels = ('7Zip Files', 'Zip Files', 'Rar Files')
-    suffixes = ('.7z', '.zip', '.rar')
+    labels = ("7Zip Files", "Zip Files", "Rar Files")
+    suffixes = (".7z", ".zip", ".rar")
     if output_format == "qfiledialog":
         filter_on, tpl = [], []
         for s in suffixes:
             tpl.append(f"*{s}")
-        string = 'All Archives (' + " ".join(tpl) + ')'
+        string = "All Archives (" + " ".join(tpl) + ")"
         filter_on.append(string)
         for label, s in zip(labels, tpl):
             filter_on.append(f"{label} ({s})")

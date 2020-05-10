@@ -64,6 +64,7 @@ class SplashProgress(QDialog, Ui_Dialog):
     def __init__(self, parent, title, message):
         super().__init__(parent=parent)
         from PyQt5.QtWidgets import qApp  # noqa
+
         self.qapp = qApp
         self.setupUi(self)
         self.setWindowModality(Qt.WindowModal)

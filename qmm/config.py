@@ -14,7 +14,7 @@ from PyQt5.QtCore import QTimer
 import appdirs
 
 logger = logging.getLogger(__name__)
-dirs = appdirs.AppDirs(appname='qmm', appauthor=False)
+dirs = appdirs.AppDirs(appname="qmm", appauthor=False)
 
 
 class SettingsNotSetError(Exception):
@@ -40,8 +40,7 @@ def get_config_dir(filename=None, extra_directories=None) -> str:
 class Config(MutableMapping):
     """Influenced by deluge's config object."""
 
-    def __init__(self, filename, config_dir=None, defaults=None,
-                 compress=False):
+    def __init__(self, filename, config_dir=None, defaults=None, compress=False):
         self._data = {}
         self._save_timer = False
         self._compress = compress
@@ -82,7 +81,9 @@ class Config(MutableMapping):
             return
         self._data[key] = value
 
-        logger.debug("Config key state changed, save timer state is: %s", self._save_timer)
+        logger.debug(
+            "Config key state changed, save timer state is: %s", self._save_timer
+        )
         if not self._save_timer:
             self.delayed_save()
 
@@ -96,11 +97,11 @@ class Config(MutableMapping):
     def _get_data_from_file(self, filename=None):
         try:
             if self._compress:
-                with gzip.GzipFile(filename, 'r') as fp:
+                with gzip.GzipFile(filename, "r") as fp:
                     json_bytes = fp.read()
-                data = json.loads(json_bytes.decode('utf-8'))
+                data = json.loads(json_bytes.decode("utf-8"))
             else:
-                with open(filename, 'r', encoding="utf-8") as f:
+                with open(filename, "r", encoding="utf-8") as f:
                     data = json.load(f)
         except IOError as e:
             logger.warning("Unable to load config file %s: %s", filename, e)
@@ -146,7 +147,7 @@ class Config(MutableMapping):
         try:
             with tempfile.NamedTemporaryFile(delete=False) as fp:
                 filename_tmp = fp.name
-                jdump = json.dumps(self._data, indent=4).encode('utf-8')
+                jdump = json.dumps(self._data, indent=4).encode("utf-8")
                 if self._compress:
                     jdump = gzip.compress(jdump)
                 fp.write(jdump)
@@ -165,6 +166,7 @@ class Config(MutableMapping):
         else:
             logger.debug(
                 "Check save timer at end of save method. Auto save state: %s",
-                self._save_timer)
+                self._save_timer,
+            )
             self._disable_save_timer()
             return True

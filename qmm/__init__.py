@@ -16,14 +16,14 @@ import logging
 
 
 def is_frozen():
-    return bool(getattr(sys, 'frozen', False))
+    return bool(getattr(sys, "frozen", False))
 
 
 def get_base_path():
-    if getattr(sys, 'frozen', False):
+    if getattr(sys, "frozen", False):
         r = os.path.dirname(sys.executable)
-    elif 'sphinx' in sys.modules:
-        r = os.path.abspath('..')
+    elif "sphinx" in sys.modules:
+        r = os.path.abspath("..")
     elif __file__:
         r = os.path.dirname(os.path.abspath(sys.argv[0]))
     else:
@@ -36,15 +36,15 @@ def get_data_path(relpath):
     return path
 
 
-logging.getLogger('PyQt5').setLevel(logging.WARNING)
+logging.getLogger("PyQt5").setLevel(logging.WARNING)
 logging.basicConfig(
     level=logging.DEBUG,
-    format='%(asctime)s - %(levelname)s:%(name)s:%(module)s:%(funcName)s:%(message)s',
-    filename=os.path.join(get_base_path(), 'error.log'),
-    filemode='w'
+    format="%(asctime)s - %(levelname)s:%(name)s:%(module)s:%(funcName)s:%(message)s",
+    filename=os.path.join(get_base_path(), "error.log"),
+    filemode="w",
 )
 logger = logging.getLogger(__name__)
 logger.debug("Base path is %s", get_base_path())
 
-is_windows = platform.system() in ('Windows', 'Microsoft')
-is_linux = platform.system() == 'Linux'
+is_windows = platform.system() in ("Windows", "Microsoft")
+is_linux = platform.system() == "Linux"

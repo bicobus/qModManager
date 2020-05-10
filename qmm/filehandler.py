@@ -10,8 +10,17 @@ import subprocess
 from functools import lru_cache
 from hashlib import sha256
 from tempfile import TemporaryDirectory
-from typing import (Dict, Generator, IO, Iterable, Iterator, List,
-                    MutableMapping, Tuple, Union)
+from typing import (
+    Dict,
+    Generator,
+    IO,
+    Iterable,
+    Iterator,
+    List,
+    MutableMapping,
+    Tuple,
+    Union,
+)
 from zlib import crc32
 
 from send2trash import TrashPermissionError, send2trash
@@ -30,17 +39,20 @@ if is_windows:
     startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
 
 # Mods directory structure
-first_level_dir = ('items', 'outfits')  # outfits aren't stored under items
-second_level_dir = ('weapons', 'clothing', 'tattoos')
+first_level_dir = ("items", "outfits")  # outfits aren't stored under items
+second_level_dir = ("weapons", "clothing", "tattoos")
 
 # Regexes to capture 7z's output
 reListMatch = re.compile(r"^(Path|Modified|Attributes|CRC)\s=\s(.*)$").match
-reExtractMatch = re.compile(r'- (.+)$').match
-reErrorMatch = re.compile(r"""^(
+reExtractMatch = re.compile(r"- (.+)$").match
+reErrorMatch = re.compile(
+    r"""^(
     Error:.+|
     .+\s{5}Data\sError?|
     Sub\sitems\sErrors:.+
-)""", re.X | re.I).match
+)""",
+    re.X | re.I,
+).match
 
 #: Indicate that the file is found on the drive, and match in content.
 FILE_MATCHED = 1
@@ -51,10 +63,10 @@ FILE_MISMATCHED = 3
 #: Indicate that the file will be ignored by the software.
 FILE_IGNORED = 4
 LITERALS = {
-    FILE_MATCHED: 'matched',
-    FILE_MISSING: 'missing',
-    FILE_MISMATCHED: 'mismatched',
-    FILE_IGNORED: 'ignored',
+    FILE_MATCHED: "matched",
+    FILE_MISSING: "missing",
+    FILE_MISMATCHED: "mismatched",
+    FILE_IGNORED: "ignored",
 }
 TRANSLATED_LITERALS = {
     FILE_MATCHED: _("Matched"),
@@ -79,19 +91,28 @@ def ignore_patterns(seven_flag=False):
         seven_flag (bool): Patterns format following 7z exclude switch.
     """
     if seven_flag:
-        return '-xr!*.DS_Store', '-x!__MACOSX', '-xr!*Thumbs.db'
-    return '.DS_Store', '__MACOSX', 'Thumbs.db'
+        return "-xr!*.DS_Store", "-x!__MACOSX", "-xr!*Thumbs.db"
+    return ".DS_Store", "__MACOSX", "Thumbs.db"
 
 
-def extract7z(file_archive: pathlib.Path,
-              output_path: pathlib.Path,
-              exclude_list=None,
-              progress=None) -> Union[List[bucket.FileMetadata], bool]:
+def extract7z(
+    file_archive: pathlib.Path,
+    output_path: pathlib.Path,
+    exclude_list=None,
+    progress=None,
+) -> Union[List[bucket.FileMetadata], bool]:
     filepath = file_archive.absolute()
     output_path = output_path.absolute()
     cmd = [
-        tools_path(), 'x', str(filepath), f'-o{output_path}',
-        '-ba', '-bb1', '-y', '-scsUTF-8', '-sccUTF-8'
+        tools_path(),
+        "x",
+        str(filepath),
+        f"-o{output_path}",
+        "-ba",
+        "-bb1",
+        "-y",
+        "-scsUTF-8",
+        "-sccUTF-8",
     ]
     cmd.extend(ignore_patterns(True))
     if exclude_list:
@@ -101,8 +122,12 @@ def extract7z(file_archive: pathlib.Path,
     logger.debug("Running %s", cmd)
     try:
         proc = subprocess.Popen(
-            cmd, startupinfo=startupinfo, stdout=subprocess.PIPE,
-            stdin=subprocess.PIPE, stderr=subprocess.STDOUT)
+            cmd,
+            startupinfo=startupinfo,
+            stdout=subprocess.PIPE,
+            stdin=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+        )
     except OSError as e:
         logger.error("System error\n%s", e)
         return False
@@ -110,12 +135,12 @@ def extract7z(file_archive: pathlib.Path,
     f_list: List[bucket.FileMetadata] = []
     errstring = ""
     with proc.stdout as out:
-        for line in iter(out.readline, b''):
-            line = line.decode('utf-8')
+        for line in iter(out.readline, b""):
+            line = line.decode("utf-8")
 
             err = reErrorMatch(line)
             if err:
-                errstring = line + b''.join(out).decode("utf-8")
+                errstring = line + b"".join(out).decode("utf-8")
                 break
 
             extract = reExtractMatch(line)
@@ -123,74 +148,89 @@ def extract7z(file_archive: pathlib.Path,
                 logger.info("Extracting %s", line.strip())
                 path = extract.group(1).strip()
                 f_list.append(
-                    bucket.FileMetadata(attributes="", path=path,
-                                        crc=0, modified="", isfrom=file_archive.name))
+                    bucket.FileMetadata(
+                        attributes="",
+                        path=path,
+                        crc=0,
+                        modified="",
+                        isfrom=file_archive.name,
+                    )
+                )
                 if progress:
-                    progress(f'Extracting {path}...')
+                    progress(f"Extracting {path}...")
 
     return_code = proc.wait()
     if return_code != 0 or errstring:
-        raise ArchiveException((
-            f"{filepath}: Extraction failed with error code {return_code} "
-            f"and message:\n{errstring}"))
+        raise ArchiveException(
+            (
+                f"{filepath}: Extraction failed with error code {return_code} "
+                f"and message:\n{errstring}"
+            )
+        )
 
     return f_list
 
 
-def list7z(file_path: Union[str, pathlib.Path], progress=None) -> List[bucket.FileMetadata]:
+def list7z(
+    file_path: Union[str, pathlib.Path], progress=None
+) -> List[bucket.FileMetadata]:
     if not isinstance(file_path, pathlib.Path):
         file_path = pathlib.Path(file_path)
     if not file_path.exists():
         raise ArchiveException(f"{file_path} couldn't be found.")
 
     model = {
-        'path': "",
-        'modified': "",
-        'attributes': "",
-        'crc': 0,
-        'isfrom': file_path.name
+        "path": "",
+        "modified": "",
+        "attributes": "",
+        "crc": 0,
+        "isfrom": file_path.name,
     }
 
     if progress:
-        progress(f'Processing {file_path.as_posix()}...')
+        progress(f"Processing {file_path.as_posix()}...")
 
-    cmd = [
-        tools_path(), 'l', str(file_path),
-        '-ba', '-scsUTF-8', '-sccUTF-8', '-slt'
-    ]
+    cmd = [tools_path(), "l", str(file_path), "-ba", "-scsUTF-8", "-sccUTF-8", "-slt"]
 
     proc = subprocess.Popen(
-        cmd, startupinfo=startupinfo, stdout=subprocess.PIPE,
-        stdin=subprocess.PIPE, stderr=subprocess.STDOUT)
+        cmd,
+        startupinfo=startupinfo,
+        stdout=subprocess.PIPE,
+        stdin=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+    )
 
     f_list: List[bucket.FileMetadata] = []
     err_string = ""
     with proc.stdout as out:
-        for line in iter(out.readline, b''):
-            line = line.decode('utf-8')
+        for line in iter(out.readline, b""):
+            line = line.decode("utf-8")
 
             err_data = reErrorMatch(line)
             if err_data:
-                err_string = line + b''.join(out).decode('utf-8')
+                err_string = line + b"".join(out).decode("utf-8")
                 break
 
             file_data = reListMatch(line)
             if file_data:
                 fdg = file_data.group(1).strip()
-                if fdg == 'Path':
+                if fdg == "Path":
                     tmp_data = model.copy()
-                if fdg in ('Path', 'Modified', 'Attributes', 'CRC'):
+                if fdg in ("Path", "Modified", "Attributes", "CRC"):
                     tmp_data[fdg.lower()] = file_data.group(2).strip()
-                if fdg == 'CRC':
-                    if 'D' not in tmp_data['attributes']:
+                if fdg == "CRC":
+                    if "D" not in tmp_data["attributes"]:
                         tmp_data[fdg.lower()] = int(tmp_data[fdg.lower()], 16)
                     f_list.append(bucket.FileMetadata(**tmp_data))
 
     return_code = proc.wait()
     if return_code != 0 or err_string:
-        raise ArchiveException((
-            f"{file_path}: listing failed with error code {return_code} "
-            f"and message:\n{err_string}"))
+        raise ArchiveException(
+            (
+                f"{file_path}: listing failed with error code {return_code} "
+                f"and message:\n{err_string}"
+            )
+        )
 
     return f_list
 
@@ -205,10 +245,10 @@ def sha256hash(filename: Union[IO, str]) -> Union[str, None]:
         str or None: a string if successful, otherwise None
     """
     try:
-        if hasattr(filename, 'read'):
+        if hasattr(filename, "read"):
             result = sha256(filename.read()).hexdigest()
         else:
-            with open(filename, 'rb') as fp:
+            with open(filename, "rb") as fp:
                 result = sha256(fp.read()).hexdigest()
     except OSError as e:
         logger.exception(e)
@@ -220,6 +260,7 @@ def sha256hash(filename: Union[IO, str]) -> Union[str, None]:
 class ArchiveInstance:
     """Represent an archive and its content already analyzed and ready for
     display."""
+
     _conflicts: Dict[str, List[Union[str, bucket.FileMetadata]]]
     _meta: List[Tuple[bucket.FileMetadata, int]]
 
@@ -241,7 +282,7 @@ class ArchiveInstance:
         status can be either 'FILE_MATCHED', 'FILE_MISMATCHED', 'FILE_IGNORED'
         or 'FILE_MISSING'."""
         self._meta = []
-        for item in self._file_list:  # fmd, status in archive_analysis(self._file_list):
+        for item in self._file_list:
             self._meta.append((item, file_status(item)))
 
     def reset_conflicts(self):
@@ -263,7 +304,9 @@ class ArchiveInstance:
         for name, status in self._meta:
             yield name, status
 
-    def files(self, exclude_directories=False) -> Generator[bucket.FileMetadata, None, None]:
+    def files(
+        self, exclude_directories=False
+    ) -> Generator[bucket.FileMetadata, None, None]:
         if exclude_directories:
             for filename in filter(lambda x: not x.is_dir(), self._file_list):
                 yield filename
@@ -273,7 +316,9 @@ class ArchiveInstance:
 
     def folders(self) -> Generator[bucket.FileMetadata, None, None]:
         """Yield folders present in the archive"""
-        for folder in filter(lambda x: x.is_dir(), sorted(self._file_list, reverse=True)):
+        for folder in filter(
+            lambda x: x.is_dir(), sorted(self._file_list, reverse=True)
+        ):
             yield folder
 
     def matched(self) -> Generator[bucket.FileMetadata, None, None]:
@@ -321,9 +366,9 @@ class ArchiveInstance:
             :func:`install_archive`
         """
         return {
-            'matched': list(self.matched()),
-            'mismatched': list(self.mismatched()),
-            'ignored': list(self.ignored())
+            "matched": list(self.matched()),
+            "mismatched": list(self.mismatched()),
+            "ignored": list(self.ignored()),
         }
 
     def get_status(self, file):
@@ -343,7 +388,7 @@ class ArchiveInstance:
     @property
     def all_matching(self):
         """Return `True` if all files in the archive matches on the drive."""
-        no_directory = filter(lambda x: x[0].attributes != 'D', self._meta)
+        no_directory = filter(lambda x: x[0].attributes != "D", self._meta)
         return all(x[1] in (FILE_MATCHED, FILE_IGNORED) for x in no_directory)
 
     @property
@@ -364,7 +409,7 @@ class ArchiveInstance:
     @property
     def all_ignored(self):
         """Value is `True` if all files of the archive are of status :py:attr:`FILE_IGNORED`."""
-        return all(x[1] == FILE_IGNORED or x[0].attributes == 'D' for x in self._meta)
+        return all(x[1] == FILE_IGNORED or x[0].attributes == "D" for x in self._meta)
 
     @property
     def has_conflicts(self):
@@ -412,7 +457,7 @@ class ArchivesCollection(MutableMapping[str, ArchiveInstance]):
             return
 
         found, to_delete = [], []
-        repo = pathlib.Path(settings['local_repository'])
+        repo = pathlib.Path(settings["local_repository"])
         for entry in repo.glob("*.*"):
             if entry.is_file() and entry.suffix in valid_suffixes("pathlib"):
                 if not self.find(archive_name=entry.name):
@@ -439,7 +484,7 @@ class ArchivesCollection(MutableMapping[str, ArchiveInstance]):
         metadata required by the UI.
         """
         if not isinstance(path, pathlib.Path):
-            path = pathlib.Path(settings['local_repository'], path)
+            path = pathlib.Path(settings["local_repository"], path)
         if not path.is_file():
             return
         if not hashsum:
@@ -540,9 +585,9 @@ def get_mod_folder(with_file: str = None, prepend_modpath=False) -> pathlib.Path
     Returns:
         PathLike structure representing the game folder.
     """
-    path = [settings['game_folder']]
+    path = [settings["game_folder"]]
     if prepend_modpath:
-        path.extend(['res', 'mods'])
+        path.extend(["res", "mods"])
     if with_file:
         path.append(with_file)
     return pathlib.Path(*path)
@@ -558,10 +603,10 @@ def _crc32(filename: Union[IO, str, os.PathLike]) -> Union[bucket.Crc32, None]:
          str or None: a string if successful, None otherwise
     """
     try:
-        if hasattr(filename, 'read'):
+        if hasattr(filename, "read"):
             result = crc32(filename.read())
         else:
-            with open(filename, 'rb') as fp:
+            with open(filename, "rb") as fp:
                 result = crc32(fp.read())
     except OSError as e:
         logger.exception(e)
@@ -571,8 +616,7 @@ def _crc32(filename: Union[IO, str, os.PathLike]) -> Union[bucket.Crc32, None]:
 
 
 def _compute_files_crc32(
-    folder,
-    partition=('res', 'mods')
+    folder, partition=("res", "mods")
 ) -> Tuple[pathlib.PurePath, bucket.Crc32]:
     for root, _, files in os.walk(folder):
         if not files:
@@ -585,7 +629,7 @@ def _compute_files_crc32(
 
         for file in files:
             kfile = pathlib.PurePath(path, file)
-            with pathlib.Path(root, file).open('rb') as fp:
+            with pathlib.Path(root, file).open("rb") as fp:
                 yield str(kfile), _crc32(fp)
 
 
@@ -600,18 +644,18 @@ def build_game_files_crc32(progress=None):
         progress (:meth:`~.dialogs.SplashProgress.progress`):
             Callback to a method accepting strings as argument.
     """
-    target_folder = os.path.join(settings['game_folder'], 'res')
-    scan_theses = ('clothing', 'outfits', 'tattoos', 'weapons')
+    target_folder = os.path.join(settings["game_folder"], "res")
+    scan_theses = ("clothing", "outfits", "tattoos", "weapons")
     if progress:
         progress("", category="Game Files")
 
     for p_folder in scan_theses:
         folder = os.path.join(target_folder, p_folder)
-        for kfile, crc in _compute_files_crc32(folder, partition=('res',)):
+        for kfile, crc in _compute_files_crc32(folder, partition=("res",)):
             # normalize path: category/namespace/... -> namespace/category/...
             category, namespace, extra = kfile.split(os.path.sep, 2)
-            if category in ('clothing', 'weapons', 'tattoos'):
-                kfile = pathlib.PurePath(namespace, 'items', category, extra)
+            if category in ("clothing", "weapons", "tattoos"):
+                kfile = pathlib.PurePath(namespace, "items", category, extra)
             else:
                 kfile = pathlib.PurePath(namespace, category, extra)
             if progress:
@@ -636,15 +680,17 @@ def build_loose_files_crc32(progress=None):
         bucket.as_loosefile(crc, kfile)
 
 
-def _filter_list_on_exclude(archives_list, list_to_exclude) -> Tuple[str, ArchiveInstance]:
+def _filter_list_on_exclude(
+    archives_list, list_to_exclude
+) -> Tuple[str, ArchiveInstance]:
     for archive_name, file_info in archives_list.items():
         if not list_to_exclude or archive_name not in list_to_exclude:
             yield archive_name, file_info
 
 
-def file_in_other_archives(file: bucket.FileMetadata,
-                           archives: ArchivesCollection,
-                           ignore: List) -> List:
+def file_in_other_archives(
+    file: bucket.FileMetadata, archives: ArchivesCollection, ignore: List
+) -> List:
     """Search for existence of file in other archives.
 
     Args:
@@ -661,35 +707,30 @@ def file_in_other_archives(file: bucket.FileMetadata,
     found = []
     for archive_name, items in _filter_list_on_exclude(archives, ignore):
         for crc, other_file_path in map(lambda v: (v.crc, v.path), items.files()):
-            if (not file.is_dir()
-                    and file.path == other_file_path
-                    and file.crc != crc):
+            if not file.is_dir() and file.path == other_file_path and file.crc != crc:
                 found.append(archive_name)
 
     return found
 
 
-def conflicts_process_files(files,
-                            archives_list,
-                            current_archive,
-                            processed):
+def conflicts_process_files(files, archives_list, current_archive, processed):
     """Process an archive, verify that each of its files are unique."""
     for file in files():
         if bucket.with_conflict(file.path):
             continue
 
         bad_archives = file_in_other_archives(
-            file=file,
-            archives=archives_list,
-            ignore=processed)
+            file=file, archives=archives_list, ignore=processed
+        )
 
         if bad_archives:
             bad_archives.append(current_archive)
             bucket.as_conflict(file.path, bad_archives)
 
 
-def generate_conflicts_between_archives(archives_lists: ArchivesCollection,
-                                        progress=None):
+def generate_conflicts_between_archives(
+    archives_lists: ArchivesCollection, progress=None
+):
     assert isinstance(archives_lists, ArchivesCollection), type(archives_lists)
     list_done: List[str] = []
     # archive_content is a list of objects [FileMetadata, FileMetadata, ...]
@@ -700,57 +741,57 @@ def generate_conflicts_between_archives(archives_lists: ArchivesCollection,
             files=archive_content.files,
             archives_list=archives_lists,
             current_archive=archive_name,
-            processed=list_done)
+            processed=list_done,
+        )
         list_done.append(archive_name)
 
 
 @lru_cache(maxsize=None)
 def _bad_directory_structure(path: pathlib.Path):
-    if (len(path.parts) > 1
-            and not any(path.parts[1] == x for x in first_level_dir)):
+    if len(path.parts) > 1 and not any(path.parts[1] == x for x in first_level_dir):
         return True
     return False
 
 
 @lru_cache(maxsize=None)
 def _bad_suffix(suffix):
-    return bool(suffix not in ('.xml', '.svg'))
+    return bool(suffix not in (".xml", ".svg"))
 
 
 def file_status(file: bucket.FileMetadata) -> int:
-    if (file.pathobj.name in ignore_patterns()
-            or _bad_directory_structure(file.path_as_posix())
-            or (file.pathobj.suffix and _bad_suffix(file.pathobj.suffix))):
+    if (
+        file.pathobj.name in ignore_patterns()
+        or _bad_directory_structure(file.path_as_posix())
+        or (file.pathobj.suffix and _bad_suffix(file.pathobj.suffix))
+    ):
         return FILE_IGNORED
-    if (bucket.file_crc_in_loosefiles(file)
-            and bucket.file_path_in_loosefiles(file)):
+    if bucket.file_crc_in_loosefiles(file) and bucket.file_path_in_loosefiles(file):
         return FILE_MATCHED
-    if (bucket.file_path_in_loosefiles(file)
-            and not bucket.file_crc_in_loosefiles(file)):
+    if bucket.file_path_in_loosefiles(file) and not bucket.file_crc_in_loosefiles(file):
         return FILE_MISMATCHED
     return FILE_MISSING
 
 
 def copy_archive_to_repository(filename):
     """Copy an archive to the manager's repository"""
-    if not settings['local_repository']:
+    if not settings["local_repository"]:
         logger.warning("Unable to copy archive: no local repository configured.")
         return False
 
     new_filename = os.path.join(
-        settings['local_repository'],
-        os.path.basename(filename)
+        settings["local_repository"], os.path.basename(filename)
     )
 
     if os.path.exists(new_filename):
         logger.error(
-            "Unable to copy archive, a file with a similar name already exists.")
+            "Unable to copy archive, a file with a similar name already exists."
+        )
         return False
 
     try:
-        if not os.path.exists(settings['local_repository']):
-            os.makedirs(settings['local_repository'])
-        shutil.copy(filename, settings['local_repository'])
+        if not os.path.exists(settings["local_repository"]):
+            os.makedirs(settings["local_repository"])
+        shutil.copy(filename, settings["local_repository"])
     except IOError as e:
         logger.error("Error copying archive: %s", e)
         return False
@@ -759,8 +800,7 @@ def copy_archive_to_repository(filename):
 
 
 def install_archive(
-    file_to_extract: str,
-    file_context: Dict[str, List[bucket.FileMetadata]]
+    file_to_extract: str, file_context: Dict[str, List[bucket.FileMetadata]]
 ) -> Union[bool, List[bucket.FileMetadata]]:
     """Install the content of an archive into the game mod folder.
 
@@ -777,20 +817,22 @@ def install_archive(
     Returns:
         Output of function :func:`extract7z` or :py:data:`False`
     """
-    if not settings['game_folder']:
+    if not settings["game_folder"]:
         logger.warning("Unable to unpack archive: game location is unknown.")
         return False
 
-    file_to_extract = pathlib.Path(settings['local_repository'], file_to_extract)
+    file_to_extract = pathlib.Path(settings["local_repository"], file_to_extract)
     ignore_list = [
         "-x!{}".format(filemd.path)
-        for filemd in file_context['ignored'] + file_context['matched']
+        for filemd in file_context["ignored"] + file_context["matched"]
     ]
 
     try:
         with TemporaryDirectory(prefix="qmm-") as td:
             logger.debug("Extracting files to %s", td)
-            files = extract7z(file_to_extract, pathlib.Path(td), exclude_list=ignore_list)
+            files = extract7z(
+                file_to_extract, pathlib.Path(td), exclude_list=ignore_list
+            )
             if not files:
                 logger.error("Exctracted list is empty, something terrible happened.")
             for file in files:
@@ -803,7 +845,7 @@ def install_archive(
                 ccrc = _crc32(dst)
                 bucket.as_loosefile(ccrc, file.path)
                 logger.debug("Added as loose: %s %s", ccrc, file.path)
-            for file in file_context['mismatched']:
+            for file in file_context["mismatched"]:
                 logger.debug("Removed from loose: %s %s", file.crc, file.path)
                 bucket.remove_item_from_loosefiles(file)
     except ArchiveException as e:
@@ -872,7 +914,7 @@ def delete_archive(filepath):
     """Delete an archive from the filesystem."""
     # Assume filepath to only be a filename
     if not isinstance(filepath, pathlib.Path):
-        filepath = pathlib.Path(settings['local_repository'], filepath)
+        filepath = pathlib.Path(settings["local_repository"], filepath)
 
     try:
         send2trash(filepath)
@@ -881,9 +923,8 @@ def delete_archive(filepath):
         return False
     except OSError as e:
         logger.error(
-            "An error occured outside of send2trash for file %s:\n%s",
-            filepath,
-            e)
+            "An error occured outside of send2trash for file %s:\n%s", filepath, e
+        )
         return False
     else:
         logger.info("Moved file %s to trashbin.", filepath.as_posix())

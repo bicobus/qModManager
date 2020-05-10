@@ -13,18 +13,23 @@ from PyQt5.QtWidgets import QTreeWidget, QTreeWidgetItem
 
 from qmm.bucket import FileMetadata
 from qmm.common import settings, timestamp_to_string
-from qmm.filehandler import ArchivesCollection, ArchiveInstance, LITERALS, TRANSLATED_LITERALS
+from qmm.filehandler import (
+    ArchivesCollection,
+    ArchiveInstance,
+    LITERALS,
+    TRANSLATED_LITERALS,
+)
 from qmm.lang import LANGUAGE_CODES, get_locale  # , normalize_locale
 from qmm.ui_about import Ui_About
 from qmm.ui_settings import Ui_Settings
 
 logger = logging.getLogger(__name__)
 FILESTATE_COLORS = {
-    'matched': (91, 135, 33, 255),  # greenish
-    'mismatched': (132, 161, 225, 255),  # blueish
-    'missing': (237, 213, 181, 255),  # (225, 185, 132, 255),  # yellowish
-    'conflicts': (135, 33, 39, 255),  # red-ish
-    'ignored': (219, 219, 219, 255),  # gray
+    "matched": (91, 135, 33, 255),  # greenish
+    "mismatched": (132, 161, 225, 255),  # blueish
+    "missing": (237, 213, 181, 255),  # (225, 185, 132, 255),  # yellowish
+    "conflicts": (135, 33, 39, 255),  # red-ish
+    "ignored": (219, 219, 219, 255),  # gray
 }
 
 
@@ -41,7 +46,6 @@ class QAbout(QtWidgets.QWidget, Ui_About):
 
 
 class QSettings(QtWidgets.QMainWindow):
-
     def __init__(self):
         super().__init__(flags=Qt.Window)
         self.centralwidget = None
@@ -62,11 +66,13 @@ class QSettings(QtWidgets.QMainWindow):
         self.settingwidget.setObjectName("settingwidget")
         self.setCentralWidget(self.centralwidget)
         size_policy = QtWidgets.QSizePolicy(
-            QtWidgets.QSizePolicy.Preferred,
-            QtWidgets.QSizePolicy.Preferred)
+            QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred
+        )
         size_policy.setHorizontalStretch(0)
         size_policy.setVerticalStretch(0)
-        size_policy.setHeightForWidth(self.settingwidget.sizePolicy().hasHeightForWidth())
+        size_policy.setHeightForWidth(
+            self.settingwidget.sizePolicy().hasHeightForWidth()
+        )
 
         self.statusbar = QtWidgets.QStatusBar(self)
         self.statusbar.setObjectName("statusbar")
@@ -79,8 +85,8 @@ class QSettings(QtWidgets.QMainWindow):
     def show(self):
         """Show the window and assign internal variables."""
         super().show()
-        self.settingwidget.game_input.setText(settings['game_folder'])
-        self.settingwidget.repo_input.setText(settings['local_repository'])
+        self.settingwidget.game_input.setText(settings["game_folder"])
+        self.settingwidget.repo_input.setText(settings["local_repository"])
 
     def set_mode(self, first_run=False):
         if first_run:
@@ -120,10 +126,10 @@ class QSettingsCentralWidget(QtWidgets.QWidget, Ui_Settings):
         value = QtWidgets.QFileDialog.getExistingDirectory(
             parent=self,
             caption=self.game_label.text(),
-            directory=settings['game_folder']
+            directory=settings["game_folder"],
         )  # noqa pycharm
 
-        if value and value != settings['game_folder']:
+        if value and value != settings["game_folder"]:
             self.game_input.setText(value)
 
     @pyqtSlot(name="on_repo_button_clicked")
@@ -132,20 +138,20 @@ class QSettingsCentralWidget(QtWidgets.QWidget, Ui_Settings):
         value = QtWidgets.QFileDialog.getExistingDirectory(
             parent=self,
             caption=self.repo_label.text(),
-            directory=settings['local_repository']
+            directory=settings["local_repository"],
         )  # noqa pycharm
-        if value and value != settings['local_repository']:
+        if value and value != settings["local_repository"]:
             self.repo_input.setText(value)
 
     @pyqtSlot(name="on_save_button_clicked")
     def _commit_changes(self):
         """Commit changes to the settings file then hide self."""
-        if (self.game_input.text() != settings['game_folder']
-                and path.isdir(self.game_input.text())):
-            settings['game_folder'] = self.game_input.text()
-        if (self.repo_input.text() != settings['local_repository']
-                and path.isdir(self.repo_input.text())):
-            settings['local_repository'] = self.repo_input.text()
+        game_input = self.game_input.text()
+        repo_input = self.repo_input.text()
+        if game_input != settings["game_folder"] and path.isdir(game_input):
+            settings["game_folder"] = game_input
+        if repo_input != settings["local_repository"] and path.isdir(repo_input):
+            settings["local_repository"] = repo_input
         # XXX: disable language settings until feature fully developed
         # if (not settings['language']
         #         or self.language_combo_box.currentData() != settings['language']):
@@ -178,7 +184,7 @@ class QSettingsCentralWidget(QtWidgets.QWidget, Ui_Settings):
 def autoresize_columns(tree_widget: QTreeWidget):
     """Resize all columns of a QTreeWidget to fit content."""
     tree_widget.expandAll()
-    for i in range(0, tree_widget.columnCount()-1):
+    for i in range(0, tree_widget.columnCount() - 1):
         tree_widget.resizeColumnToContents(i)
 
 
@@ -195,7 +201,9 @@ def _create_treewidget(text: Union[str, List], parent, tooltip: str = None, colo
     return w
 
 
-def build_tree_from_path(item: FileMetadata, parent: QTreeWidget, folders, color=None, extra_column=None):
+def build_tree_from_path(
+    item: FileMetadata, parent: QTreeWidget, folders, color=None, extra_column=None
+):
     """Generate a set of related :func:`PyQt5.QtWidgets.QTreeWidgetItem` based on a file path.
 
     Args:
@@ -208,29 +216,33 @@ def build_tree_from_path(item: FileMetadata, parent: QTreeWidget, folders, color
     Returns:
         dict: A dictionnary containing the folders ancestry.
     """
+
     def _gv(val):
         x = [val]
         if extra_column:
             x.extend(extra_column)
         return x
+
     folder, file = item.split()
-    folder_list = folder.split('/')
+    folder_list = folder.split("/")
     key = None
     for idx, folder in enumerate(folder_list):
-        key = '.'.join(folder_list[i] for i in range(0, idx+1))
+        key = ".".join(folder_list[i] for i in range(0, idx + 1))
         if key not in folders.keys():
             if idx > 0:
-                pkey = '.'.join(folder_list[i] for i in range(0, idx))
+                pkey = ".".join(folder_list[i] for i in range(0, idx))
                 p = folders[pkey]
             else:
                 p = parent
             folders.setdefault(key, _create_treewidget(_gv(folder), parent=p))
-    if file != '':
+    if file != "":
         _create_treewidget(_gv(file), folders[key], tooltip=item.path, color=color)
     return folders
 
 
-def build_ignored_tree_widget(tree_widget: QTreeWidget, ignored_iter: Iterable[FileMetadata]):
+def build_ignored_tree_widget(
+    tree_widget: QTreeWidget, ignored_iter: Iterable[FileMetadata]
+):
     parent_folders = {}
     for item in ignored_iter:
         build_tree_from_path(item, tree_widget, parent_folders)
@@ -245,19 +257,22 @@ def build_tree_widget(container: QTreeWidget, archive_instance: ArchiveInstance)
             container,
             parent_folders,
             color=FILESTATE_COLORS[LITERALS[status]],
-            extra_column=[TRANSLATED_LITERALS[status]])
+            extra_column=[TRANSLATED_LITERALS[status]],
+        )
 
 
-def build_conflict_tree_widget(container: QTreeWidget, archive_instance: ArchiveInstance):
+def build_conflict_tree_widget(
+    container: QTreeWidget, archive_instance: ArchiveInstance
+):
     for root, conflicts in archive_instance.conflicts():
         root_widget = QTreeWidgetItem()
         root_widget.setText(0, root)
-        root_widget.setText(1, '')
+        root_widget.setText(1, "")
         for item in conflicts:
             if isinstance(item, FileMetadata):
                 content = [item.path, item.origin]
             else:
-                content = [item, 'Archive']
+                content = [item, "Archive"]
             _create_treewidget(content, root_widget)
         container.addTopLevelItem(root_widget)
 
@@ -285,15 +300,17 @@ class ListRowItem(QtWidgets.QListWidgetItem):
     def set_gradients(self):
         gradient = QtGui.QLinearGradient(75, 75, 150, 150)
         if self.archive_instance.has_mismatched:
-            gradient.setColorAt(0, QtGui.QColor(*FILESTATE_COLORS['mismatched']))
-        elif self.archive_instance.all_matching and not self.archive_instance.all_ignored:
-            gradient.setColorAt(0, QtGui.QColor(*FILESTATE_COLORS['matched']))
+            gradient.setColorAt(0, QtGui.QColor(*FILESTATE_COLORS["mismatched"]))
+        elif (
+            self.archive_instance.all_matching and not self.archive_instance.all_ignored
+        ):
+            gradient.setColorAt(0, QtGui.QColor(*FILESTATE_COLORS["matched"]))
         elif self.archive_instance.has_matched and self.archive_instance.has_missing:
-            gradient.setColorAt(0, QtGui.QColor(*FILESTATE_COLORS['missing']))
+            gradient.setColorAt(0, QtGui.QColor(*FILESTATE_COLORS["missing"]))
         else:
             gradient.setColorAt(0, QtGui.QColor(0, 0, 0, 0))
         if self.archive_instance.has_conflicts:
-            gradient.setColorAt(1, QtGui.QColor(*FILESTATE_COLORS['conflicts']))
+            gradient.setColorAt(1, QtGui.QColor(*FILESTATE_COLORS["conflicts"]))
         brush = QtGui.QBrush(gradient)
         self.setBackground(brush)
 
@@ -318,7 +335,7 @@ class ListRowItem(QtWidgets.QListWidgetItem):
         Transfrom the '_' character into space.
         """
         if not self._name:
-            self._name = self._key.replace('_', ' ')
+            self._name = self._key.replace("_", " ")
         return self._name
 
     @property
