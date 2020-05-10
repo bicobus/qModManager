@@ -20,9 +20,9 @@ Provide Screenshots of the application if applicable. -->
 
 ## Steps to Reproduce
 
-1.
-2.
-3.
+1.  step 1
+2.  step 2
+3.  step 3
 
 ## Context (Environment)
 
