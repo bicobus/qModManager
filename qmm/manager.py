@@ -9,13 +9,8 @@ from typing import Tuple, Union
 
 import watchdog.events
 from PyQt5 import QtGui
-from PyQt5.QtCore import QEvent, QObject, Qt, pyqtSignal, pyqtSlot
-from PyQt5.QtWidgets import (
-    QApplication,
-    QFileDialog,
-    QMainWindow,
-    QMenu,
-)
+from PyQt5.QtCore import QEvent, QObject, Qt, QUrl, pyqtSignal, pyqtSlot
+from PyQt5.QtWidgets import QApplication, QFileDialog, QMainWindow, QMenu
 from watchdog.observers import Observer
 
 from qmm import bucket, dialogs, filehandler
@@ -33,6 +28,7 @@ from qmm.widgets import (
 )
 
 logger = logging.getLogger(__name__)
+HELP_URL = "https://qmodmanager.readthedocs.io/"
 
 
 class UnknownContext(Exception):
@@ -234,6 +230,11 @@ class MainWindow(QMainWindow, QEventFilter, CustomMenu, Ui_MainWindow):
         self._mod_handler = None
         self._observer = Observer()
         self._init_settings()
+
+        self.actionHelp.triggered.connect(
+            lambda: QtGui.QDesktopServices.openUrl(QUrl(HELP_URL)),
+            type=Qt.QueuedConnection,
+        )
 
     def show(self):
         super().show()

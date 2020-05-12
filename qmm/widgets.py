@@ -320,7 +320,7 @@ class ListRowItem(QtWidgets.QListWidgetItem):
             self.setForeground(QtGui.QColor("gray"))
 
     def refresh_strings(self):
-        """Called when the game's folder state changed
+        """Called when the game's folder state changed.
 
         Reinitialize the widget's strings, recompute the conflicts then redo
         all triaging and formatting.
@@ -331,7 +331,7 @@ class ListRowItem(QtWidgets.QListWidgetItem):
 
     @property
     def name(self):
-        """Return the name of the archive, formatted for GUI usage
+        """Return the name of the archive, formatted for GUI usage.
 
         Transfrom the '_' character into space.
         """
@@ -341,19 +341,19 @@ class ListRowItem(QtWidgets.QListWidgetItem):
 
     @property
     def filename(self):
-        """Returns the name of the archive filename, suitable for path manipulations"""
+        """Returns the name of the archive filename, suitable for path manipulations."""
         return self._key
 
     @property
     def modified(self):
-        """Return last modified time for an archive, usually time of creation"""
+        """Return last modified time for an archive, usually time of creation."""
         if not self._modified:
             self._modified = timestamp_to_string(self._stat.st_mtime)
         return self._modified
 
     @property
     def hashsum(self):
-        """Returns the sha256 hashsum of the archive"""
+        """Returns the sha256 hashsum of the archive."""
         if self._hashsum:
             return self._hashsum
         return ""

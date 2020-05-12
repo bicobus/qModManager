@@ -449,6 +449,15 @@
    </property>
   </action>
  </widget>
+ <tabstops>
+  <tabstop>listWidget</tabstop>
+  <tabstop>tabWidget</tabstop>
+  <tabstop>tab_files_content</tabstop>
+  <tabstop>autorefresh_checkbox</tabstop>
+  <tabstop>list_refresh_button</tabstop>
+  <tabstop>tab_conflicts_content</tabstop>
+  <tabstop>tab_skipped_content</tabstop>
+ </tabstops>
  <resources>
   <include location="icons.qrc"/>
  </resources>

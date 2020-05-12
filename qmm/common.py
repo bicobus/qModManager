@@ -45,12 +45,12 @@ def valid_suffixes(
     """Properly format a list of filters for QFileDialog.
 
     Args:
-        output_format:
-            Accepts either 'qfiledialog' or 'pathlib'. 'pathlib' returns a
-            simple list of suffixes, whereas 'qfiledialog' format the output
-            to be an acceptable filter for QFileDialog.
+        output_format (str): Accepts either 'qfiledialog' or 'pathlib'.
+            'pathlib' returns a simple list of suffixes, whereas 'qfiledialog'
+            format the output to be an acceptable filter for QFileDialog.
 
-    Returns: list
+    Returns:
+        list: a list of valid suffixes.
     """
     if output_format not in ("qfiledialog", "pathlib"):
         return False
@@ -60,8 +60,8 @@ def valid_suffixes(
     if output_format == "qfiledialog":
         filter_on, tpl = [], []
         for s in suffixes:
-            tpl.append(f"*{s}")
-        string = "All Archives (" + " ".join(tpl) + ")"
+            tpl.append(f"*{s}")  # *.ext
+        string = "All Archives({})".format(" ".join(tpl))
         filter_on.append(string)
         for label, s in zip(labels, tpl):
             filter_on.append(f"{label} ({s})")
