@@ -2,8 +2,8 @@
 Version History
 ===============
 
-`1.0.0-alpha11`_ (???)
-----------------------
+`1.0.0-alpha11`_ - 20-05-12
+---------------------------
 Added
 ~~~~~
 * Color code each managed item based on their status
@@ -17,6 +17,7 @@ Added
     * Green is when every files of the archive matches on the drive.
 
   * Greyed out text means the archive contains nothing that can be installed
+  * The Help buttons will send users to the readthedocs website.
 
 Changed
 ~~~~~~~
