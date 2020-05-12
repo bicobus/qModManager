@@ -2,7 +2,7 @@
     Bicobus <bicobus@keemail.me>
 
 :Version:
-    1.0 of 23/04/2020
+    1.1 of 12/05/2020
 
 .. |fileadd| image:: ../resources/icons/file-add-line.svg
 .. |filedel| image:: ../resources/icons/delete-bin-5-line.svg
@@ -49,6 +49,35 @@ Select the archive you wish to install then click on the install
 (|installfile|) button of the toolbar. Alternatively, you can right-click the
 archive and select the install option.
 
+Only files natively handled by Lilith's Throne mod system are supported. Any
+other file or folder will be ignored.
+
+Supported paths structure
+~~~~~~~~~~~~~~~~~~~~~~~~~
+A proper structure for a mod would be the following::
+
+    namespace
+    |-- items
+    |   |-- clothing
+    |   |   `-- ItemName
+    |   |       |-- cloth_test.svg
+    |   |       `-- cloth_test.xml
+    |   |-- tattoos
+    |   |   `-- ItemName
+    |   |       |-- tattoo_test.svg
+    |   |       `-- tattoo_test.xml
+    |   `-- weapons
+    |       `-- ItemName
+    |           |-- weapon_test.svg
+    |           `-- weapon_test.xml
+    `-- outfits
+        `-- OutfitName
+            `-- outfit_test.xml
+
+The first folder must be the namespace, or colloquially the name of the modder.
+The module will be ignored if it is packaged with the initial ``/res/mods``
+folders. The software will look for the existance of the subfolders ``items``,
+``clothing``, ``weapons``, ``tattoos`` and ``outfits``.
 
 Uninstalling a module
 ---------------------
