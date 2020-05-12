@@ -15,4 +15,4 @@ repos:
     rev: 2.0.5
     hooks:
       - id: prettier
-        args: [ --prose-wrap=always, --print-width=88, -l, '--ignore-path .github/workflows/ .pre-commit-config.yaml' ]
+        args: [ --prose-wrap=always, --print-width=88, -l, --ignore-path .github/workflows/ .pre-commit-config.yaml ]
