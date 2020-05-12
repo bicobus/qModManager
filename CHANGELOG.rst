@@ -2,6 +2,10 @@
 Version History
 ===============
 
+`1.0.0-alpha12`_ - ????????
+---------------------------
+
+
 `1.0.0-alpha11`_ - 20-05-12
 ---------------------------
 Added
@@ -54,7 +58,7 @@ Fixed
 
 * Internal dev stuff: changes of libraries used, reworking codebase, etc
 
-
-.. _`1.0.0-alpha11`: https://github.com/bicobus/qModManager/compare/v1.0.0-alpha10...master
+.. _`1.0.0-alpha12`: https://github.com/bicobus/qModManager/compare/v1.0.0-alpha11...master
+.. _`1.0.0-alpha11`: https://github.com/bicobus/qModManager/compare/v1.0.0-alpha10...v1.0.0-alpha11
 .. _`1.0.0-alpha10`: https://github.com/bicobus/qModManager/compare/v1.0.0-alpha9...v1.0.0-alpha10
 .. _`1.0.0-alpha9`: https://github.com/bicobus/qModManager/compare/v1.0.0-alpha8...v1.0.0-alpha9
