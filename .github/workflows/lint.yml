@@ -1,4 +1,4 @@
-name: Python lint and test
+name: Linting
 
 on: [push, pull_request]
 
@@ -11,11 +11,22 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
+      - name: Cache pre-commit envs
+        uses: actions/cache@v1
+        env:
+          cache-name: cache-precommit
+        with:
+          path: ~/.cache/pre-commit
+          key: ${{ runner.os }}-lint-${{ env.cache-name }}-${{ hashFiles('**/.pre-commit-config.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-lint-${{ env.cache-name }}-
+            ${{ runner.os }}-lint-
+
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v1
+        uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python-version }}
-      - name: Install depenencies
+      - name: Install depedencies
         run: |
           python -m pip install --upgrade pip
           python -m pip install --upgrade pre-commit
