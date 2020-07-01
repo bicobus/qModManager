@@ -1,0 +1,6 @@
+
+
+[tool.black]
+line-length = 98
+target-version = ['py37']
+check = true
