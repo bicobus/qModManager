@@ -48,7 +48,9 @@ disable=invalid-name,
         missing-class-docstring,
         too-many-instance-attributes,
         too-many-branches,
-        inherit-non-class
+        inherit-non-class,
+        C0330, # bad-continuation (black problem)
+        C0326 # bad whitespace (black problem)
 #disable=all
 
 #enable=import-error,

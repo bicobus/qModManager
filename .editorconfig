@@ -9,8 +9,11 @@ insert_final_newline = false
 tab_width = 4
 
 [*.py]
-max_line_length = 90
+max_line_length = 98
 insert_final_newline = true
+include_trailing_comma = true
+force_grid_wrap = 0
+use_parentheses = true
 
 [{*.bash,*.zsh,*.sh}]
 indent_size = 2

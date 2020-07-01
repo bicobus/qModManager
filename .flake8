@@ -5,7 +5,7 @@ exclude =
     __pycache__,
     ui_*.py,
     icons_rc.py
-max-line-length=80
+max-line-length=98
 max-complexity=12
 builtins=_
 show-source=1
