@@ -11,6 +11,13 @@
     <file alias="file-plus.svg">icons/file-add-line.svg</file>
     <file alias="file-forbid.svg">icons/file-forbid-line.svg</file>
     <file alias="file-minus.svg">icons/file-reduce-line.svg</file>
+    <file alias="file-text.svg">icons/file-text-line.svg</file>
+    <file alias="file-code.svg">icons/file-code-line.svg</file>
+    <file alias="file-edit.svg">icons/file-edit-line.svg</file>
+    <file alias="folder.svg">icons/folder-line.svg</file>
+    <file alias="folder-open.svg">icons/folder-open-line.svg</file>
+    <file alias="image.svg">icons/image-fill.svg</file>
+    <file alias="image-edit.svg">icons/image-edit-fill.svg</file>
     <file alias="info.svg">icons/information-line.svg</file>
     <file alias="help-circle.svg">icons/question-line.svg</file>
   </qresource>
