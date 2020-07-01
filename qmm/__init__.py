@@ -36,7 +36,8 @@ def get_data_path(relpath):
     return path
 
 
-logging.getLogger("PyQt5").setLevel(logging.WARNING)
+# Uncomment if PyQt5 floods the log file.
+# logging.getLogger("PyQt5").setLevel(logging.WARNING)
 logging.basicConfig(
     level=logging.DEBUG,
     format="%(asctime)s - %(levelname)s:%(name)s:%(module)s:%(funcName)s:%(message)s",

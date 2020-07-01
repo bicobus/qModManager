@@ -26,7 +26,7 @@ from zlib import crc32
 from send2trash import TrashPermissionError, send2trash
 
 from qmm import bucket, is_windows
-from qmm.common import settings, settings_are_set, tools_path, valid_suffixes
+from qmm.common import settings, settings_are_set, bundled_tools_path, valid_suffixes
 from qmm.config import SettingsNotSetError
 
 logger = logging.getLogger(__name__)
@@ -96,15 +96,12 @@ def ignore_patterns(seven_flag=False):
 
 
 def extract7z(
-    file_archive: pathlib.Path,
-    output_path: pathlib.Path,
-    exclude_list=None,
-    progress=None,
+    file_archive: pathlib.Path, output_path: pathlib.Path, exclude_list=None, progress=None,
 ) -> Union[List[bucket.FileMetadata], bool]:
     filepath = file_archive.absolute()
     output_path = output_path.absolute()
     cmd = [
-        tools_path(),
+        bundled_tools_path(),
         "x",
         str(filepath),
         f"-o{output_path}",
@@ -149,11 +146,7 @@ def extract7z(
                 path = extract.group(1).strip()
                 f_list.append(
                     bucket.FileMetadata(
-                        attributes="",
-                        path=path,
-                        crc=0,
-                        modified="",
-                        isfrom=file_archive.name,
+                        attributes="", path=path, crc=0, modified="", isfrom=file_archive.name,
                     )
                 )
                 if progress:
@@ -171,9 +164,7 @@ def extract7z(
     return f_list
 
 
-def list7z(
-    file_path: Union[str, pathlib.Path], progress=None
-) -> List[bucket.FileMetadata]:
+def list7z(file_path: Union[str, pathlib.Path], progress=None) -> List[bucket.FileMetadata]:
     if not isinstance(file_path, pathlib.Path):
         file_path = pathlib.Path(file_path)
     if not file_path.exists():
@@ -190,7 +181,7 @@ def list7z(
     if progress:
         progress(f"Processing {file_path.as_posix()}...")
 
-    cmd = [tools_path(), "l", str(file_path), "-ba", "-scsUTF-8", "-sccUTF-8", "-slt"]
+    cmd = [bundled_tools_path(), "l", str(file_path), "-ba", "-scsUTF-8", "-sccUTF-8", "-slt"]
 
     proc = subprocess.Popen(
         cmd,
@@ -308,9 +299,7 @@ class ArchiveInstance:
         for name, status in self._meta:
             yield name, status
 
-    def files(
-        self, exclude_directories=False
-    ) -> Generator[bucket.FileMetadata, None, None]:
+    def files(self, exclude_directories=False) -> Generator[bucket.FileMetadata, None, None]:
         if exclude_directories:
             for filename in filter(lambda x: not x.is_dir(), self._file_list):
                 yield filename
@@ -320,9 +309,7 @@ class ArchiveInstance:
 
     def folders(self) -> Generator[bucket.FileMetadata, None, None]:
         """Yield folders present in the archive"""
-        for folder in filter(
-            lambda x: x.is_dir(), sorted(self._file_list, reverse=True)
-        ):
+        for folder in filter(lambda x: x.is_dir(), sorted(self._file_list, reverse=True)):
             yield folder
 
     def matched(self) -> Generator[bucket.FileMetadata, None, None]:
@@ -375,11 +362,13 @@ class ArchiveInstance:
             "ignored": list(self.ignored()),
         }
 
-    def get_status(self, file):
-        for f, s in self._meta:
-            if f.path == file:
-                return s
+    def find(self, path):
+        for item in filter(lambda x: x[0].path == path, self._meta):
+            return item
         return None
+
+    def get_status(self, file):
+        return self.find(file)[1]
 
     def _has_status(self, status):
         return any(x[1] == status for x in self._meta)
@@ -689,9 +678,7 @@ def build_loose_files_crc32(progress=None):
         bucket.as_loosefile(crc, kfile)
 
 
-def _filter_list_on_exclude(
-    archives_list, list_to_exclude
-) -> Tuple[str, ArchiveInstance]:
+def _filter_list_on_exclude(archives_list, list_to_exclude) -> Tuple[str, ArchiveInstance]:
     for archive_name, file_info in archives_list.items():
         if not list_to_exclude or archive_name not in list_to_exclude:
             yield archive_name, file_info
@@ -728,18 +715,14 @@ def conflicts_process_files(files, archives_list, current_archive, processed):
         if bucket.with_conflict(file.path):
             continue
 
-        bad_archives = file_in_other_archives(
-            file=file, archives=archives_list, ignore=processed
-        )
+        bad_archives = file_in_other_archives(file=file, archives=archives_list, ignore=processed)
 
         if bad_archives:
             bad_archives.append(current_archive)
             bucket.as_conflict(file.path, bad_archives)
 
 
-def generate_conflicts_between_archives(
-    archives_lists: ArchivesCollection, progress=None
-):
+def generate_conflicts_between_archives(archives_lists: ArchivesCollection, progress=None):
     assert isinstance(archives_lists, ArchivesCollection), type(archives_lists)
     list_done: List[str] = []
     # archive_content is a list of objects [FileMetadata, FileMetadata, ...]
@@ -787,14 +770,10 @@ def copy_archive_to_repository(filename):
         logger.warning("Unable to copy archive: no local repository configured.")
         return False
 
-    new_filename = os.path.join(
-        settings["local_repository"], os.path.basename(filename)
-    )
+    new_filename = os.path.join(settings["local_repository"], os.path.basename(filename))
 
     if os.path.exists(new_filename):
-        logger.error(
-            "Unable to copy archive, a file with a similar name already exists."
-        )
+        logger.error("Unable to copy archive, a file with a similar name already exists.")
         return False
 
     try:
@@ -839,24 +818,23 @@ def install_archive(
     try:
         with TemporaryDirectory(prefix="qmm-") as td:
             logger.debug("Extracting files to %s", td)
-            files = extract7z(
-                file_to_extract, pathlib.Path(td), exclude_list=ignore_list
-            )
+            files = extract7z(file_to_extract, pathlib.Path(td), exclude_list=ignore_list)
             if not files:
                 logger.error("Exctracted list is empty, something terrible happened.")
-            for file in files:
-                src = pathlib.Path(td, file.path)
+            for myfile in files:
+                src = pathlib.Path(td, myfile.path)
                 if src.is_dir():
+                    logger.debug("IGNORED %s", src.as_posix())
                     continue
-                dst = get_mod_folder(file.path, prepend_modpath=True)
+                dst = get_mod_folder(myfile.path, prepend_modpath=True)
                 os.makedirs(os.path.dirname(dst), mode=0o750, exist_ok=True)
                 shutil.copy2(src, dst)
                 ccrc = _crc32(dst)
-                bucket.as_loosefile(ccrc, file.path)
-                logger.debug("Added as loose: %s %s", ccrc, file.path)
-            for file in file_context["mismatched"]:
-                logger.debug("Removed from loose: %s %s", file.crc, file.path)
-                bucket.remove_item_from_loosefiles(file)
+                bucket.as_loosefile(ccrc, myfile.path)
+                logger.debug("INSTALLED [loose] (%s) %s", ccrc, src.as_posix())
+            for misfile in file_context["mismatched"]:
+                logger.debug("STATE removed from loose files (%s) %s", misfile.crc, misfile.path)
+                bucket.remove_item_from_loosefiles(misfile)
     except ArchiveException as e:
         logger.exception(e)
         return False
@@ -931,9 +909,7 @@ def delete_archive(filepath):
         logger.error("Unable to move file %s to trash:\n%s", filepath, e)
         return False
     except OSError as e:
-        logger.error(
-            "An error occured outside of send2trash for file %s:\n%s", filepath, e
-        )
+        logger.error("An error occured outside of send2trash for file %s:\n%s", filepath, e)
         return False
     else:
         logger.info("Moved file %s to trashbin.", filepath.as_posix())

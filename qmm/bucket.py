@@ -46,9 +46,7 @@ class FileMetadata:
     _suffixes = (".xml", ".svg")
     _partition = ("res", "mods")
 
-    def __init__(
-        self, crc, path: Union[str, pathlib.Path], attributes, modified, isfrom
-    ):
+    def __init__(self, crc, path: Union[str, pathlib.Path], attributes, modified, isfrom):
         self._CRC = crc
         self._from = isfrom
         self._parts = ()
@@ -64,8 +62,7 @@ class FileMetadata:
 
         if not modified and self.pathobj.exists():
             self._Modified = datetime.strftime(
-                datetime.fromtimestamp(self.pathobj.stat().st_mtime),
-                "%Y-%m-%d %H:%M:%S",
+                datetime.fromtimestamp(self.pathobj.stat().st_mtime), "%Y-%m-%d %H:%M:%S",
             )
         else:
             self._Modified = modified
@@ -83,9 +80,7 @@ class FileMetadata:
             self.pathobj = pathobj
         else:  # assume we already have the normalized string, fed from the archive
             self._Path = pathobj.as_posix()
-            self.pathobj = pathlib.Path(
-                settings["game_folder"], *self._partition, pathobj
-            )
+            self.pathobj = pathlib.Path(settings["game_folder"], *self._partition, pathobj)
 
     def is_dir(self):
         """Check if the represented item is a directory"""
@@ -123,6 +118,10 @@ class FileMetadata:
     @property
     def path(self):
         return self._Path
+
+    @property
+    def path_as_url(self):
+        return "file://" + self._Path
 
     @property
     def attributes(self):

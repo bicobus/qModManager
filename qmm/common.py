@@ -3,10 +3,12 @@
 # © 2019-2020 bicobus <bicobus@keemail.me>
 import logging
 import os
+import pathlib
+import subprocess
 from datetime import datetime
 from typing import List, Tuple, Union
 
-from qmm import get_data_path, is_windows
+from qmm import get_data_path, is_linux, is_windows
 from qmm.config import Config
 
 logger = logging.getLogger(__name__)
@@ -17,6 +19,73 @@ settings = Config(
 )
 
 
+if is_windows:
+
+    def _command():
+        return r"C:\Program Files", r"C:\Program Files (x86)"
+
+    def startfile(file):
+        return os.startfile(file)
+
+    toolsalias = {
+        "svgedit": "Inkscape",
+        "svgpreview": "inkview",
+        "xmledit": "Notepad++",
+    }
+    toolspaths = {
+        "Inkscape": ("Inkscape", "inkscape.exe"),
+        "inkview": ("Inkscape", "inkview.exe"),
+        "Notepad++": ("Notepad++", "notepad++.exe"),
+    }
+elif is_linux:
+
+    def _command():
+        return os.environ["PATH"].split(":")
+
+    # NOTE: funky shit is going on between xfce4 and gnome based software
+    def startfile(file):
+        return subprocess.Popen(
+            ("xdg-open", file), stdin=None, stdout=None, stderr=None, close_fds=True,
+        )
+
+    toolsalias = {
+        "svgedit": "Inkscape",
+        "svgpreview": "inkview",
+        "xmledit": None,
+    }
+    toolspaths = {
+        "Inkscape": "inkscape",
+        "inkview": "inkview",
+    }
+
+
+def command(binary, alias=False):
+    """Return path to binary or None if not found.
+
+    Analogous to bash's command, but do not actually execute anything.
+
+    Args:
+        binary (str): Name of binary to find in PATH
+        alias (bool): True if the name is an alias to be looked up the pre-made
+            dict. `alias` is only useful for windows OS as the binary can be
+            a tuple. Aliases are also used to find predefined software without
+            the need of calling them by name, good for cross platform.
+    Returns:
+        os.Pathlike or None: Path to the binary or None if not found.
+    """
+    if alias:
+        binary = "/".join(toolspaths[toolsalias[binary]])
+    for path in _command():
+        check = pathlib.Path(path, binary)
+        if check.exists():
+            return check
+    return None
+
+
+def acommand(alias):
+    return command(alias, True)
+
+
 def settings_are_set():
     """Returns False if either 'local_repository' or 'game_folder' isn't set."""
     if not settings["local_repository"] or not settings["game_folder"]:
@@ -24,11 +93,8 @@ def settings_are_set():
     return True
 
 
-def tools_path():
-    """Returns the path to the 7z executable.
-
-    TODO: needs a better name
-    """
+def bundled_tools_path():
+    """Returns the path to the bundled 7z executable."""
     if is_windows:
         return os.path.join(get_data_path("tools"), "7z.exe")
     return "7z"
@@ -39,9 +105,7 @@ def timestamp_to_string(timestamp):
     return datetime.strftime(datetime.fromtimestamp(timestamp), "%c")
 
 
-def valid_suffixes(
-    output_format="qfiledialog",
-) -> Union[List[str], Tuple[str, str, str], bool]:
+def valid_suffixes(output_format="qfiledialog",) -> Union[List[str], Tuple[str, str, str], bool]:
     """Properly format a list of filters for QFileDialog.
 
     Args:
