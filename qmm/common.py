@@ -54,8 +54,8 @@ elif is_linux:
         "xmledit": None,
     }
     toolspaths = {
-        "Inkscape": "inkscape",
-        "inkview": "inkview",
+        "Inkscape": ["inkscape"],
+        "inkview": ["inkview"],
     }
 
 

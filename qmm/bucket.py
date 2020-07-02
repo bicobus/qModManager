@@ -120,10 +120,6 @@ class FileMetadata:
         return self._Path
 
     @property
-    def path_as_url(self):
-        return "file://" + self._Path
-
-    @property
     def attributes(self):
         return self._Attributes
 

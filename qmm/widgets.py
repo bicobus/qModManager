@@ -223,40 +223,32 @@ class TreeWidgetMenu(QObject):
             _("Open with {}").format(self.xmltext),
             menu,
         )
+        uri = widget_row.filemetadata.pathobj.as_uri()
+        parent_uri = widget_row.filemetadata.pathobj.parent.as_uri()
         if not widget_row.filemetadata.exists():
             logger.debug("TREEMENU: File Doesn't Exists: disabling.")
             open_dir.setDisabled(True)
             open_svg.setDisabled(True)
             open_xml.setDisabled(True)
         elif widget_row.filemetadata.is_dir():
-            open_dir.triggered.connect(
-                lambda: QtGui.QDesktopServices(QUrl(widget_row.filemetadata.path_as_url))
-            )
+            logger.debug("TREEMENU: from folder, open folder '%s'", uri)
+            open_dir.triggered.connect(lambda: QtGui.QDesktopServices.openUrl(QUrl(uri)))
             open_svg.setDisabled(True)
             open_xml.setDisabled(True)
         else:
-            open_dir.triggered.connect(
-                lambda: QtGui.QDesktopServices(QUrl(widget_row.filemetadata.pathobj.parent))
-            )
+            logger.debug("TREEMENU: from file, open folder '%s'", uri)
+            open_dir.triggered.connect(lambda: QtGui.QDesktopServices.openUrl(QUrl(parent_uri)))
             if not self.svgedit:
-                open_svg.triggered.connect(
-                    lambda: QtGui.QDesktopServices(QUrl(widget_row.filemetadata.path_as_url))
-                )
+                open_svg.triggered.connect(lambda: QtGui.QDesktopServices.openUrl(QUrl(uri)))
             else:
-                url = widget_row.filemetadata.path_as_url
-                parent = widget_row.filemetadata.pathobj.parent
                 open_svg.triggered.connect(
-                    lambda: QProcess.startDetached(self.svgedit, [url], parent)
+                    lambda: QProcess.startDetached(str(self.svgedit), [uri], parent_uri)
                 )
             if not self.xmledit:
-                open_xml.triggered.connect(
-                    lambda: QtGui.QDesktopServices(QUrl(widget_row.filemetadata.pathobj.parent))
-                )
+                open_xml.triggered.connect(lambda: QtGui.QDesktopServices.openUrl(QUrl(uri)))
             else:
-                url = widget_row.filemetadata.path_as_url
-                parent = widget_row.filemetadata.pathobj.parent
                 open_xml.triggered.connect(
-                    lambda: QProcess.startDetached(self.xmledit, [url], parent)
+                    lambda: QProcess.startDetached(str(self.xmledit), [uri], parent_uri)
                 )
 
         menu.addAction(open_dir)
