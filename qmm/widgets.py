@@ -236,14 +236,19 @@ class TreeWidgetMenu(QObject):
             open_svg.setDisabled(True)
             open_xml.setDisabled(True)
         else:
+            filetype = widget_row.filemetadata.pathobj.suffix
             logger.debug("TREEMENU: from file, open folder '%s'", uri)
             open_dir.triggered.connect(lambda: QtGui.QDesktopServices.openUrl(QUrl(parent_uri)))
-            if not self.svgedit:
+            # We do not want to open an xml file with a svg editor
+            if filetype != ".svg":
+                open_svg.setDisabled(True)
+            elif not self.svgedit:
                 open_svg.triggered.connect(lambda: QtGui.QDesktopServices.openUrl(QUrl(uri)))
             else:
                 open_svg.triggered.connect(
                     lambda: QProcess.startDetached(str(self.svgedit), [uri], parent_uri)
                 )
+            # svg are xml files
             if not self.xmledit:
                 open_xml.triggered.connect(lambda: QtGui.QDesktopServices.openUrl(QUrl(uri)))
             else:
