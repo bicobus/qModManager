@@ -4,7 +4,19 @@ Version History
 
 `1.0.0-alpha12`_ - ????????
 ---------------------------
+Added
+~~~~~
+* A context menu on the treeview if the file is present on disk:
 
+  * Open containing folder
+  * Open file using text editor, graphics editor or both (for svg)
+
+Changed
+~~~~~~~
+* Directories in the treeview now properly show their status.
+* Context menus rewritten in a less stupid way.
+* Archives context menu disable entries when they don't apply, an archive that
+  is not installed cannot be uninstalled and so on.
 
 `1.0.0-alpha11`_ - 20-05-12
 ---------------------------
