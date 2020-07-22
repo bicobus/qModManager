@@ -39,6 +39,7 @@ if is_windows:
     startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
 
 # Mods directory structure
+# TODO: add setBonuses and statusEffects as first level
 first_level_dir = ("items", "outfits")  # outfits aren't stored under items
 second_level_dir = ("weapons", "clothing", "tattoos")
 
@@ -265,20 +266,24 @@ class ArchiveInstance:
         self._conflicts = {}
 
     def reset_status(self):
-        """Called whenever the state of an archive becomes dirty, which is
-        also the default state.
+        """
+        Called whenever the state of an archive becomes dirty, which is also
+        the default state.
 
         Populate 'self._meta' with tuples containing the 'FileMetadata' object
         of each individual file alongside the current status of that file. The
         status can be either 'FILE_MATCHED', 'FILE_MISMATCHED', 'FILE_IGNORED'
-        or 'FILE_MISSING'."""
+        or 'FILE_MISSING'.
+        """
         self._meta = []
         for item in self._file_list:
             self._meta.append((item, file_status(item)))
 
     def reset_conflicts(self):
-        """Generate a list of conflicting files, either from in the game
-         folders or in other archives, for each file present in this archive."""
+        """
+        Generate a list of conflicting files, either from in the game folders
+        or in other archives, for each file present in this archive.
+        """
         for item in self._file_list:
             tmp_conflicts = []
             # Check other archives
@@ -308,7 +313,7 @@ class ArchiveInstance:
                 yield filename
 
     def folders(self) -> Generator[bucket.FileMetadata, None, None]:
-        """Yield folders present in the archive"""
+        """Yield folders present in the archive."""
         for folder in filter(lambda x: x.is_dir(), sorted(self._file_list, reverse=True)):
             yield folder
 
@@ -344,14 +349,14 @@ class ArchiveInstance:
             yield path, archives
 
     def uninstall_info(self):
-        """Informations necessary to the uninstall function"""
+        """Informations necessary to the uninstall function."""
         return list(self.matched()) + list(self.folders())
 
     def install_info(self):
         """Return a several lists useful to the installation process.
 
         The content in matched and ignored key will be compiled into a set of
-        exclude flags, whereas the content of mismatched key will be overridden
+        exclude flags, whereas the content of mismatched key will be overridden.
 
         See Also:
             :func:`install_archive`
@@ -386,26 +391,30 @@ class ArchiveInstance:
 
     @property
     def has_mismatched(self):
-        """Value is `True` if a file of the archive is of status
-        :py:attr:`FILE_MISMATCHED`."""
+        """
+        Value is `True` if a file of the archive is of status :py:attr:`FILE_MISMATCHED`.
+        """
         return self._has_status(FILE_MISMATCHED)
 
     @property
     def has_missing(self):
-        """Value is `True` if a file of the archive is of status
-        :py:attr:`FILE_MISSING`."""
+        """
+        Value is `True` if a file of the archive is of status :py:attr:`FILE_MISSING`.
+        """
         return self._has_status(FILE_MISSING)
 
     @property
     def has_ignored(self):
-        """Value is `True` if a file of the archive is of status
-        :py:attr:`FILE_IGNORED`."""
+        """
+        Value is `True` if a file of the archive is of status :py:attr:`FILE_IGNORED`.
+        """
         return self._has_status(FILE_IGNORED)
 
     @property
     def all_ignored(self):
-        """Value is `True` if all files of the archive are of status
-        :py:attr:`FILE_IGNORED`."""
+        """
+        Value is `True` if all files of the archive are of status :py:attr:`FILE_IGNORED`.
+        """
         return all(x[1] == FILE_IGNORED or x[0].attributes == "D" for x in self._meta)
 
     @property
@@ -492,7 +501,7 @@ class ArchivesCollection(MutableMapping[str, ArchiveInstance]):
         self._set_hashsums(path.name, hashsum)
 
     def rename_archive(self, src_path, dest_path):
-        """Rename the key pointing to an archive
+        """Rename the key pointing to an archive.
 
         Whenever an archive on the drive gets renamed, we need to do the same
         with the key under which the parsed data is stored.
@@ -511,14 +520,14 @@ class ArchivesCollection(MutableMapping[str, ArchiveInstance]):
         """Find a member based on the name or hashsum of the archive.
 
         If archiveName is not None, will check if archiveName exists in the
-        keys of the collection.
-        If hashsum is not None, will check if the value exists in the
-        self._hashsums dict.
-        If all checks fails, returns False.
+        keys of the collection. If hashsum is not None, will check if the value
+        exists in the self._hashsums dict. If all checks fails, returns False.
 
         Args:
             archive_name: filename of the archive, suffix included (default None)
             hashsum: sha256sum of the file (default None)
+        Returns:
+            Boolean or ArchiveInstance
         """
         if archive_name and archive_name in self._data.keys():
             return self._data[archive_name]
@@ -765,7 +774,7 @@ def file_status(file: bucket.FileMetadata) -> int:
 
 
 def copy_archive_to_repository(filename):
-    """Copy an archive to the manager's repository"""
+    """Copy an archive to the manager's repository."""
     if not settings["local_repository"]:
         logger.warning("Unable to copy archive: no local repository configured.")
         return False

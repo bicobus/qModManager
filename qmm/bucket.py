@@ -83,19 +83,19 @@ class FileMetadata:
             self.pathobj = pathlib.Path(settings["game_folder"], *self._partition, pathobj)
 
     def is_dir(self):
-        """Check if the represented item is a directory"""
+        """Check if the represented item is a directory."""
         if not self.pathobj.exists():
             return bool("D" in self._Attributes)
         return self.pathobj.is_dir()
 
     def is_file(self):
-        """Check if the represented item is a file"""
+        """Check if the represented item is a file."""
         if not self.pathobj.exists():
             return bool("D" not in self._Attributes)
         return self.pathobj.is_file()
 
     def exists(self):
-        """Check if the file exists on the disk"""
+        """Check if the file exists on the disk."""
         return self.pathobj.exists()
 
     def split(self):
@@ -171,7 +171,7 @@ gamefiles: GameFiles = {}
 
 
 def _find_index_from(lbucket: LooseFiles, crc: Crc32, path: str):
-    """Find index of 'path' in bucket 'lbucket'"""
+    """Find index of 'path' in bucket 'lbucket'."""
     for item in lbucket[crc]:
         if item.path == path:
             return lbucket[crc].index(item)
@@ -254,7 +254,7 @@ def as_loosefile(crc: Crc32, filepath: pathlib.Path):
 
 
 def remove_item_from_loosefiles(file: FileMetadata):
-    """Removes the reference to file if it is found in loosefiles"""
+    """Removes the reference to file if it is found in loosefiles."""
     if file.crc in loosefiles.keys():
         if file_path_in_loosefiles(file):
             idx = _find_index_from(loosefiles, file.crc, file.path)
