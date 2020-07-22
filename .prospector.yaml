@@ -1,5 +1,0 @@
-pep257:
-  enable:
-    - D212
-  disable:
-    - D213
