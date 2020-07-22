@@ -170,7 +170,7 @@ class QEventFilter:
             if e.type() == QEvent.DragEnter:
                 e.acceptProposedAction()
                 return True
-            if e.type() == QEvent.Type.Drop:
+            if e.type() == QEvent.Drop:
                 return self._on_drop_action(e)
         # return false ignores the event and allow further propagation
         return False
