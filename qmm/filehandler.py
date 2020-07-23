@@ -96,26 +96,42 @@ def ignore_patterns(seven_flag=False):
     return ".DS_Store", "__MACOSX", "Thumbs.db"
 
 
+def build_cmd(filepath, *ext, extract=True, output=None, **extra):
+    ext = list(ext)
+    if isinstance(filepath, os.PathLike):
+        filepath = str(filepath)
+    if extract:
+        action = "x"
+        ext.append("-y")  # Assume yes to all queries
+        ext.extend(ignore_patterns(True))
+    else:
+        action = "l"
+
+    ext.extend(["-scsUTF-8", "-sccUTF-8"])
+    if extra.get("exclude_list"):
+        ext.append(extra["exclude_list"])
+    if output:
+        ext.append(f"-o{output}")
+
+    cmd = [
+        bundled_tools_path(),
+        action,
+        filepath,
+    ]
+    cmd.extend(ext)
+    return cmd
+
+
 def extract7z(
     file_archive: pathlib.Path, output_path: pathlib.Path, exclude_list=None, progress=None,
 ) -> Union[List[bucket.FileMetadata], bool]:
-    filepath = file_archive.absolute()
-    output_path = output_path.absolute()
-    cmd = [
-        bundled_tools_path(),
-        "x",
-        str(filepath),
-        f"-o{output_path}",
+    cmd = build_cmd(
+        file_archive.absolute(),
         "-ba",
         "-bb1",
-        "-y",
-        "-scsUTF-8",
-        "-sccUTF-8",
-    ]
-    cmd.extend(ignore_patterns(True))
-    if exclude_list:
-        assert isinstance(exclude_list, list)
-        cmd.extend(exclude_list)
+        output=output_path.absolute(),
+        excluded_list=exclude_list,
+    )
 
     logger.debug("Running %s", cmd)
     try:
@@ -125,6 +141,7 @@ def extract7z(
             stdout=subprocess.PIPE,
             stdin=subprocess.PIPE,
             stderr=subprocess.STDOUT,
+            shell=False,
         )
     except OSError as e:
         logger.error("System error\n%s", e)
@@ -156,10 +173,8 @@ def extract7z(
     return_code = proc.wait()
     if return_code != 0 or errstring:
         raise ArchiveException(
-            (
-                f"{filepath}: Extraction failed with error code {return_code} "
-                f"and message:\n{errstring}"
-            )
+            f"{file_archive.absolute()}: Extraction failed with error code {return_code} "
+            f"and message:\n{errstring}"
         )
 
     return f_list
@@ -329,7 +344,7 @@ class ArchiveInstance:
         for item in filter(lambda x: x[1] == FILE_MISMATCHED, self._meta):
             # File is mismatched against something else, find it and store it
             for mfile in bucket.loosefiles.values():
-                for f in filter(lambda x: x.path == item[0].path, mfile):
+                for f in filter(lambda x, i=item: x.path == i[0].path, mfile):
                     logger.debug("Found mismatched as '%s'", f)
                     yield f
 
