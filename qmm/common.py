@@ -25,7 +25,7 @@ if is_windows:
         return r"C:\Program Files", r"C:\Program Files (x86)"
 
     def startfile(file):
-        return os.startfile(file)
+        return os.startfile(file)  # pylint: disable=no-member
 
     toolsalias = {
         "svgedit": "Inkscape",
@@ -45,7 +45,12 @@ elif is_linux:
     # NOTE: funky shit is going on between xfce4 and gnome based software
     def startfile(file):
         return subprocess.Popen(
-            ("xdg-open", file), stdin=None, stdout=None, stderr=None, close_fds=True,
+            ("/usr/bin/xdg-open", file),
+            stdin=None,
+            stdout=None,
+            stderr=None,
+            close_fds=True,
+            shell=False,
         )
 
     toolsalias = {
