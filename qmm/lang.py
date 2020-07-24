@@ -10,7 +10,7 @@ from qmm import get_data_path
 from qmm.common import settings
 
 logger = logging.getLogger(__name__)
-DEFAULT_LANGUAGE = "en"
+DEFAULT_LANGUAGE = "en_US"
 # List of maintained translation
 # fmt: off
 LANGUAGE_CODES = [
@@ -33,7 +33,7 @@ def normalize_locale(loc: str):
 
 
 def get_locale():
-    if not settings["language"]:
+    if not settings["language"] or settings["language"] == "system":
         try:
             language = locale.getdefaultlocale()[0]
         except ValueError:
@@ -56,11 +56,7 @@ def get_locale():
 
 def list_available_languages():
     locale_path = get_data_path("locales")
-    langs = [
-        d
-        for d in os.listdir(locale_path)
-        if os.path.isdir(os.path.join(locale_path, d))
-    ]
+    langs = [d for d in os.listdir(locale_path) if os.path.isdir(os.path.join(locale_path, d))]
     langs.append(DEFAULT_LANGUAGE)
 
     for lang in langs:
@@ -80,9 +76,7 @@ def list_available_languages():
 def set_gettext(install=True):
     lang = get_locale()
     locale_dir = get_data_path("locales")
-    trans = gettext.translation(
-        "qmm", localedir=locale_dir, languages=[lang], fallback=True
-    )
+    trans = gettext.translation("qmm", localedir=locale_dir, languages=[lang], fallback=True)
     if install:
         trans.install()
     return trans.gettext

@@ -5,7 +5,7 @@
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QMessageBox, QDialog
 
-from qmm.ui_qprogress import Ui_Dialog
+from qmm.ui_qprogress import Ui_Dialog  # pylint: disable=no-name-in-module
 
 
 def qError(message, **kwargs):

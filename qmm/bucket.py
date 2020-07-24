@@ -73,7 +73,8 @@ class FileMetadata:
         We want to build a path that is similar to the one present in an
         archive. To do so we need to remove anything that is before, and
         including the "partition" folder.
-        ...blah/res/mods/namespace/category/ -> namespace/category/
+
+        ``...blah/res/mods/namespace/category/ -> namespace/category/``
         """
         if pathobj.is_absolute():
             self._Path = pathobj.as_posix().partition(join(*self._partition) + sep)[2]
@@ -206,12 +207,16 @@ def file_path_in_loosefiles(filemd: FileMetadata) -> bool:
 
 
 def with_gamefiles(crc: Crc32 = None, path: str = None):
-    """First check if a CRC32 exist within the gamefiles bucket, if no CRC is
+    """Determine if a file exists within the cached list of game files.
+
+    First check if a CRC32 exist within the gamefiles bucket, if no CRC is
     given or the check fails, will then check if a path is present in the
     gamefiles's bucket values.
+
     Args:
         crc (int): CRC32 as integer
         path (str): the relative pathlike string of a file
+
     Returns:
         bool: True if either CRC32 or path are found
     """

@@ -17,11 +17,12 @@ from watchdog.observers import Observer
 from qmm import bucket, dialogs, filehandler, get_base_path
 from qmm.common import settings, settings_are_set, valid_suffixes
 from qmm.config import get_config_dir
-from qmm.ui_mainwindow import Ui_MainWindow
+from qmm.settings.core_dialogs import PreferencesDialog
+from qmm.settings.pages import GeneralPage
+from qmm.ui_mainwindow import Ui_MainWindow  # pylint: disable=no-name-in-module
 from qmm.widgets import (
     ListRowItem,
     QAbout,
-    QSettings,
     TreeWidgetMenu,
     autoresize_columns,
     build_conflict_tree_widget,
@@ -202,6 +203,7 @@ class MainWindow(QMainWindow, QEventFilter, Ui_MainWindow):
 
         self._cb_after_init = deque()
         self._settings_window = None
+        self.settings_index = None
         self._about_window = None
         self.managed_archives = filehandler.ArchivesCollection()
         self._qc = {}
@@ -211,7 +213,9 @@ class MainWindow(QMainWindow, QEventFilter, Ui_MainWindow):
         self._ar_handler = None
         self._mod_handler = None
         self._observer = Observer()
-        self._init_settings()
+        # self._init_settings()
+        if settings_are_set():
+            self._init_mods()
 
         self.actionHelp.triggered.connect(
             lambda: QtGui.QDesktopServices.openUrl(QUrl(HELP_URL)),  # noqa pycharm
@@ -247,7 +251,7 @@ class MainWindow(QMainWindow, QEventFilter, Ui_MainWindow):
         etype = None
         for etype, archive_name in self.managed_archives.refresh():
             if etype == self.managed_archives.FileAdded:
-                self._add_item_to_list(
+                self.listWidget.addItem(
                     ListRowItem(filename=archive_name, archive_manager=self.managed_archives)
                 )
             if etype == self.managed_archives.FileRemoved:
@@ -257,7 +261,7 @@ class MainWindow(QMainWindow, QEventFilter, Ui_MainWindow):
         if etype or self.is_mod_repo_dirty:
             filehandler.generate_conflicts_between_archives(self.managed_archives)
             self.managed_archives.initiate_conflicts_detection()
-            self._refresh_list_item_state()
+            self.refresh_list_item_state()
             self._is_mod_repo_dirty = False
 
         msg = " "
@@ -272,6 +276,7 @@ class MainWindow(QMainWindow, QEventFilter, Ui_MainWindow):
             self._wd_watchers["archives"] = None
 
     def _init_settings(self):
+        # XXX remove me, transpose the warning elsewhere
         if not settings_are_set():
             dialogs.qWarning(
                 _(
@@ -309,7 +314,7 @@ class MainWindow(QMainWindow, QEventFilter, Ui_MainWindow):
         for archive_name in self.managed_archives.keys():
             p_dialog.progress(archive_name)
             item = ListRowItem(filename=archive_name, archive_manager=self.managed_archives)
-            self._add_item_to_list(item)
+            self.listWidget.addItem(item)
         if item:
             self.listWidget.setCurrentItem(item)
             self.listWidget.scrollToItem(item)
@@ -365,22 +370,20 @@ class MainWindow(QMainWindow, QEventFilter, Ui_MainWindow):
         except IndexError:
             return None
 
-    def _add_item_to_list(self, item):
-        self.listWidget.addItem(item)
-
     def _remove_row(self, filename: str, row: int, preserve_managed: bool = False):
         """Remove a row from the interface's list.
 
         The `filename` argument is only needed if `preserved_managed` is set to
         `False` (the default). It is needed to remove information stored in the
         `managed_archives` object.
+
         Will refresh the conflicting files once done.
 
         Args:
             filename: Only needed if preserve_managed is False
             row: integer matching the row to remove
-            preserve_managed:
-                if False, delete information from the managed_archives object
+            preserve_managed: if False, delete information from the managed_archives
+                object
         """
         if not preserve_managed:
             del self.managed_archives[filename]
@@ -407,7 +410,7 @@ class MainWindow(QMainWindow, QEventFilter, Ui_MainWindow):
         self.tabWidget.tabBar().setTabTextColor(index, color)
 
     @pyqtSlot(name="on_listWidget_itemSelectionChanged")
-    def _on_selection_change(self) -> None:
+    def on_selection_change(self) -> None:
         """Change the tab color to match the selected element in linked list.
 
         rgb(135, 33, 39) # redish
@@ -521,8 +524,8 @@ class MainWindow(QMainWindow, QEventFilter, Ui_MainWindow):
             )
         else:
             filehandler.generate_conflicts_between_archives(self.managed_archives)
-            self._refresh_list_item_state()
-            self._on_selection_change()
+            self.refresh_list_item_state()
+            self.on_selection_change()
 
     @pyqtSlot(name="on_actionUninstall_Mod_triggered")
     def _do_uninstall_selected_mod(self, menu_item=None):
@@ -551,8 +554,8 @@ class MainWindow(QMainWindow, QEventFilter, Ui_MainWindow):
         self._do_enable_autorefresh(True)
         if uninstall_status:
             filehandler.generate_conflicts_between_archives(self.managed_archives)
-            self._refresh_list_item_state()
-            self._on_selection_change()
+            self.refresh_list_item_state()
+            self.on_selection_change()
             return True
 
         dialogs.qWarning(
@@ -572,16 +575,30 @@ class MainWindow(QMainWindow, QEventFilter, Ui_MainWindow):
             first_launch (bool): If true, disable cancel button and bind the
                 save button to :obj:`qmm.MainWindow._init_mods`
         """
+
+        def _d_finished(e):
+            self._settings_window = None
+
         if not self._settings_window:
-            self._settings_window = QSettings()
-        if first_launch:
-            self._connection_link = self._settings_window.connect_to_savebutton(self._init_mods)
-            self._settings_window.set_mode(first_run=True)
+            dlg = PreferencesDialog(self)
+            self._settings_window = dlg
+            gpage = GeneralPage(dlg)
+            dlg.add_page(gpage)
+
+            if self.settings_index:
+                dlg.contents_widget.setCurrentIndex(self.settings_index)
+            dlg.show()
+
+            dlg.pages_widget.currentChanged.connect(self._settings_index_changed)
+            dlg.finished.connect(_d_finished)
         else:
-            if self._connection_link:
-                self._settings_window.disconnect_from_savebutton(self._connection_link)
-                self._settings_window.set_mode(first_run=False)
-        self._settings_window.show()
+            self._settings_window.show()
+            self._settings_window.activateWindow()
+            self._settings_window.raise_()
+            self._settings_window.setFocus()
+
+    def _settings_index_changed(self, index):
+        self.settings_index = index
 
     @pyqtSlot(name="on_actionAbout_triggered")
     def do_about(self):
@@ -636,7 +653,8 @@ class MainWindow(QMainWindow, QEventFilter, Ui_MainWindow):
         else:
             raise UnknownContext("Unknown context '{}' for scheduler.".format(context))
 
-    def _refresh_list_item_state(self):
+    def refresh_list_item_state(self):
+        """Refresh the listwidget whenever an item is added or removed."""
         for idx in range(0, self.listWidget.count()):
             item: ListRowItem = self.listWidget.item(idx)
             item.archive_instance.reset_status()
@@ -665,8 +683,8 @@ class MainWindow(QMainWindow, QEventFilter, Ui_MainWindow):
 
             item = ListRowItem(filename=archive_name, archive_manager=self.managed_archives)
 
-            self._add_item_to_list(item)
-            self._refresh_list_item_state()
+            self.listWidget.addItem(item)
+            self.refresh_list_item_state()
             self.listWidget.scrollToItem(item)
             self.listWidget.setCurrentItem(item)
             # Clear the ignore flag for the file
@@ -783,7 +801,7 @@ class MainWindow(QMainWindow, QEventFilter, Ui_MainWindow):
 
 
 class QAppEventFilter(QObject):
-    """Detect if the application is active then triggers to appropriate events
+    """Detect if the application is active then triggers to appropriate events.
 
     The purpose of this object is to enable or disable WatchDog related
     procedures. We want to disable file system watch on the modules directory
@@ -883,11 +901,12 @@ class QAppEventFilter(QObject):
         return False
 
 
+# pylint: disable=import-outside-toplevel
 def main():
     """Start the application proper."""
-    import sys  # pylint: disable=import-outside-toplevel
-    import signal  # pylint: disable=import-outside-toplevel
-    import locale  # pylint: disable=import-outside-toplevel
+    import sys
+    import signal
+    import locale
 
     # Sets locale according to $LANG variable instead of C locale
     locale.setlocale(locale.LC_ALL, "")

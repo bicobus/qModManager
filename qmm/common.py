@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 settings = Config(
     filename="settings.json",
-    defaults={"local_repository": None, "game_folder": None, "language": None},
+    defaults={"local_repository": None, "game_folder": None, "language": "system"},
 )
 
 
@@ -75,6 +75,7 @@ def command(binary, alias=False):
             dict. `alias` is only useful for windows OS as the binary can be
             a tuple. Aliases are also used to find predefined software without
             the need of calling them by name, good for cross platform.
+
     Returns:
         os.Pathlike or None: Path to the binary or None if not found.
     """

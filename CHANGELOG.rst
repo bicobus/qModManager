@@ -17,6 +17,8 @@ Changed
 * Context menus rewritten in a less stupid way.
 * Archives context menu disable entries when they don't apply, an archive that
   is not installed cannot be uninstalled and so on.
+* Got rid of the resources files for the setting window. It is now
+  programatically built, which helps with maintenance.
 
 `1.0.0-alpha11`_ - 20-05-12
 ---------------------------

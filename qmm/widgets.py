@@ -8,22 +8,21 @@ from os import path
 from typing import Iterable, List, Union
 
 from PyQt5 import QtGui, QtWidgets
-from PyQt5.QtCore import QObject, QProcess, Qt, QUrl, pyqtSlot, QSize
+from PyQt5.QtCore import QObject, QProcess, QUrl
 from PyQt5.QtWidgets import QAction, QMenu, QTreeWidget, QTreeWidgetItem
 
 from qmm.bucket import FileMetadata
-from qmm.common import settings, timestamp_to_string, command, toolsalias
+from qmm.common import timestamp_to_string, command, toolsalias
 from qmm.filehandler import (
     ArchivesCollection,
     ArchiveInstance,
     LITERALS,
     TRANSLATED_LITERALS,
 )
-from qmm.lang import LANGUAGE_CODES, get_locale  # , normalize_locale
-from qmm.ui_about import Ui_About
-from qmm.ui_settings import Ui_Settings
+from qmm.ui_about import Ui_About  # pylint: disable=no-name-in-module
 
 logger = logging.getLogger(__name__)
+#: Gradients of colors for each file of the tree widget.
 FILESTATE_COLORS = {
     "matched": (91, 135, 33, 255),  # greenish
     "mismatched": (132, 161, 225, 255),  # blueish
@@ -32,7 +31,7 @@ FILESTATE_COLORS = {
     "ignored": (219, 219, 219, 255),  # gray
 }
 
-
+# NOTE: Investigate QDesktopServices if os.startfile is failing on windows
 # def qopenpath(tool):
 #     toolpath = command(tool, alias=True)
 #     QtGui.QDesktopServices(QUrl(tool))
@@ -48,136 +47,6 @@ class QAbout(QtWidgets.QWidget, Ui_About):
         font.setFamily("Unifont")
         font.setPointSize(11)
         self.text_author.setFont(font)
-
-
-class QSettings(QtWidgets.QMainWindow):
-    def __init__(self):
-        super().__init__(flags=Qt.Window)
-        self.centralwidget = None
-        self.settingwidget = None
-        self.statusbar = None
-        self.setup_ui()
-
-    def setup_ui(self):
-        self.setObjectName("Settings")
-        self.setWindowTitle(_("Settings"))
-        self.setWindowModality(Qt.ApplicationModal)
-        self.resize(600, 140)
-        self.setMinimumSize(QSize(600, 140))
-        self.setMaximumSize(QSize(800, 16777215))
-        self.centralwidget = QtWidgets.QWidget(self, flags=Qt.Widget)
-        self.centralwidget.setObjectName("centralwidget")
-        self.settingwidget = QSettingsCentralWidget(self.centralwidget)
-        self.settingwidget.setObjectName("settingwidget")
-        self.setCentralWidget(self.centralwidget)
-        size_policy = QtWidgets.QSizePolicy(
-            QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred
-        )
-        size_policy.setHorizontalStretch(0)
-        size_policy.setVerticalStretch(0)
-        size_policy.setHeightForWidth(self.settingwidget.sizePolicy().hasHeightForWidth())
-
-        self.statusbar = QtWidgets.QStatusBar(self)
-        self.statusbar.setObjectName("statusbar")
-        self.setStatusBar(self.statusbar)
-        newsize = self.sizeHint() + self.settingwidget.sizeHint()
-        self.resize(newsize)
-        self.settingwidget.save_button.clicked.connect(self.hide)
-        self.settingwidget.cancel_button.clicked.connect(self.hide)
-
-    def show(self):
-        """Show the window and assign internal variables."""
-        super().show()
-        self.settingwidget.game_input.setText(settings["game_folder"])
-        self.settingwidget.repo_input.setText(settings["local_repository"])
-
-    def set_mode(self, first_run=False):
-        if first_run:
-            self.settingwidget.cancel_button.setEnabled(False)
-            self.setWindowFlag(Qt.WindowCloseButtonHint, on=False)
-        else:
-            self.settingwidget.cancel_button.setEnabled(True)
-            self.setWindowFlag(Qt.WindowCloseButtonHint, on=True)
-
-    def connect_to_savebutton(self, callback):
-        return self.settingwidget.save_button.clicked.connect(callback)
-
-    def disconnect_from_savebutton(self, callback):
-        self.settingwidget.save_button.disconnect(callback)
-
-
-class QSettingsCentralWidget(QtWidgets.QWidget, Ui_Settings):
-    """Define the settings windows."""
-
-    def __init__(self, parent=None):
-        super().__init__(parent=parent)
-        self.setupUi(self)
-        self.repo_hide_help.hide()
-        self.repo_helper.hide()
-        self.game_hide_help.hide()
-        self.game_helper.hide()
-
-        for lang, code in LANGUAGE_CODES:
-            self.language_combo_box.addItem(lang, code)
-        current_idx = self.language_combo_box.findData(get_locale())
-        self.language_combo_box.setCurrentIndex(current_idx)
-        self.language_combo_box.setDisabled(True)
-
-    @pyqtSlot(name="on_game_button_clicked")
-    def _set_game_directory(self):
-        """Show a file selection window to the user."""
-        value = QtWidgets.QFileDialog.getExistingDirectory(
-            parent=self, caption=self.game_label.text(), directory=settings["game_folder"],
-        )  # noqa pycharm
-
-        if value and value != settings["game_folder"]:
-            self.game_input.setText(value)
-
-    @pyqtSlot(name="on_repo_button_clicked")
-    def _set_repository_directory(self):
-        """Show a file selection window to use user."""
-        value = QtWidgets.QFileDialog.getExistingDirectory(
-            parent=self, caption=self.repo_label.text(), directory=settings["local_repository"],
-        )  # noqa pycharm
-        if value and value != settings["local_repository"]:
-            self.repo_input.setText(value)
-
-    @pyqtSlot(name="on_save_button_clicked")
-    def _commit_changes(self):
-        """Commit changes to the settings file then hide self."""
-        game_input = self.game_input.text()
-        repo_input = self.repo_input.text()
-        if game_input != settings["game_folder"] and path.isdir(game_input):
-            settings["game_folder"] = game_input
-        if repo_input != settings["local_repository"] and path.isdir(repo_input):
-            settings["local_repository"] = repo_input
-        # XXX: disable language settings until feature fully developed
-        # if (not settings['language']
-        #         or self.language_combo_box.currentData() != settings['language']):
-        #     if settings['language'] != normalize_locale(get_locale()):
-        #         logger.debug(
-        #             "New lang: %s; From lang: %s (norm: %s)",
-        #             settings['language'],
-        #             get_locale(),
-        #             normalize_locale(get_locale())
-        #         )
-        #         qInformation(_(
-        #             "You changed the software's locale, changes will be taken "
-        #             "into account at the next software launch."
-        #         ))
-        #     settings['language'] = self.language_combo_box.currentData()
-
-    @pyqtSlot(name="on_cancel_button_clicked")
-    def on_cancel_button_clicked(self):
-        """Simply hide the window.
-
-        The default values are being defined within the show method, thus
-        there is nothing here for us to do.
-
-        Returns:
-            void
-        """
-        self.hide()
 
 
 class TreeWidgetMenu(QObject):

@@ -243,7 +243,7 @@ def list7z(file_path: Union[str, pathlib.Path], progress=None) -> List[bucket.Fi
 
 
 def sha256hash(filename: Union[IO, str]) -> Union[str, None]:
-    """Returns the 256 hash of the managed archive.
+    """Return the 256 hash of the managed archive.
 
     Args:
         filename: path to the file to hash
@@ -265,8 +265,9 @@ def sha256hash(filename: Union[IO, str]) -> Union[str, None]:
 
 
 class ArchiveInstance:
-    """Represent an archive and its content already analyzed and ready for
-    display."""
+    """
+    Represent an archive and its content already analyzed and ready for display.
+    """
 
     _conflicts: Dict[str, List[Union[str, bucket.FileMetadata]]]
     _meta: List[Tuple[bucket.FileMetadata, int]]
