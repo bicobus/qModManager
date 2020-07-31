@@ -5,7 +5,6 @@ UIC := $(shell command -v pyuic5 2>/dev/null)
 UICFLAGS = --from-imports
 LDIR = qmm
 PUI=${LDIR}/icons_rc.py\
-	${LDIR}/ui_settings.py\
 	${LDIR}/ui_mainwindow.py\
 	${LDIR}/ui_qprogress.py\
 	${LDIR}/ui_about.py
