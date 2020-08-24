@@ -32,7 +32,7 @@ from qmm.widgets import (
     build_ignored_tree_widget,
     build_tree_widget,
 )
-from version import VERSION_STRING
+from qmm.version import VERSION_STRING
 
 logger = logging.getLogger(__name__)
 HELP_URL = "https://qmodmanager.readthedocs.io/"
