@@ -2,34 +2,21 @@
 #  Licensed under the EUPL v1.2
 #  © 2019-2020 bicobus <bicobus@keemail.me>
 """Contains various Qt Widgets used internally by the application."""
-
 import logging
-from os import path
 from typing import Iterable, List, Union
 
 from PyQt5 import QtGui, QtWidgets
 from PyQt5.QtCore import QObject, QProcess, QUrl
 from PyQt5.QtWidgets import QAction, QMenu, QTreeWidget, QTreeWidgetItem
 
+from fileutils import FILE_MATCHED, FILE_MISSING
 from qmm.bucket import FileMetadata
-from qmm.common import timestamp_to_string, command, toolsalias
-from qmm.filehandler import (
-    ArchivesCollection,
-    ArchiveInstance,
-    LITERALS,
-    TRANSLATED_LITERALS,
-)
+from qmm.common import command, toolsalias
+from qmm.filehandler import ArchiveInstance, LITERALS, TRANSLATED_LITERALS
 from qmm.ui_about import Ui_About  # pylint: disable=no-name-in-module
+from ab.widgets import ABCListRowItem, FILESTATE_COLORS
 
 logger = logging.getLogger(__name__)
-#: Gradients of colors for each file of the tree widget.
-FILESTATE_COLORS = {
-    "matched": (91, 135, 33, 255),  # greenish
-    "mismatched": (132, 161, 225, 255),  # blueish
-    "missing": (237, 213, 181, 255),  # (225, 185, 132, 255),  # yellowish
-    "conflicts": (135, 33, 39, 255),  # red-ish
-    "ignored": (219, 219, 219, 255),  # gray
-}
 
 # NOTE: Investigate QDesktopServices if os.startfile is failing on windows
 # def qopenpath(tool):
@@ -186,7 +173,7 @@ def build_tree_from_path(item: FileMetadata, parent: QTreeWidget, folders, color
 
     finder = kwargs.get("finder")
     folder, file = item.split()
-    folder_list = folder.split("/")
+    folder_list = folder.split("/") if folder else ["/"]
     key = None
     for idx, folder in enumerate(folder_list):
         key = "/".join(folder_list[i] for i in range(0, idx + 1))
@@ -197,12 +184,13 @@ def build_tree_from_path(item: FileMetadata, parent: QTreeWidget, folders, color
             else:
                 p = parent
             if finder:
-                fmd = finder(key)
+                fmd = finder(key)[0]
+                status = FILE_MATCHED if fmd.exists() else FILE_MISSING
                 widget = ArchiveFilesTreeRow(
-                    text=_gv(folder, [TRANSLATED_LITERALS[fmd[1]]]),
+                    text=_gv(folder, [TRANSLATED_LITERALS[status]]),
                     parent=p,
-                    item=fmd[0],
-                    tooltip=fmd[0].path,
+                    item=fmd,
+                    tooltip=fmd.path,
                     color=color,
                     icon=":/icons/folder.svg",
                     filetype="directory",
@@ -245,7 +233,9 @@ def build_tree_widget(container: QTreeWidget, archive_instance: ArchiveInstance)
             folders=parent_folders,
             color=FILESTATE_COLORS[LITERALS[status]],
             extra_column=[TRANSLATED_LITERALS[status]],
-            finder=archive_instance.find,
+            finder=archive_instance.find_metadata_by_path
+            if isinstance(archive_instance, ListRowVirtualItem)
+            else None,
         )
 
 
@@ -291,80 +281,28 @@ class ArchiveFilesTreeRow(QtWidgets.QTreeWidgetItem):
             self.setIcon(0, QtGui.QIcon(QtGui.QPixmap(icon)))
 
 
-class ListRowItem(QtWidgets.QListWidgetItem):
+class ListRowItem(ABCListRowItem):
     """ListWidgetItem representing one single archive."""
 
-    def __init__(self, filename: str, archive_manager: ArchivesCollection):
-        super().__init__()
-        self._filename = filename
-        self.archive_instance = archive_manager[filename]
-        self._key = path.basename(filename)
-        self._data = archive_manager[filename].status()
-        self._stat = archive_manager.stat(filename)
+    def __init__(self, filename, archive_manager):
+        super(ListRowItem, self).__init__(filename, archive_manager)
+
+
+class ListRowVirtualItem(ABCListRowItem):
+    def __init__(self, archive_manager):
+        super().__init__(None, archive_manager)
+
+    def _post_init(self):
+        self._filename = self._key = "Virtual_Package"
+        self.archive_instance = self.am.special
+        self._stat = None
         self._name = None
-        self._modified = None
-        self._hashsum = archive_manager.hashsums(filename)
-
-        self._built_strings = False
-
-        self.setText(self.filename)  # filename == _key
-        self.set_gradients()
-        self.set_text_color()
+        self._modified = "N/A"
+        self._hashsum = "N/A"
+        self.setText(self.name)
 
     def set_gradients(self):
-        gradient = QtGui.QLinearGradient(75, 75, 150, 150)
-        if self.archive_instance.has_mismatched:
-            gradient.setColorAt(0, QtGui.QColor(*FILESTATE_COLORS["mismatched"]))
-        elif self.archive_instance.all_matching and not self.archive_instance.all_ignored:
-            gradient.setColorAt(0, QtGui.QColor(*FILESTATE_COLORS["matched"]))
-        elif self.archive_instance.has_matched and self.archive_instance.has_missing:
-            gradient.setColorAt(0, QtGui.QColor(*FILESTATE_COLORS["missing"]))
-        else:
-            gradient.setColorAt(0, QtGui.QColor(0, 0, 0, 0))
-        if self.archive_instance.has_conflicts:
-            gradient.setColorAt(1, QtGui.QColor(*FILESTATE_COLORS["conflicts"]))
-        brush = QtGui.QBrush(gradient)
-        self.setBackground(brush)
-
-    def set_text_color(self):
-        if self.archive_instance.all_ignored:
-            self.setForeground(QtGui.QColor("gray"))
+        logger.error("Gradients shouldn't be set for the virtual package.")
 
     def refresh_strings(self):
-        """Called when the game's folder state changed.
-
-        Reinitialize the widget's strings, recompute the conflicts then redo
-        all triaging and formatting.
-        """
-        self.archive_instance.reset_status()
-        self.archive_instance.reset_conflicts()
-        self.set_gradients()
-
-    @property
-    def name(self):
-        """Return the name of the archive, formatted for GUI usage.
-
-        Transfrom the '_' character into space.
-        """
-        if not self._name:
-            self._name = self._key.replace("_", " ")
-        return self._name
-
-    @property
-    def filename(self):
-        """Returns the name of the archive filename, suitable for path manipulations."""
-        return self._key
-
-    @property
-    def modified(self):
-        """Return last modified time for an archive, usually time of creation."""
-        if not self._modified:
-            self._modified = timestamp_to_string(self._stat.st_mtime)
-        return self._modified
-
-    @property
-    def hashsum(self):
-        """Returns the sha256 hashsum of the archive."""
-        if self._hashsum:
-            return self._hashsum
-        return ""
+        logger.error("Refresh Strings called on a virtual package, this must not be done.")

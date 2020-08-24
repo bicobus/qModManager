@@ -17,11 +17,14 @@ from typing import Dict, List, TypeVar, Union
 from qmm.common import settings
 
 logger = logging.getLogger(__name__)
+#: File present on the disk
 TYPE_LOOSEFILE = 1
+#: File present in an archive
 TYPE_GAMEFILE = 2
 
 
 def _normalize_attributes(attr: str):
+    """Return relevant information regarless of the size of `attr`."""
     if "D" in attr:
         return "D"
     if "A" in attr:
@@ -36,12 +39,21 @@ class FileMetadata:
     archive.
 
     Args:
-        crc: CRC32 of the represented file, 0 or empty if file is a folder.
-        path: relative path to the represented file.
-        attributes: 'D' for folder, 'F' otherwise.
-        modified: timestamp of the last modification of the file.
-        isfrom: either 'TYPE_GAMEFILE' or 'TYPE_LOOSEFILE'
+        crc (int): CRC32 of the represented file, 0 or empty if file is a folder.
+        path (str or os.PathLike): relative path to the represented file.
+        attributes (str or None): 'D' for folder, 'F' otherwise. If the value
+            passed is None, the attributes will be deduced from `path`
+        modified (str or None): timestamp of the last modification of the file.
+        isfrom (int or str): Will be the name of the archive the file originates from.
+            Otherwise either :py:attr:`TYPE_GAMEFILE` or :py:attr:`TYPE_LOOSEFILE`.
     """
+
+    _CRC: int
+    _Path: str
+    pathobj: pathlib.Path
+    _Attributes: str
+    _from: Union[int, str]
+    _Modified: str
 
     _suffixes = (".xml", ".svg")
     _partition = ("res", "mods")
@@ -49,7 +61,6 @@ class FileMetadata:
     def __init__(self, crc, path: Union[str, pathlib.Path], attributes, modified, isfrom):
         self._CRC = crc
         self._from = isfrom
-        self._parts = ()
         if isinstance(path, pathlib.Path):
             self._normalize_path(path)
         else:
@@ -105,7 +116,10 @@ class FileMetadata:
         else:
             pos = self._Path.rfind("/")
             # path and file
-            parts = (self._Path[:pos], self._Path[pos + 1 :])
+            if pos == -1:  # no / present means the file is at the root
+                parts = (None, self._Path)
+            else:
+                parts = (self._Path[:pos], self._Path[pos + 1 :])
         return parts
 
     def path_as_posix(self):
@@ -152,7 +166,13 @@ class FileMetadata:
         return f"{self.__class__}({self._Path}, crc: {self._CRC}, from: {self.origin})"
 
     def __eq__(self, other):
-        return other == self._Path
+        return other.path == self._Path and other.crc == self.crc
+
+    def __ne__(self, other):
+        return other.path != self._Path and other.crc != self.crc
+
+    def __hash__(self):
+        return hash((self._Path, self.crc))
 
     def __lt__(self, other):
         return len(other) < len(self._Path)
@@ -161,6 +181,7 @@ class FileMetadata:
         return len(self._Path)
 
 
+# Types, represent the structure each dictionary
 Crc32 = TypeVar("Crc32", int, int)
 Conflict = Dict[str, List]
 LooseFiles = Dict[Crc32, List[FileMetadata]]
@@ -186,6 +207,7 @@ def with_conflict(path: str) -> bool:
 
     Args:
         path (str):  Simple string, should be a path pointing to a file
+
     Returns:
         bool: True if path exist in conflicts's keys
     """
@@ -222,7 +244,7 @@ def with_gamefiles(crc: Crc32 = None, path: str = None):
     """
     if crc in gamefiles.keys():
         return True
-    if path in gamefiles.values():
+    if path in [p.path for p in gamefiles.values()]:
         return True
     return False
 

@@ -5,6 +5,7 @@
 import logging
 import os
 import pathlib
+import enum
 from collections import deque
 from typing import Tuple, Union
 
@@ -14,6 +15,7 @@ from PyQt5.QtCore import QEvent, QObject, Qt, QUrl, pyqtSignal, pyqtSlot
 from PyQt5.QtWidgets import QAction, QApplication, QFileDialog, QMainWindow, QMenu
 from watchdog.observers import Observer
 
+from fileutils import ArchiveEvents
 from qmm import bucket, dialogs, filehandler, get_base_path
 from qmm.common import settings, settings_are_set, valid_suffixes
 from qmm.config import get_config_dir
@@ -22,6 +24,7 @@ from qmm.settings.pages import GeneralPage
 from qmm.ui_mainwindow import Ui_MainWindow  # pylint: disable=no-name-in-module
 from qmm.widgets import (
     ListRowItem,
+    ListRowVirtualItem,
     QAbout,
     TreeWidgetMenu,
     autoresize_columns,
@@ -29,6 +32,7 @@ from qmm.widgets import (
     build_ignored_tree_widget,
     build_tree_widget,
 )
+from version import VERSION_STRING
 
 logger = logging.getLogger(__name__)
 HELP_URL = "https://qmodmanager.readthedocs.io/"
@@ -36,6 +40,12 @@ HELP_URL = "https://qmodmanager.readthedocs.io/"
 
 class UnknownContext(Exception):
     pass
+
+
+@enum.unique
+class WatchDogSchedules(enum.Enum):
+    ARCHIVES = "archives"
+    MODULES = "modules"
 
 
 class QmmWdEventHandler:
@@ -88,9 +98,6 @@ class GameModEventHandler(
         self._was_created = []
         self._patterns = ["*.svg", "*.xml"]
         self._ignore_directories = False
-
-    def on_any_event(self, event):
-        logger.debug(event)
 
     def on_moved(self, event):  # rename events
         if not self._active:
@@ -189,7 +196,7 @@ class MainWindow(QMainWindow, QEventFilter, Ui_MainWindow):
         self._is_mod_repo_dirty = False
 
         self.setupUi(self)
-        self.setWindowTitle("qModManager")
+        self.setWindowTitle("qModManager v{}".format(VERSION_STRING))
         # self.listWidget is part of the UI file, so we need to take extra
         # steps in order to setup the widget with the various required
         # facilities.
@@ -207,9 +214,8 @@ class MainWindow(QMainWindow, QEventFilter, Ui_MainWindow):
         self._about_window = None
         self.managed_archives = filehandler.ArchivesCollection()
         self._qc = {}
-        self._connection_link = None  # Connect to the settings's save button
         self._window_was_active = None
-        self._wd_watchers = {"archives": None, "modules": None}
+        self._wd_watchers = {WatchDogSchedules.ARCHIVES: None, WatchDogSchedules.MODULES: None}
         self._ar_handler = None
         self._mod_handler = None
         self._observer = Observer()
@@ -233,7 +239,10 @@ class MainWindow(QMainWindow, QEventFilter, Ui_MainWindow):
     def on_window_activate(self):
         if not self._ar_handler or not self._mod_handler:  # handlers not init
             return False
-        if not self._wd_watchers["archives"] and self.autorefresh_checkbox.isChecked():
+        if (
+            not self._wd_watchers[WatchDogSchedules.ARCHIVES]
+            and self.autorefresh_checkbox.isChecked()
+        ):
             self._schedule_watchdog("archives")
         if self.is_mod_repo_dirty:
             logger.debug("Loose files are dirty, reparsing...")
@@ -250,11 +259,11 @@ class MainWindow(QMainWindow, QEventFilter, Ui_MainWindow):
 
         etype = None
         for etype, archive_name in self.managed_archives.refresh():
-            if etype == self.managed_archives.FileAdded:
+            if etype == ArchiveEvents.FILE_ADDED:
                 self.listWidget.addItem(
                     ListRowItem(filename=archive_name, archive_manager=self.managed_archives)
                 )
-            if etype == self.managed_archives.FileRemoved:
+            if etype == ArchiveEvents.FILE_REMOVED:
                 idx = self.get_row_index_by_name(archive_name)
                 self._remove_row(archive_name, idx, preserve_managed=True)
 
@@ -270,13 +279,13 @@ class MainWindow(QMainWindow, QEventFilter, Ui_MainWindow):
         return False
 
     def on_window_deactivate(self):
-        if self._wd_watchers["archives"]:
+        if self._wd_watchers[WatchDogSchedules.ARCHIVES]:
             logger.debug("Unscheduling archive watch.")
-            self._observer.unschedule(self._wd_watchers["archives"])
-            self._wd_watchers["archives"] = None
+            self._observer.unschedule(self._wd_watchers[WatchDogSchedules.ARCHIVES])
+            self._wd_watchers[WatchDogSchedules.ARCHIVES] = None
 
     def _init_settings(self):
-        # XXX remove me, transpose the warning elsewhere
+        # FIXME remove me, transpose the warning elsewhere
         if not settings_are_set():
             dialogs.qWarning(
                 _(
@@ -287,7 +296,7 @@ class MainWindow(QMainWindow, QEventFilter, Ui_MainWindow):
                 # Translators: This is a message box's title
                 title=_("First run"),
             )
-            self.do_settings(first_launch=True)
+            self.do_settings()
         else:  # On first run, the _init_mods method is called by QSettings
             self._init_mods()
 
@@ -311,18 +320,19 @@ class MainWindow(QMainWindow, QEventFilter, Ui_MainWindow):
 
         item = None
         p_dialog.progress("", category=_("Parsing archives"))
-        for archive_name in self.managed_archives.keys():
+        # HACK: pylint doesn't recognize aliased objects, which Typing's MutableMapping are.
+        for archive_name in self.managed_archives.keys():  # pylint: disable=no-member
             p_dialog.progress(archive_name)
             item = ListRowItem(filename=archive_name, archive_manager=self.managed_archives)
             self.listWidget.addItem(item)
+        self.managed_archives.diff_matched_with_loosefiles()
+        self.listWidget.addItem(ListRowVirtualItem(self.managed_archives))
+
         if item:
             self.listWidget.setCurrentItem(item)
             self.listWidget.scrollToItem(item)
         self.setup_schedulers()
         p_dialog.done(1)
-        if self._connection_link:
-            self._settings_window.disconnect_from_savebutton(self._connection_link)
-            self._connection_link = None
 
     def setup_schedulers(self):
         # File watchers
@@ -478,6 +488,9 @@ class MainWindow(QMainWindow, QEventFilter, Ui_MainWindow):
         if not item:
             logger.error("Triggered _do_delete_selected_file without a selection")
             return
+        if isinstance(item, ListRowVirtualItem):
+            logger.error("Virtual packages cannot be removed.")
+            return
 
         ret = dialogs.qWarningYesNo(
             _(
@@ -508,6 +521,9 @@ class MainWindow(QMainWindow, QEventFilter, Ui_MainWindow):
         if not item:
             logger.error("Triggered _do_install_selected_mod without a selection")
             return
+        if isinstance(item, ListRowVirtualItem):
+            logger.error("Unable to install a virtual package.")
+            return
 
         self._do_enable_autorefresh(False)
         logger.info("Installing file %s", item.filename)
@@ -536,6 +552,9 @@ class MainWindow(QMainWindow, QEventFilter, Ui_MainWindow):
         item = self._get_selected_item(menu_item)
         if not item:
             logger.error("triggered without item to process")
+            return False
+        if isinstance(item, ListRowVirtualItem):
+            logger.error("Unable to uninstall an illegal package.")
             return False
 
         if item.archive_instance.has_mismatched:
@@ -568,15 +587,10 @@ class MainWindow(QMainWindow, QEventFilter, Ui_MainWindow):
         return False
 
     @pyqtSlot(name="on_actionSettings_triggered")
-    def do_settings(self, first_launch=False):
-        """Show the settings window.
+    def do_settings(self):
+        """Show the settings window."""
 
-        Args:
-            first_launch (bool): If true, disable cancel button and bind the
-                save button to :obj:`qmm.MainWindow._init_mods`
-        """
-
-        def _d_finished(e):
+        def _d_finished(e):  # pylint: disable=unused-argument
             self._settings_window = None
 
         if not self._settings_window:
@@ -616,14 +630,14 @@ class MainWindow(QMainWindow, QEventFilter, Ui_MainWindow):
             self.list_refresh_button.setEnabled(False)
         else:
             logger.debug("Disabling WatchDog Subsystem.")
-            if self._wd_watchers["modules"]:
-                self._observer.unschedule(self._wd_watchers["modules"])
+            if self._wd_watchers[WatchDogSchedules.MODULES]:
+                self._observer.unschedule(self._wd_watchers[WatchDogSchedules.MODULES])
                 logger.debug("Modules watcher disabled")
-            if self._wd_watchers["archives"]:
-                self._observer.unschedule(self._wd_watchers["archives"])
+            if self._wd_watchers[WatchDogSchedules.ARCHIVES]:
+                self._observer.unschedule(self._wd_watchers[WatchDogSchedules.ARCHIVES])
                 logger.debug("Archives watcher disabled")
-            self._wd_watchers["modules"] = None
-            self._wd_watchers["archives"] = None
+            self._wd_watchers[WatchDogSchedules.MODULES] = None
+            self._wd_watchers[WatchDogSchedules.ARCHIVES] = None
             self.list_refresh_button.setEnabled(True)
 
     @pyqtSlot(name="list_refresh_button_triggered")
@@ -637,7 +651,7 @@ class MainWindow(QMainWindow, QEventFilter, Ui_MainWindow):
         if context == "archives":
             if not self._ar_handler:
                 raise UnknownContext("Handler is NoneType, must be otherwise.")
-            self._wd_watchers["archives"] = self._observer.schedule(
+            self._wd_watchers[WatchDogSchedules.ARCHIVES] = self._observer.schedule(
                 event_handler=self._ar_handler,
                 path=settings["local_repository"],
                 recursive=False,
@@ -645,7 +659,7 @@ class MainWindow(QMainWindow, QEventFilter, Ui_MainWindow):
         elif context == "modules":
             if not self._mod_handler:
                 raise UnknownContext("Handler is NoneType, must be otherwise.")
-            self._wd_watchers["modules"] = self._observer.schedule(
+            self._wd_watchers[WatchDogSchedules.MODULES] = self._observer.schedule(
                 event_handler=self._mod_handler,
                 path=str(filehandler.get_mod_folder(prepend_modpath=True)),
                 recursive=True,
@@ -704,6 +718,8 @@ class MainWindow(QMainWindow, QEventFilter, Ui_MainWindow):
     ##########################
     def _do_menu_actions(self, position):
         item = self.listWidget.item(self.listWidget.indexAt(position).row())
+        if isinstance(item, ListRowVirtualItem):
+            return False
 
         install = QAction(QtGui.QIcon(QtGui.QPixmap(":/icons/file-install.svg")), _("Install"),)
         uninstall = QAction(
@@ -751,14 +767,14 @@ class MainWindow(QMainWindow, QEventFilter, Ui_MainWindow):
     def _mod_repo_watch_cb(self):
         # Ignore subsequent calls, happens for each file of a directory when
         # that directory gets renamed.
-        if not self._wd_watchers["modules"]:
+        if not self._wd_watchers[WatchDogSchedules.MODULES]:
             return
         logger.debug(
             "Module repository got dirty, flagging as so and disabing unscheduling watchdog."
         )
         self._is_mod_repo_dirty = True
-        self._observer.unschedule(self._wd_watchers["modules"])
-        self._wd_watchers["modules"] = None
+        self._observer.unschedule(self._wd_watchers[WatchDogSchedules.MODULES])
+        self._wd_watchers[WatchDogSchedules.MODULES] = None
 
     def _on_fs_moved(self, e):
         src_path = e.src_path
@@ -925,6 +941,6 @@ def main():
         sys.exit(app.exec_())
     except Exception as e:  # Catchall, log then crash.
         logger.exception("Critical error occurred: %s", e)
-        raise
+        raise RuntimeError("Unrecoverable error.") from e
     finally:
         logger.info("Application shutdown complete.")

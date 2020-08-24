@@ -81,9 +81,7 @@ class Config(MutableMapping):
             return
         self._data[key] = value
 
-        logger.debug(
-            "Config key state changed, save timer state is: %s", self._save_timer
-        )
+        logger.debug("Config key state changed, save timer state is: %s", self._save_timer)
         if not self._save_timer:
             self.delayed_save()
 
@@ -165,8 +163,7 @@ class Config(MutableMapping):
             return False
         else:
             logger.debug(
-                "Check save timer at end of save method. Auto save state: %s",
-                self._save_timer,
+                "Check save timer at end of save method. Auto save state: %s", self._save_timer,
             )
             self._disable_save_timer()
             return True

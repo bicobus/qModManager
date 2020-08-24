@@ -7,12 +7,10 @@ import pathlib
 import re
 import shutil
 import subprocess
-from functools import lru_cache
 from hashlib import sha256
 from tempfile import TemporaryDirectory
 from typing import (
     Dict,
-    Generator,
     IO,
     Iterable,
     Iterator,
@@ -26,8 +24,17 @@ from zlib import crc32
 from send2trash import TrashPermissionError, send2trash
 
 from qmm import bucket, is_windows
-from qmm.common import settings, settings_are_set, bundled_tools_path, valid_suffixes
+from qmm.ab.archives import ABCArchiveInstance, ArchiveType
+from qmm.common import bundled_tools_path, settings, settings_are_set, valid_suffixes
 from qmm.config import SettingsNotSetError
+from qmm.fileutils import (
+    ArchiveEvents,
+    FILE_IGNORED,
+    FILE_MATCHED,
+    FILE_MISMATCHED,
+    FILE_MISSING,
+    ignore_patterns,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -37,11 +44,6 @@ startupinfo = None
 if is_windows:
     startupinfo = subprocess.STARTUPINFO()
     startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
-
-# Mods directory structure
-# TODO: add setBonuses and statusEffects as first level
-first_level_dir = ("items", "outfits")  # outfits aren't stored under items
-second_level_dir = ("weapons", "clothing", "tattoos")
 
 # Regexes to capture 7z's output
 reListMatch = re.compile(r"^(Path|Modified|Attributes|CRC)\s=\s(.*)$").match
@@ -54,15 +56,6 @@ reErrorMatch = re.compile(
 )""",
     re.X | re.I,
 ).match
-
-#: Indicate that the file is found on the drive, and match in content.
-FILE_MATCHED = 1
-#: Indicate that the file is absent from the drive.
-FILE_MISSING = 2
-#: Indicate that the file to exists on drive, but not matching in content.
-FILE_MISMATCHED = 3
-#: Indicate that the file will be ignored by the software.
-FILE_IGNORED = 4
 LITERALS = {
     FILE_MATCHED: "matched",
     FILE_MISSING: "missing",
@@ -77,23 +70,8 @@ TRANSLATED_LITERALS = {
 }
 
 
-class FileHandlerException(Exception):
+class ArchiveException(Exception):
     pass
-
-
-class ArchiveException(FileHandlerException):
-    pass
-
-
-def ignore_patterns(seven_flag=False):
-    """Output a tuple of patterns to ignore.
-
-    Args:
-        seven_flag (bool): Patterns format following 7z exclude switch.
-    """
-    if seven_flag:
-        return "-xr!*.DS_Store", "-x!__MACOSX", "-xr!*Thumbs.db"
-    return ".DS_Store", "__MACOSX", "Thumbs.db"
 
 
 def build_cmd(filepath, *ext, extract=True, output=None, **extra):
@@ -264,36 +242,44 @@ def sha256hash(filename: Union[IO, str]) -> Union[str, None]:
     return result
 
 
-class ArchiveInstance:
+class VirtualArchiveInstance(ABCArchiveInstance):
+    ar_type = ArchiveType.VIRTUAL
+
+    def __init__(self, file_list):
+        super().__init__(archive_name=b"\x00", file_list=file_list)
+        print("done")
+
+    def reset_conflicts(self):
+        logger.debug("reset conflicts called on virtual")
+
+    def matched(self):
+        return
+
+    def mismatched(self):
+        return
+
+    def missing(self):
+        return
+
+    def ignored(self):
+        yield from super().ignored()
+
+    def conflicts(self):
+        yield from super().conflicts()
+
+    def uninstall_info(self):
+        logger.debug("uninstall info called on virtual")
+
+    def install_info(self):
+        logger.debug("install info called on virtual")
+
+
+class ArchiveInstance(ABCArchiveInstance):
     """
     Represent an archive and its content already analyzed and ready for display.
     """
 
-    _conflicts: Dict[str, List[Union[str, bucket.FileMetadata]]]
-    _meta: List[Tuple[bucket.FileMetadata, int]]
-
-    def __init__(self, archive_name: str, file_list: List[bucket.FileMetadata]):
-        self._archive_name = archive_name
-        self._file_list = file_list
-        # Note: folders are not filtered out of meta.
-        self.reset_status()
-        # Contains a list of archives or, if the conflict is with a game file,
-        # a FileMetadata instance.
-        self._conflicts = {}
-
-    def reset_status(self):
-        """
-        Called whenever the state of an archive becomes dirty, which is also
-        the default state.
-
-        Populate 'self._meta' with tuples containing the 'FileMetadata' object
-        of each individual file alongside the current status of that file. The
-        status can be either 'FILE_MATCHED', 'FILE_MISMATCHED', 'FILE_IGNORED'
-        or 'FILE_MISSING'.
-        """
-        self._meta = []
-        for item in self._file_list:
-            self._meta.append((item, file_status(item)))
+    ar_type = ArchiveType.FILE
 
     def reset_conflicts(self):
         """
@@ -316,56 +302,22 @@ class ArchiveInstance:
             if tmp_conflicts:
                 self._conflicts[item.path] = tmp_conflicts
 
-    def status(self) -> Generator[Tuple[bucket.FileMetadata, int], None, None]:
-        for name, status in self._meta:
-            yield name, status
+    def matched(self):
+        yield from super().matched()
 
-    def files(self, exclude_directories=False) -> Generator[bucket.FileMetadata, None, None]:
-        if exclude_directories:
-            for filename in filter(lambda x: not x.is_dir(), self._file_list):
-                yield filename
-        else:
-            for filename in self._file_list:
-                yield filename
+    def mismatched(self):
+        yield from super().mismatched()
 
-    def folders(self) -> Generator[bucket.FileMetadata, None, None]:
-        """Yield folders present in the archive."""
-        for folder in filter(lambda x: x.is_dir(), sorted(self._file_list, reverse=True)):
-            yield folder
+    def missing(self):
+        yield from super().missing()
 
-    def matched(self) -> Generator[bucket.FileMetadata, None, None]:
-        """Yield file metadata of matched entries of the archive."""
-        for item in filter(lambda x: x[1] == FILE_MATCHED, self._meta):
-            yield item[0]
-
-    def mismatched(self) -> Generator[bucket.FileMetadata, None, None]:
-        """Yield file metadata of mismatched entries of the archive."""
-        if not self.has_mismatched:
-            return
-        for item in filter(lambda x: x[1] == FILE_MISMATCHED, self._meta):
-            # File is mismatched against something else, find it and store it
-            for mfile in bucket.loosefiles.values():
-                for f in filter(lambda x, i=item: x.path == i[0].path, mfile):
-                    logger.debug("Found mismatched as '%s'", f)
-                    yield f
-
-    def missing(self) -> Generator[bucket.FileMetadata, None, None]:
-        """Yield file metadata of missing entries of the archive."""
-        for item in filter(lambda x: x[1] == FILE_MISSING, self._meta):
-            yield item[0]
-
-    def ignored(self) -> Iterable[bucket.FileMetadata]:
-        """Yield file metadata of ignored entries of the archive."""
-        for item in filter(lambda x: x[1] == FILE_IGNORED, self._meta):
-            yield item[0]
+    def ignored(self):
+        yield from super().ignored()
 
     def conflicts(self):
-        """Yield file metadata of conflicting entries of the archive."""
-        for path, archives in self._conflicts.items():
-            yield path, archives
+        yield from super().conflicts()
 
     def uninstall_info(self):
-        """Informations necessary to the uninstall function."""
         return list(self.matched()) + list(self.folders())
 
     def install_info(self):
@@ -383,73 +335,16 @@ class ArchiveInstance:
             "ignored": list(self.ignored()),
         }
 
-    def find(self, path):
-        for item in filter(lambda x: x[0].path == path, self._meta):
-            return item
-        return None
-
-    def get_status(self, file):
-        return self.find(file)[1]
-
-    def _has_status(self, status):
-        return any(x[1] == status for x in self._meta)
-
-    @property
-    def has_matched(self):
-        """Return True if a file of the archive is of status :py:attr:`FILE_MATCHED`."""
-        return self._has_status(FILE_MATCHED)
-
-    @property
-    def all_matching(self):
-        """Return `True` if all files in the archive matches on the drive."""
-        no_directory = filter(lambda x: x[0].attributes != "D", self._meta)
-        return all(x[1] in (FILE_MATCHED, FILE_IGNORED) for x in no_directory)
-
-    @property
-    def has_mismatched(self):
-        """
-        Value is `True` if a file of the archive is of status :py:attr:`FILE_MISMATCHED`.
-        """
-        return self._has_status(FILE_MISMATCHED)
-
-    @property
-    def has_missing(self):
-        """
-        Value is `True` if a file of the archive is of status :py:attr:`FILE_MISSING`.
-        """
-        return self._has_status(FILE_MISSING)
-
-    @property
-    def has_ignored(self):
-        """
-        Value is `True` if a file of the archive is of status :py:attr:`FILE_IGNORED`.
-        """
-        return self._has_status(FILE_IGNORED)
-
-    @property
-    def all_ignored(self):
-        """
-        Value is `True` if all files of the archive are of status :py:attr:`FILE_IGNORED`.
-        """
-        return all(x[1] == FILE_IGNORED or x[0].attributes == "D" for x in self._meta)
-
-    @property
-    def has_conflicts(self):
-        """Value is `True` if conflicts exists for this archive."""
-        return bool(self._conflicts)
-
 
 class ArchivesCollection(MutableMapping[str, ArchiveInstance]):
-    #: State of a file yielded through :meth:`refresh`
-    FileAdded = 1
-    #: State of a file yielded through :meth:`refresh`
-    FileRemoved = 2
+    """Manage sets of :py:class:`ArchiveInstance`."""
 
     def __init__(self):
         super().__init__()
         self._data: Dict[str, ArchiveInstance] = {}
         self._hashsums = {}
         self._stat = {}
+        self._special = None
 
     def build_archives_list(self, progress, rebuild=False):
         if not settings_are_set():
@@ -473,8 +368,8 @@ class ArchivesCollection(MutableMapping[str, ArchiveInstance]):
         changes on the filesystem.
 
         Yields:
-            (Union[:attr:`FileAdded`, :attr:`FileRemoved`], str): State and name of
-                the file
+            (Union[:attr:`ArchiveEvents.FILE_ADDED`, :attr:`ArchiveEvents.FILE_REMOVED`], str):
+                State and name of the file.
         """
         if not settings_are_set():
             return
@@ -487,7 +382,7 @@ class ArchivesCollection(MutableMapping[str, ArchiveInstance]):
                     logger.info("Found new archive: %s", entry.name)
                     self.add_archive(entry)
                     found.append(entry.name)
-                    yield self.FileAdded, entry.name
+                    yield ArchiveEvents.FILE_ADDED, entry.name
                 else:
                     found.append(entry.name)
         # Check for ghosts
@@ -495,10 +390,11 @@ class ArchivesCollection(MutableMapping[str, ArchiveInstance]):
             if key not in found:
                 logger.info("Archive removed: %s", key)
                 to_delete.append(key)
-                yield self.FileRemoved, key
+                yield ArchiveEvents.FILE_REMOVED, key
         # Remove ghosts from index
         for k in to_delete:
             del self[k]
+        self._special = None
 
     def add_archive(self, path, hashsum: str = None, progress=None):
         """Add an archive to the list of managed archives.
@@ -506,7 +402,7 @@ class ArchivesCollection(MutableMapping[str, ArchiveInstance]):
         This method should be used over __setitem__ as it setup the different
         metadata required by the UI.
         """
-        if not isinstance(path, pathlib.Path):
+        if not isinstance(path, os.PathLike):
             path = pathlib.Path(settings["local_repository"], path)
         if not path.is_file():
             return
@@ -522,9 +418,9 @@ class ArchivesCollection(MutableMapping[str, ArchiveInstance]):
         Whenever an archive on the drive gets renamed, we need to do the same
         with the key under which the parsed data is stored.
         """
-        if not isinstance(src_path, pathlib.Path):
+        if not isinstance(src_path, os.PathLike):
             src_path = pathlib.Path(src_path)
-        if not isinstance(dest_path, pathlib.Path):
+        if not isinstance(dest_path, os.PathLike):
             dest_path = pathlib.Path(dest_path)
         if src_path.name in self._data and dest_path.name not in self._data:
             self._data[dest_path.name] = self._data[src_path.name]
@@ -542,6 +438,7 @@ class ArchivesCollection(MutableMapping[str, ArchiveInstance]):
         Args:
             archive_name: filename of the archive, suffix included (default None)
             hashsum: sha256sum of the file (default None)
+
         Returns:
             Boolean or ArchiveInstance
         """
@@ -553,6 +450,26 @@ class ArchivesCollection(MutableMapping[str, ArchiveInstance]):
                     return self._data[key]
         return False
 
+    def diff_matched_with_loosefiles(self):
+        archives = set()
+        for item in self._data.values():
+            archives = archives.union(set(item.matched()))
+
+        looseset = set()
+        for crclist in bucket.loosefiles.values():
+            for item in crclist:
+                looseset.add(item)
+        # XXX Virtual archives do no have folders
+        self._special = VirtualArchiveInstance(looseset - archives)
+
+    @property
+    def special(self):
+        if not self._special:
+            logger.error(
+                "Trying to access special ArchiveInstance, but it hasn't been initialized yet."
+            )
+        return self._special
+
     def initiate_conflicts_detection(self):
         for _, archive_instance in self._data.items():
             archive_instance.reset_conflicts()
@@ -560,8 +477,7 @@ class ArchivesCollection(MutableMapping[str, ArchiveInstance]):
     def stat(self, key):
         return self._stat[key]
 
-    def _set_stat(self, key, value):
-        assert isinstance(value, pathlib.Path)
+    def _set_stat(self, key, value: pathlib.Path):
         self._stat[key] = value.stat()
 
     def hashsums(self, key):
@@ -577,9 +493,14 @@ class ArchivesCollection(MutableMapping[str, ArchiveInstance]):
         return iter(self._data)
 
     def __getitem__(self, key) -> ArchiveInstance:
+        if key == b"\x00":
+            # TODO: return a list, this should go in an object variable
+            return self._special
         return self._data[key]
 
     def __setitem__(self, key: str, value: ArchiveInstance):
+        if key == b"\x00":
+            raise ArchiveException("Null as keyvalue is illegal.")
         if key not in self._data or self._data[key] != value:
             assert isinstance(value, ArchiveInstance), type(value)
             assert all(isinstance(x, bucket.FileMetadata) for x in value.files())
@@ -735,7 +656,18 @@ def file_in_other_archives(
 
 
 def conflicts_process_files(files, archives_list, current_archive, processed):
-    """Process an archive, verify that each of its files are unique."""
+    """Process an archive, verify that each of its files are unique.
+
+    Args:
+        files (:meth:`~.ArchiveInstance.files`): Process the files fed by the
+            instance method.
+        archives_list (:obj:`~.ArchivesCollection`): Instance of
+            ArchivesCollection.
+        current_archive (str): Filename on the disk of the current archive
+            being processed.
+        processed (list or None): List of processed archives. Set to None if only one archive
+            needs to be processed.
+    """
     for file in files():
         if bucket.with_conflict(file.path):
             continue
@@ -761,32 +693,6 @@ def generate_conflicts_between_archives(archives_lists: ArchivesCollection, prog
             processed=list_done,
         )
         list_done.append(archive_name)
-
-
-@lru_cache(maxsize=None)
-def _bad_directory_structure(path: pathlib.Path):
-    if len(path.parts) > 1 and not any(path.parts[1] == x for x in first_level_dir):
-        return True
-    return False
-
-
-@lru_cache(maxsize=None)
-def _bad_suffix(suffix):
-    return bool(suffix not in (".xml", ".svg"))
-
-
-def file_status(file: bucket.FileMetadata) -> int:
-    if (
-        file.pathobj.name in ignore_patterns()
-        or _bad_directory_structure(file.path_as_posix())
-        or (file.pathobj.suffix and _bad_suffix(file.pathobj.suffix))
-    ):
-        return FILE_IGNORED
-    if bucket.file_crc_in_loosefiles(file) and bucket.file_path_in_loosefiles(file):
-        return FILE_MATCHED
-    if bucket.file_path_in_loosefiles(file) and not bucket.file_crc_in_loosefiles(file):
-        return FILE_MISMATCHED
-    return FILE_MISSING
 
 
 def copy_archive_to_repository(filename):
