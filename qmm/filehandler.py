@@ -459,7 +459,6 @@ class ArchivesCollection(MutableMapping[str, ArchiveInstance]):
         for crclist in bucket.loosefiles.values():
             for item in crclist:
                 looseset.add(item)
-        # XXX Virtual archives do no have folders
         self._special = VirtualArchiveInstance(looseset - archives)
 
     @property
