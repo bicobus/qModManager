@@ -14,13 +14,14 @@ snakeviz = "*"
 pytest = "~=5.4"
 sphinx-qt-documentation = "*"
 black = "==19.10b0"
-pre-commit = "*"
+pydocstyle = "*"
 
 [packages]
-pyqt5 = "~=5.14"
+pyqt5 = "~=5.15"
 send2trash = "*"
 appdirs = "*"
 watchdog = "*"
+attrs = "*"
 
 [requires]
 python_version = "3.7"
