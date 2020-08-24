@@ -7,8 +7,8 @@ from typing import Union
 
 from PyQt5 import QtGui, QtWidgets
 
-from common import timestamp_to_string
-from filehandler import ArchivesCollection
+from qmm.common import timestamp_to_string
+from qmm.filehandler import ArchivesCollection
 
 #: Gradients of colors for each file of the tree widget.
 FILESTATE_COLORS = {

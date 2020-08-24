@@ -719,7 +719,7 @@ class MainWindow(QMainWindow, QEventFilter, Ui_MainWindow):
     def _do_menu_actions(self, position):
         item = self.listWidget.item(self.listWidget.indexAt(position).row())
         if isinstance(item, ListRowVirtualItem):
-            return False
+            return
 
         install = QAction(QtGui.QIcon(QtGui.QPixmap(":/icons/file-install.svg")), _("Install"),)
         uninstall = QAction(
