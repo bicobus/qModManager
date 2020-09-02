@@ -27,9 +27,7 @@ def _normalize_attributes(attr: str):
     """Return relevant information regarless of the size of `attr`."""
     if "D" in attr:
         return "D"
-    if "A" in attr:
-        return "F"
-    return None
+    return "F"
 
 
 class FileMetadata:
