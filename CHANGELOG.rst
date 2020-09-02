@@ -11,6 +11,16 @@ Added
   * Open containing folder
   * Open file using text editor, graphics editor or both (for svg)
 
+* List untracked files present in the ``res/mods`` folder. It is understood by
+  untracked that files existing in the folder weren't found in any of the
+  archives.
+
+* Support for new mod files
+
+  * ``res/mods/statusEffects``
+  * ``res/mods/setBonuses``
+  * ``res/mods/items/items``
+
 Changed
 ~~~~~~~
 * Directories in the treeview now properly show their status.
