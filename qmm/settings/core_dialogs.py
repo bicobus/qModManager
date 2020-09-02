@@ -23,8 +23,6 @@ The setting window has two major elements:
  |                 Yes / No |
  +--------------------------+
 
-TODO Load configuration values in the widget
-
 """
 from PyQt5.QtCore import QSize, Qt, pyqtSignal  # , pyqtSlot
 from PyQt5.QtWidgets import (
