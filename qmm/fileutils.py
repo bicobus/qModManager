@@ -46,7 +46,13 @@ def ignore_patterns(seven_flag=False):
 
 @lru_cache(maxsize=None)
 def _bad_directory_structure(path: pathlib.Path):
-    if len(path.parts) > 1 and not any(path.parts[1] == x for x in first_level_dir):
+    if (
+        len(path.parts) >= 2
+        and path.parts[1] not in first_level_dir
+        or len(path.parts) >= 3
+        and path.parts[1] == "items"
+        and path.parts[2] not in subfolders_of["items"]
+    ):
         return True
     return False
 
