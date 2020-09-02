@@ -12,7 +12,7 @@ def make_html_list(elements):
         return "<b>" + elements + "</b>"
     ul = "<ul>{}</ul>"
     li = "<li><b>{}</b></li>"
-    felem = list(map(lambda x: li.format(x), elements))
+    felem = list(map(li.format, elements))
     return ul.format(felem)
 
 
