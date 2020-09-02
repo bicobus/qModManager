@@ -6,6 +6,15 @@ qmm package
    :undoc-members:
    :show-inheritance:
 
+Subpackages
+-----------
+
+.. toctree::
+   :maxdepth: 4
+
+   qmm.ab
+   qmm.settings
+
 Submodules
 ----------
 
@@ -17,6 +26,7 @@ Submodules
    qmm.config
    qmm.dialogs
    qmm.filehandler
+   qmm.fileutils
    qmm.lang
    qmm.manager
    qmm.version
