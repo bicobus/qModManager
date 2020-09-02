@@ -2,13 +2,11 @@
 Version History
 ===============
 
-`1.0.0-alpha13`_ - ????????
+`1.0.0-alpha13`_ - 02-09-20
 ---------------------------
-Added
+Fixes
 ~~~~~
-
-Changed
-~~~~~~~
+* Crash on windows platform.
 
 `1.0.0-alpha12`_ - 02-09-20
 ---------------------------
@@ -90,7 +88,8 @@ Fixed
 
 * Internal dev stuff: changes of libraries used, reworking codebase, etc
 
-.. _`1.0.0-alpha13`: https://github.com/bicobus/qModManager/compare/v1.0.0-alpha12...master
+.. _`1.0.0-alpha14`: https://github.com/bicobus/qModManager/compare/v1.0.0-alpha13...master
+.. _`1.0.0-alpha13`: https://github.com/bicobus/qModManager/compare/v1.0.0-alpha12...v1.0.0-alpha13
 .. _`1.0.0-alpha12`: https://github.com/bicobus/qModManager/compare/v1.0.0-alpha11...v1.0.0-alpha12
 .. _`1.0.0-alpha11`: https://github.com/bicobus/qModManager/compare/v1.0.0-alpha10...v1.0.0-alpha11
 .. _`1.0.0-alpha10`: https://github.com/bicobus/qModManager/compare/v1.0.0-alpha9...v1.0.0-alpha10
