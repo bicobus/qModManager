@@ -4,10 +4,21 @@ Version History
 
 `1.0.0-alpha14`_ - ????????
 ---------------------------
+Changed
+~~~~~~~
+* Ignore unrecognized sub-folders under namespace/items/
+
+Fixed
+~~~~~
+* Crash: ZipFiles created using no compression method would crash the
+  application. This is due to an absence of information within the attributes.
+  Resolved by being less strict in normalizing file attributes read for the
+  archive: if it is not explicitly a folder, then it is a file.
+
 
 `1.0.0-alpha13`_ - 02-09-20
 ---------------------------
-Fixes
+Fixed
 ~~~~~
 * Crash on windows platform.
 
