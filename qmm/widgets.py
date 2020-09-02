@@ -9,9 +9,9 @@ from PyQt5 import QtGui, QtWidgets
 from PyQt5.QtCore import QObject, QProcess, QUrl
 from PyQt5.QtWidgets import QAction, QMenu, QTreeWidget, QTreeWidgetItem
 
-from fileutils import FILE_MATCHED, FILE_MISSING
 from qmm.bucket import FileMetadata
 from qmm.common import command, toolsalias
+from qmm.fileutils import FILE_MATCHED, FILE_MISSING
 from qmm.filehandler import ArchiveInstance, LITERALS, TRANSLATED_LITERALS
 from qmm.ui_about import Ui_About  # pylint: disable=no-name-in-module
 from ab.widgets import ABCListRowItem, FILESTATE_COLORS
