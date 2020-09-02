@@ -3,4 +3,12 @@
 [tool.black]
 line-length = 98
 target-version = ['py37']
-check = true
+#check = true
+
+[tool.isort]
+multi_line_output = 3
+line_length = 98
+known_third_party = "pyqt5"
+include_trailing_comma = true
+skip_glob = "tests/**,docs/**"
+project = "qmm"

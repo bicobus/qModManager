@@ -13,6 +13,8 @@ from qmm.config import Config
 
 logger = logging.getLogger(__name__)
 
+#: instance of the Config object that governs the user's preferences. Can be imported anywhere
+#: in the app
 settings = Config(
     filename="settings.json",
     defaults={"local_repository": None, "game_folder": None, "language": "system"},

@@ -8,12 +8,13 @@ from functools import lru_cache
 from qmm import bucket
 
 # Mods directory structure
-# TODO: add setBonuses and statusEffects as first level
 # REVIEW: Should be used in function `build_game_files_crc32`. However the path
 # structure is too complex and a dedicated function or module should be written
 # in order to build paths corresponding the the game expectation.
-first_level_dir = ("items", "outfits")  # outfits aren't stored under items
-second_level_dir = ("weapons", "clothing", "tattoos", "outfits")
+first_level_dir = ("items", "outfits", "setBonuses", "statusEffects")
+subfolders_of = {
+    "items": ("weapons", "clothing", "tattoos", "items")
+}
 
 # TODO: use enums instead of constants. Namespace: FileStatus
 

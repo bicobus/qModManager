@@ -144,6 +144,10 @@ def _create_treewidget(
     return w
 
 
+def _path_from_list(path, length):
+    return "/".join(path[i] for i in range(0, length))
+
+
 def build_tree_from_path(item: FileMetadata, parent: QTreeWidget, folders, color=None, **kwargs):
     """Generate a set of related :func:`PyQt5.QtWidgets.QTreeWidgetItem` based
     on a file path.
@@ -176,11 +180,10 @@ def build_tree_from_path(item: FileMetadata, parent: QTreeWidget, folders, color
     folder_list = folder.split("/") if folder else ["/"]
     key = None
     for idx, folder in enumerate(folder_list):
-        key = "/".join(folder_list[i] for i in range(0, idx + 1))
+        key = _path_from_list(folder_list, idx + 1)
         if key not in folders.keys():
             if idx > 0:
-                pkey = "/".join(folder_list[i] for i in range(0, idx))
-                p = folders[pkey]
+                p = folders[_path_from_list(folder_list, idx)]
             else:
                 p = parent
             if finder:

@@ -33,7 +33,7 @@ from qmm.fileutils import (
     FILE_MATCHED,
     FILE_MISMATCHED,
     FILE_MISSING,
-    ignore_patterns,
+    ignore_patterns, subfolders_of,
 )
 
 logger = logging.getLogger(__name__)
@@ -588,7 +588,9 @@ def build_game_files_crc32(progress=None):
             Callback to a method accepting strings as argument.
     """
     target_folder = os.path.join(settings["game_folder"], "res")
-    scan_theses = ("clothing", "outfits", "tattoos", "weapons")
+    scan_theses = (
+        "clothing", "outfits", "tattoos", "weapons", "setBonuses", "statusEffects", "items"
+    )
     if progress:
         progress("", category="Game Files")
 
@@ -597,7 +599,7 @@ def build_game_files_crc32(progress=None):
         for kfile, crc in _compute_files_crc32(folder, partition=("res",)):
             # normalize path: category/namespace/... -> namespace/category/...
             category, namespace, extra = kfile.split(os.path.sep, 2)
-            if category in ("clothing", "weapons", "tattoos"):
+            if category in subfolders_of["items"]:
                 kfile = pathlib.PurePath(namespace, "items", category, extra)
             else:
                 kfile = pathlib.PurePath(namespace, category, extra)
