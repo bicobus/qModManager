@@ -109,7 +109,7 @@ class Config(MutableMapping):
                     data = json.load(f)
         except IOError as e:
             logger.warning("Unable to load config file %s: %s", filename, e)
-            return None
+            return {}
         return data
 
     def load(self, filename=None):
