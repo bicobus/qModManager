@@ -244,12 +244,10 @@ class Page(QWidget):
                 "QModManager needs to be restarted in order to apply the following settings:"
             )
 
-        msg_elements = ""
-        for element in changed_elements:
-            msg_elements += "<li>{}</li>".format(element.label_text)
+        msg_elements = make_html_list([x.label_text for x in changed_elements])
 
         title = _("Restart needed")
-        msg = "{0}<ul>{1}</ul>".format(msg_start, msg_elements)
+        msg = "{0}{1}".format(msg_start, msg_elements)
         QMessageBox.information(self, title, msg, QMessageBox.Ok)
 
 
