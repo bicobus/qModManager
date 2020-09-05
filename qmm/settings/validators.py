@@ -12,7 +12,7 @@ def make_html_list(elements):
         return "<b>" + elements + "</b>"
     ul = "<ul>{}</ul>"
     li = "<li><b>{}</b></li>"
-    felem = list(map(li.format, elements))
+    felem = "".join(map(li.format, elements))
     return ul.format(felem)
 
 
@@ -24,7 +24,7 @@ class IsDirValidator:
 
     @data.validator
     def validate(self, a, v):
-        if not osp.isdir(v):
+        if v and not osp.isdir(v):
             raise ValueError(_("Invalid directory path"))
 
 
@@ -36,5 +36,5 @@ class IsFileValidator:
 
     @data.validator
     def validate(self, a, v):
-        if not osp.exists(v):
+        if v and not osp.exists(v):
             raise ValueError(_("Path does not point to a file"))
