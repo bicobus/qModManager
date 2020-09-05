@@ -236,7 +236,7 @@ class MainWindow(QMainWindow, QEventFilter, Ui_MainWindow):
             self._init_mods()
         else:
             msg = _(
-                "One or more parameters required for the proper usage of " 
+                "One or more parameters required for the proper usage of "
                 "this application are undefined.<br>"
                 "Would you like to open the Preferences window and define them now?"
             )

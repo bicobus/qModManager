@@ -10,10 +10,8 @@ import shutil
 import tempfile
 from collections.abc import MutableMapping
 
-from PyQt5.QtCore import QObject, QTimer
+from PyQt5.QtCore import QTimer
 import appdirs
-
-from qmm.settings.validators import IsDirValidator
 logger = logging.getLogger(__name__)
 dirs = appdirs.AppDirs(appname="qmm", appauthor=False)
 
