@@ -8,7 +8,8 @@ target-version = ['py37']
 [tool.isort]
 multi_line_output = 3
 line_length = 98
-known_third_party = "pyqt5"
+known_third_party = ["pyqt5"]
 include_trailing_comma = true
 skip_glob = "tests/**,docs/**"
-project = "qmm"
+skip_gitignore = false
+use_parentheses = true
