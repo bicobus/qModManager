@@ -22,6 +22,7 @@ class GeneralPage(Page):
                 "contain a local copy of your mods. It should be its own empty folder, with "
                 "nothing else than the game's mod archives."
             ),
+            restart=True,
         )
 
         game_folder = self.c_browsedir(
@@ -31,10 +32,11 @@ class GeneralPage(Page):
                 "Path to the folder containing the jar or exe of the game. It has to be the "
                 "folder containing the res/ subdirectory."
             ),
+            restart=True,
         )
 
         langs = [(_("System"), "system"), (None, None)] + LANGUAGE_CODES
-        langw = self.c_combobox(_("Language"), langs, "language")
+        langw = self.c_combobox(_("Language"), langs, "language", restart=True)
 
         glayout = QVBoxLayout()
         glayout.addWidget(repo_folder)

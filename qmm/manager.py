@@ -2,10 +2,10 @@
 #  Licensed under the EUPL v1.2
 #  © 2019-2020 bicobus <bicobus@keemail.me>
 """Handles the Qt main window."""
+import enum
 import logging
 import os
 import pathlib
-import enum
 from collections import deque
 from typing import Tuple, Union
 
@@ -17,11 +17,12 @@ from watchdog.observers import Observer
 
 from qmm import bucket, dialogs, filehandler, get_base_path
 from qmm.common import settings, settings_are_set, valid_suffixes
-from qmm.fileutils import ArchiveEvents
 from qmm.config import get_config_dir
+from qmm.fileutils import ArchiveEvents
 from qmm.settings.core_dialogs import PreferencesDialog
 from qmm.settings.pages import GeneralPage
 from qmm.ui_mainwindow import Ui_MainWindow  # pylint: disable=no-name-in-module
+from qmm.version import VERSION_STRING
 from qmm.widgets import (
     ListRowItem,
     ListRowVirtualItem,
@@ -32,7 +33,6 @@ from qmm.widgets import (
     build_ignored_tree_widget,
     build_tree_widget,
 )
-from qmm.version import VERSION_STRING
 
 logger = logging.getLogger(__name__)
 HELP_URL = "https://qmodmanager.readthedocs.io/"
@@ -219,7 +219,6 @@ class MainWindow(QMainWindow, QEventFilter, Ui_MainWindow):
         self._ar_handler = None
         self._mod_handler = None
         self._observer = Observer()
-        # self._init_settings()
         if settings_are_set():
             self._init_mods()
 
@@ -283,22 +282,6 @@ class MainWindow(QMainWindow, QEventFilter, Ui_MainWindow):
             logger.debug("Unscheduling archive watch.")
             self._observer.unschedule(self._wd_watchers[WatchDogSchedules.ARCHIVES])
             self._wd_watchers[WatchDogSchedules.ARCHIVES] = None
-
-    def _init_settings(self):
-        # FIXME remove me, transpose the warning elsewhere
-        if not settings_are_set():
-            dialogs.qWarning(
-                _(
-                    "This software requires two path to be set in order to be "
-                    "able to run. You <b>must</b> fill in the game folder and "
-                    "repository folder. The game will crash if either is empty."
-                ),
-                # Translators: This is a message box's title
-                title=_("First run"),
-            )
-            self.do_settings()
-        else:  # On first run, the _init_mods method is called by QSettings
-            self._init_mods()
 
     def _init_mods(self):
         p_dialog = dialogs.SplashProgress(
@@ -920,9 +903,9 @@ class QAppEventFilter(QObject):
 # pylint: disable=import-outside-toplevel
 def main():
     """Start the application proper."""
-    import sys
-    import signal
     import locale
+    import signal
+    import sys
 
     # Sets locale according to $LANG variable instead of C locale
     locale.setlocale(locale.LC_ALL, "")

@@ -112,10 +112,26 @@ class Page(QWidget):
                 combobox.setCurrentIndex(idx)
 
     def save(self):
+        changed_elements = []
+        restart_required = False
         for lineedit, confkey in self.lineedits.items():
             data = lineedit.text()
             if data != settings[confkey]:
                 settings[confkey] = data
+                changed_elements.append(lineedit)
+                if lineedit.restart_needed:
+                    restart_required = True
+
+        for combobox, confkey in self.comboboxes.items():
+            data = combobox.itemData(combobox.currentIndex())
+            if data != settings[confkey]:
+                settings[confkey] = data
+                changed_elements.append(combobox)
+                if combobox.restart_required:
+                    restart_required = True
+
+        if restart_required:
+            self.prompt_restart_required(changed_elements)
 
     def validate(self):
         # NOTE: validation might only work for text input, either QLineEdit or
@@ -138,7 +154,7 @@ class Page(QWidget):
                 return False
         return True
 
-    def c_lineedit(self, text, confkey, **qtparams):
+    def c_lineedit(self, text, confkey, restart=False, **qtparams):
         wordwrap = qtparams.setdefault("wordwrap", False)
         alignment = qtparams.setdefault("alignment", Qt.Vertical)
         tip = qtparams.setdefault("tip", None)
@@ -158,11 +174,13 @@ class Page(QWidget):
         widget.textbox = edit
         widget.setLayout(layout)
         edit.label_text = text
+        edit.restart_needed = restart
         return widget
 
-    def c_browsedir(self, text, confkey, tip=None, placeholder=None):
+    def c_browsedir(self, text, confkey, tip=None, restart=False, placeholder=None):
         widget = self.c_lineedit(
             text, confkey, tip=tip, alignment=Qt.Horizontal, placeholder=placeholder,
+            restart=restart
         )
 
         edit = None
@@ -190,9 +208,11 @@ class Page(QWidget):
         )
         lineedit.setText(value)
 
-    def c_combobox(self, text, choices, confkey, tip=None):
+    def c_combobox(self, text, choices, confkey, restart=False, tip=None):
         label = QLabel(text)
         combobox = QComboBox()
+        combobox.restart_required = restart
+        combobox.label_text = text
         if tip:
             combobox.setToolTip(tip)
         for name, key in choices:
@@ -212,6 +232,25 @@ class Page(QWidget):
         widget.combobox = combobox
         widget.setLayout(layout)
         return widget
+
+    def prompt_restart_required(self, changed_elements):
+        """Prompt user to restart software."""
+        if len(changed_elements) == 1:
+            msg_start = _(
+                "QModManager needs to be restarted in order to apply the following setting:"
+            )
+        else:
+            msg_start = _(
+                "QModManager needs to be restarted in order to apply the following settings:"
+            )
+
+        msg_elements = ""
+        for element in changed_elements:
+            msg_elements += "<li>{}</li>".format(element.label_text)
+
+        title = _("Restart needed")
+        msg = "{0}<ul>{1}</ul>".format(msg_start, msg_elements)
+        QMessageBox.information(self, title, msg, QMessageBox.Ok)
 
 
 class PreferencesDialog(QDialog):
