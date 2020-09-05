@@ -8,42 +8,42 @@ from PyQt5.QtWidgets import QMessageBox, QDialog
 from qmm.ui_qprogress import Ui_Dialog  # pylint: disable=no-name-in-module
 
 
-def qError(message, **kwargs):
+def q_error(message, **kwargs):
     """Helper function to show an error dialog."""
     msg = QMessageBox()
     msg.setIcon(QMessageBox.Critical)
-    msg.setWindowTitle("An error occurred")
+    msg.setWindowTitle(_("An error occurred"))
     msg.setText(message)
     msg.setStandardButtons(QMessageBox.Ok)
     _do_message(msg, **kwargs)
 
 
-def qWarning(message, **kwargs):
+def q_warning(message, **kwargs):
     """Helper function to show a warning dialog."""
     msg = QMessageBox()
     msg.setIcon(QMessageBox.Warning)
-    msg.setWindowTitle("An warning occurred")
+    msg.setWindowTitle(_("An warning occurred"))
     msg.setText(message)
     msg.setStandardButtons(QMessageBox.Ok)
     _do_message(msg, **kwargs)
 
 
-def qWarningYesNo(message, **kwargs):
+def q_warning_yes_no(message, **kwargs):
     """Helper function to show an Y/N warning dialog."""
     msg = QMessageBox()
     msg.setIcon(QMessageBox.Warning)
-    msg.setWindowTitle("Warning")
+    msg.setWindowTitle(_("Warning"))
     msg.setText(message)
     msg.setStandardButtons(QMessageBox.Ok | QMessageBox.Cancel)
     r = _do_message(msg, **kwargs)
     return bool(r == QMessageBox.Ok)
 
 
-def qInformation(message, **kwargs):
+def q_information(message, **kwargs):
     """Helper function to show an informational dialog."""
     msg = QMessageBox()
     msg.setIcon(QMessageBox.Information)
-    msg.setWindowTitle("An error occurred")
+    msg.setWindowTitle(_("Information"))
     msg.setText(message)
     msg.setStandardButtons(QMessageBox.Ok)
     _do_message(msg, **kwargs)

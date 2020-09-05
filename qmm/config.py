@@ -10,9 +10,10 @@ import shutil
 import tempfile
 from collections.abc import MutableMapping
 
-from PyQt5.QtCore import QTimer
+from PyQt5.QtCore import QObject, QTimer
 import appdirs
 
+from qmm.settings.validators import IsDirValidator
 logger = logging.getLogger(__name__)
 dirs = appdirs.AppDirs(appname="qmm", appauthor=False)
 
@@ -40,10 +41,13 @@ def get_config_dir(filename=None, extra_directories=None) -> str:
 class Config(MutableMapping):
     """Influenced by deluge's config object."""
 
-    def __init__(self, filename, config_dir=None, defaults=None, compress=False):
+    def __init__(
+        self, filename, config_dir=None, defaults=None, compress=False, on_load_validators=None
+    ):
         self._data = {}
         self._save_timer = False
         self._compress = compress
+        self._validators = {}
 
         if defaults:
             for key, val in defaults.items():
@@ -56,6 +60,10 @@ class Config(MutableMapping):
 
         if self._compress:
             self._filename = "{}.gz".format(self._filename)
+
+        if on_load_validators:
+            for key, val in on_load_validators.items():
+                self._validators[key] = val
 
         # self._timer = QTimer(parent)
         # Force saving config file at termination of the software
@@ -114,8 +122,17 @@ class Config(MutableMapping):
 
         logger.debug("Loading information from settings file: %s", filename)
         data = self._get_data_from_file(filename)
-        if data:
-            self._data.update(data)
+        for key, val in data.items():
+            if key in self._validators:
+                validator = self._validators.get(key)
+                if val and validator(val):
+                    value = val
+                else:
+                    logger.error("Invalid value %s loaded from user configuration.", val)
+                    value = None
+            else:
+                value = val
+            self._data[key] = value
 
     def delayed_save(self, msec=5000):
         """Schedule a save in the future if one isn't already planned."""

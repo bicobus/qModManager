@@ -17,7 +17,15 @@ logger = logging.getLogger(__name__)
 #: in the app
 settings = Config(
     filename="settings.json",
-    defaults={"local_repository": None, "game_folder": None, "language": "system"},
+    defaults={
+        "local_repository": None,
+        "game_folder": None,
+        "language": "system"
+    },
+    on_load_validators={
+        "local_repository": os.path.isdir,
+        "game_folder": os.path.isdir,
+    },
 )
 
 

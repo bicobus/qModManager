@@ -12,7 +12,7 @@ from typing import Tuple, Union
 import watchdog.events
 from PyQt5 import QtGui
 from PyQt5.QtCore import QEvent, QObject, Qt, QUrl, pyqtSignal, pyqtSlot
-from PyQt5.QtWidgets import QAction, QApplication, QFileDialog, QMainWindow, QMenu
+from PyQt5.QtWidgets import QAction, QApplication, QFileDialog, QMainWindow, QMenu, QMessageBox
 from watchdog.observers import Observer
 
 from qmm import bucket, dialogs, filehandler, get_base_path
@@ -208,7 +208,7 @@ class MainWindow(QMainWindow, QEventFilter, Ui_MainWindow):
         self.tab_files_content.setContextMenuPolicy(Qt.CustomContextMenu)
         self.tab_files_content.customContextMenuRequested.connect(treewidgetmenu.show_menu)
 
-        self._cb_after_init = deque()
+        self._cb_post_show = deque()
         self._settings_window = None
         self.settings_index = None
         self._about_window = None
@@ -219,21 +219,32 @@ class MainWindow(QMainWindow, QEventFilter, Ui_MainWindow):
         self._ar_handler = None
         self._mod_handler = None
         self._observer = Observer()
-        if settings_are_set():
-            self._init_mods()
 
         self.actionHelp.triggered.connect(
             lambda: QtGui.QDesktopServices.openUrl(QUrl(HELP_URL)),  # noqa pycharm
             type=Qt.QueuedConnection,
         )
 
-    def show(self):
-        super().show()
-        # consume previously set callbacks
-        while self._cb_after_init:
-            item = self._cb_after_init.pop()
+    def post_show_setup(self):
+        """Actions to be triggered only after mainwindow `show` method is triggered"""
+        while self._cb_post_show:
+            item = self._cb_post_show.pop()
             logger.debug("Calling %s", item)
             item()
+
+        if settings_are_set():
+            self._init_mods()
+        else:
+            msg = _(
+                "One or more parameters required for the proper usage of " 
+                "this application are undefined.<br>"
+                "Would you like to open the Preferences window and define them now?"
+            )
+            answer = QMessageBox().information(
+                self, _("Information"), msg, QMessageBox.Yes | QMessageBox.No
+            )
+            if answer == QMessageBox.Yes:
+                self.do_settings()
 
     def on_window_activate(self):
         if not self._ar_handler or not self._mod_handler:  # handlers not init
@@ -342,10 +353,10 @@ class MainWindow(QMainWindow, QEventFilter, Ui_MainWindow):
         self._schedule_watchdog("modules")
         self._observer.start()
 
-    def add_callbacks_at_show(self, items):
+    def add_callbacks_post_show(self, items):
         if not isinstance(items, list):
             items = [items]
-        self._cb_after_init.extend(items)
+        self._cb_post_show.extend(items)
 
     def get_row_index_by_name(self, name):
         """Return row if name is found in the list.
@@ -448,7 +459,7 @@ class MainWindow(QMainWindow, QEventFilter, Ui_MainWindow):
     @pyqtSlot(name="on_actionOpen_triggered")
     def _do_add_new_mod(self):
         if not settings_are_set():
-            dialogs.qWarning(_("You must set your game folder location."))
+            dialogs.q_warning(_("You must set your game folder location."))
             return
 
         qfd = QFileDialog(self)
@@ -475,12 +486,10 @@ class MainWindow(QMainWindow, QEventFilter, Ui_MainWindow):
             logger.error("Virtual packages cannot be removed.")
             return
 
-        ret = dialogs.qWarningYesNo(
-            _(
-                "This action will uninstall the mod, then move the archive to your "
-                "trashbin.\n\nDo you want to continue?"
-            )
-        )
+        ret = dialogs.q_warning_yes_no(_(
+            "This action will uninstall the mod, then move the archive to your "
+            "trashbin.\n\nDo you want to continue?"
+        ))
         if not ret:
             return
 
@@ -513,14 +522,12 @@ class MainWindow(QMainWindow, QEventFilter, Ui_MainWindow):
         files = filehandler.install_archive(item.filename, item.archive_instance.install_info())
         self._do_enable_autorefresh(True)
         if not files:
-            dialogs.qWarning(
-                _(
-                    "The archive {filename} extracted with errors.\n"
-                    "Please refer to {loglocation} for more information."
-                ).format(
-                    filename=item.filename, loglocation=os.path.join(get_base_path(), "error.log")
-                )
-            )
+            dialogs.q_warning(_(
+                "The archive {filename} extracted with errors.\n"
+                "Please refer to {loglocation} for more information."
+            ).format(
+                filename=item.filename, loglocation=os.path.join(get_base_path(), "error.log")
+            ))
         else:
             filehandler.generate_conflicts_between_archives(self.managed_archives)
             self.refresh_list_item_state()
@@ -541,13 +548,11 @@ class MainWindow(QMainWindow, QEventFilter, Ui_MainWindow):
             return False
 
         if item.archive_instance.has_mismatched:
-            dialogs.qInformation(
-                _(
-                    "Unable to uninstall mod: mismatched items exists on drive.\n"
-                    "This is most likely due to another installed mod conflicting "
-                    "with this mod.\n"
-                )
-            )
+            dialogs.q_information(_(
+                "Unable to uninstall mod: mismatched items exists on drive.\n"
+                "This is most likely due to another installed mod conflicting "
+                "with this mod.\n"
+            ))
             return False
 
         self._do_enable_autorefresh(False)
@@ -560,13 +565,11 @@ class MainWindow(QMainWindow, QEventFilter, Ui_MainWindow):
             self.on_selection_change()
             return True
 
-        dialogs.qWarning(
-            _(
-                "The uninstallation process failed at some point. Please report "
-                "this happened to the developper alongside with the error file "
-                "{logfile}."
-            ).format(logfile=get_config_dir("error.log"))
-        )
+        dialogs.q_warning(_(
+            "The uninstallation process failed at some point. Please report "
+            "this happened to the developper alongside with the error file "
+            "{logfile}."
+        ).format(logfile=get_config_dir("error.log")))
         return False
 
     @pyqtSlot(name="on_actionSettings_triggered")
@@ -668,7 +671,8 @@ class MainWindow(QMainWindow, QEventFilter, Ui_MainWindow):
             else:
                 archive_name = archive
             if not archive_name:
-                dialogs.qWarning(_("A file with the same name already exists in the repository."))
+                dialogs.q_warning(
+                    _("A file with the same name already exists in the repository."))
                 return False
             self.managed_archives.add_archive(filename, hashsum)
             filehandler.conflicts_process_files(
@@ -688,12 +692,10 @@ class MainWindow(QMainWindow, QEventFilter, Ui_MainWindow):
             self.fswatch_clear.emit(filename, watchdog.events.EVENT_TYPE_CREATED)
             return True
 
-        dialogs.qWarning(
-            _(
-                "The file you selected is already present in the repository. "
-                "It may exists under a different name.\nHashsum matched: {hashsum}"
-            ).format(hashsum=hashsum)
-        )
+        dialogs.q_warning(_(
+            "The file you selected is already present in the repository. "
+            "It may exists under a different name.\nHashsum matched: {hashsum}"
+        ).format(hashsum=hashsum))
         return False
 
     ##########################
@@ -843,7 +845,7 @@ class QAppEventFilter(QObject):
     def set_top_window(self, window: MainWindow):
         """Define the widget that is considered as top window."""
         self._mainwindow = window
-        self._mainwindow.add_callbacks_at_show([self.set_coords, self.set_geometry])
+        self._mainwindow.add_callbacks_post_show([self.set_coords, self.set_geometry])
         self.set_coords()
         self.set_geometry()
 
@@ -921,6 +923,7 @@ def main():
         mainwindow = MainWindow()
         aef.set_top_window(mainwindow)
         mainwindow.show()
+        mainwindow.post_show_setup()
         sys.exit(app.exec_())
     except Exception as e:  # Catchall, log then crash.
         logger.exception("Critical error occurred: %s", e)
