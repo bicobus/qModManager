@@ -1,6 +1,6 @@
 version: "{branch}.{build}"
 # os: Windows
-# image: Visual Studio 2019
+image: Visual Studio 2019
 branches:
   # whitelist tags schemes (e.g.: 1.0.0)
   only:
@@ -57,7 +57,7 @@ install:
 
 build_script:
   - make ui
-  - pyinstaller run.spec
+  - set PYTHONOPTIMIZE=1 && pyinstaller run.spec
 
 after_build:
   #  - ps: move dist\run.exe run.exe
