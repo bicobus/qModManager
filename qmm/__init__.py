@@ -45,7 +45,7 @@ logging.basicConfig(
     filemode="w",
 )
 logger = logging.getLogger(__name__)
-logger.debug("Base path is %s", get_base_path())
+logger.info("Base path is %s", get_base_path())
 
 is_windows = platform.system() in ("Windows", "Microsoft")
 is_linux = platform.system() == "Linux"
