@@ -14,7 +14,7 @@ repos:
           - -d
           - --max-line-length 100
   - repo: https://github.com/pre-commit/pygrep-hooks
-    rev: v  1.6.0
+    rev: v1.6.0
     hooks:
       - id: rst-backticks
       - id: rst-inline-touching-normal
