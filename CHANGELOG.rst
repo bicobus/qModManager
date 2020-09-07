@@ -4,9 +4,16 @@ Version History
 
 `1.0.0-alpha14`_ - ????????
 ---------------------------
+Added
+~~~~~
+* Support items pattern (mods only)
+
 Changed
 ~~~~~~~
 * Ignore unrecognized sub-folders under namespace/items/
+* Prompt the user to restart the application if the specified settings options
+  are changed.
+* Prompt the user to open the settings window if required.
 
 Fixed
 ~~~~~
@@ -14,7 +21,8 @@ Fixed
   application. This is due to an absence of information within the attributes.
   Resolved by being less strict in normalizing file attributes read for the
   archive: if it is not explicitly a folder, then it is a file.
-
+* Crash: If the paths stored in the user settings file did no longer point to an
+  existing folder.
 
 `1.0.0-alpha13`_ - 02-09-20
 ---------------------------
