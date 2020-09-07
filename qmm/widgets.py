@@ -286,9 +286,7 @@ class ArchiveFilesTreeRow(QtWidgets.QTreeWidgetItem):
 
 class ListRowItem(ABCListRowItem):
     """ListWidgetItem representing one single archive."""
-
-    def __init__(self, filename, archive_manager):
-        super(ListRowItem, self).__init__(filename, archive_manager)
+    pass
 
 
 class ListRowVirtualItem(ABCListRowItem):

@@ -793,7 +793,7 @@ class MainWindow(QMainWindow, QEventFilter, Ui_MainWindow):
             self._observer.stop()
         self._settings_window = None
         # By default, the event is accepted and the widget is closed.
-        super(MainWindow, self).closeEvent(close_event)
+        super().closeEvent(close_event)
 
 
 class QAppEventFilter(QObject):
