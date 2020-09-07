@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 #  Licensed under the EUPL v1.2
 #  © 2020 bicobus <bicobus@keemail.me>
 
@@ -13,7 +14,7 @@ from qmm import bucket
 # in order to build paths corresponding the the game expectation.
 first_level_dir = ("items", "outfits", "setBonuses", "statusEffects")
 subfolders_of = {
-    "items": ("weapons", "clothing", "tattoos", "items")
+    "items": ("weapons", "clothing", "tattoos", "items", "patterns")
 }
 
 # TODO: use enums instead of constants. Namespace: FileStatus
