@@ -4,7 +4,10 @@
 
 import enum
 import pathlib
+from enum import Enum, auto
 from functools import lru_cache
+
+from PyQt5 import QtGui
 
 from qmm import bucket
 
@@ -17,16 +20,51 @@ subfolders_of = {
     "items": ("weapons", "clothing", "tattoos", "items", "patterns")
 }
 
-# TODO: use enums instead of constants. Namespace: FileStatus
 
-#: Indicate that the file is found on the drive, and match in content.
-FILE_MATCHED = 1
-#: Indicate that the file is absent from the drive.
-FILE_MISSING = 2
-#: Indicate that the file to exists on drive, but not matching in content.
-FILE_MISMATCHED = 3
-#: Indicate that the file will be ignored by the software.
-FILE_IGNORED = 4
+class FileState(Enum):
+    #: Indicate that the file is found on the drive, and match in content.
+    MATCHED = auto()
+    #: Indicate that the file is absent from the drive.
+    MISSING = auto()
+    #: Indicate that the file to exists on drive, but not matching in content.
+    MISMATCHED = auto()
+    #: Indicate that the file will be ignored by the software.
+    IGNORED = auto()
+
+    def __str__(self):
+        if self.name == self.MATCHED.name:
+            return _("Matched")
+        elif self.name == self.MISSING.name:
+            return _("Missing")
+        elif self.name == self.MISMATCHED.name:
+            return _("Mismatched")
+        elif self.name == self.IGNORED.name:
+            return _("Ignored")
+
+    @property
+    def qcolor(self) -> QtGui.QColor:
+        return FileStateColor[self.name].qcolor
+
+
+class FileStateColor(Enum):
+    """Gradients of colors for each file of the tree widget."""
+    MATCHED = (91, 135, 33, 255)  # greenish
+    MISMATCHED = (132, 161, 225, 255)  # blueish
+    MISSING = (237, 213, 181, 255)  # (225, 185, 132, 255),  # yellowish
+    CONFLICTS = (135, 33, 39, 255)  # red-ish
+    IGNORED = (219, 219, 219, 255)  # gray
+    tab_ignored = (135, 33, 39, 255)
+    tab_conflict = (135, 33, 39, 255)
+
+    def __init__(self, r, g, b, a):
+        self.r = r
+        self.g = g
+        self.b = b
+        self.a = a
+
+    @property
+    def qcolor(self) -> QtGui.QColor:
+        return QtGui.QColor(self.r, self.g, self.b, self.a)
 
 
 class ArchiveEvents(enum.Enum):
@@ -63,20 +101,20 @@ def _bad_suffix(suffix):
     return bool(suffix not in (".xml", ".svg"))
 
 
-def file_status(file: bucket.FileMetadata) -> int:
+def file_status(file: bucket.FileMetadata) -> FileState:
     if (
         file.pathobj.name in ignore_patterns()
         or _bad_directory_structure(file.path_as_posix())
         or (file.pathobj.suffix and _bad_suffix(file.pathobj.suffix))
     ):
-        return FILE_IGNORED
+        return FileState.IGNORED
     if (
         file.is_dir()
         and bucket.file_path_in_loosefiles(file)
         or bucket.file_crc_in_loosefiles(file)
         and bucket.file_path_in_loosefiles(file)
     ):
-        return FILE_MATCHED
+        return FileState.MATCHED
     if bucket.file_path_in_loosefiles(file) and not bucket.file_crc_in_loosefiles(file):
-        return FILE_MISMATCHED
-    return FILE_MISSING
+        return FileState.MISMATCHED
+    return FileState.MISSING

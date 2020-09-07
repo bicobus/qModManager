@@ -18,7 +18,7 @@ from watchdog.observers import Observer
 from qmm import bucket, dialogs, filehandler, get_base_path
 from qmm.common import settings, settings_are_set, valid_suffixes
 from qmm.config import get_config_dir
-from qmm.fileutils import ArchiveEvents
+from qmm.fileutils import ArchiveEvents, FileStateColor
 from qmm.settings.core_dialogs import PreferencesDialog
 from qmm.settings.pages import GeneralPage
 from qmm.ui_mainwindow import Ui_MainWindow  # pylint: disable=no-name-in-module
@@ -415,12 +415,7 @@ class MainWindow(QMainWindow, QEventFilter, Ui_MainWindow):
 
     @pyqtSlot(name="on_listWidget_itemSelectionChanged")
     def on_selection_change(self) -> None:
-        """Change the tab color to match the selected element in linked list.
-
-        rgb(135, 33, 39) # redish
-        rgb(78, 33, 135) # blueish
-        rgb(91, 135, 33) # greenish
-        """
+        """Change the tab color to match the selected element in linked list."""
         items = self.listWidget.selectedItems()
         if not items:
             return
@@ -446,13 +441,13 @@ class MainWindow(QMainWindow, QEventFilter, Ui_MainWindow):
 
         skipped_idx = self.tabWidget.indexOf(self.tab_skipped)
         if item.archive_instance.has_ignored:
-            self.set_tab_color(skipped_idx, QtGui.QColor(135, 33, 39))
+            self.set_tab_color(skipped_idx, FileStateColor.tab_ignored.qcolor)
         else:
             self.set_tab_color(skipped_idx)
 
         conflict_idx = self.tabWidget.indexOf(self.tab_conflicts)
         if item.archive_instance.has_conflicts:
-            self.set_tab_color(conflict_idx, QtGui.QColor(135, 33, 39))
+            self.set_tab_color(conflict_idx, FileStateColor.tab_conflict.qcolor)
         else:
             self.set_tab_color(conflict_idx)
 

@@ -27,14 +27,7 @@ from qmm import bucket, is_windows
 from qmm.ab.archives import ABCArchiveInstance, ArchiveType
 from qmm.common import bundled_tools_path, settings, settings_are_set, valid_suffixes
 from qmm.config import SettingsNotSetError
-from qmm.fileutils import (
-    ArchiveEvents,
-    FILE_IGNORED,
-    FILE_MATCHED,
-    FILE_MISMATCHED,
-    FILE_MISSING,
-    ignore_patterns, subfolders_of,
-)
+from qmm.fileutils import ArchiveEvents, ignore_patterns, subfolders_of
 
 logger = logging.getLogger(__name__)
 
@@ -56,18 +49,6 @@ reErrorMatch = re.compile(
 )""",
     re.X | re.I,
 ).match
-LITERALS = {
-    FILE_MATCHED: "matched",
-    FILE_MISSING: "missing",
-    FILE_MISMATCHED: "mismatched",
-    FILE_IGNORED: "ignored",
-}
-TRANSLATED_LITERALS = {
-    FILE_MATCHED: _("Matched"),
-    FILE_MISSING: _("Missing"),
-    FILE_MISMATCHED: _("Mismatched"),
-    FILE_IGNORED: _("Ignored"),
-}
 
 
 class ArchiveException(Exception):
@@ -292,13 +273,11 @@ class ArchiveInstance(ABCArchiveInstance):
             if bucket.with_conflict(item.path):
                 tmp_conflicts.extend(bucket.conflicts[item.path])
             # Check against game files (Path and CRC)
-            # fmt: off
             if (
                 bucket.with_gamefiles(path=item.path)
                 or bucket.with_gamefiles(crc=item.crc)
             ):
                 tmp_conflicts.append(bucket.gamefiles[item.crc])
-            # fmt: on
             if tmp_conflicts:
                 self._conflicts[item.path] = tmp_conflicts
 
@@ -493,7 +472,7 @@ class ArchivesCollection(MutableMapping[str, ArchiveInstance]):
 
     def __getitem__(self, key) -> ArchiveInstance:
         if key == b"\x00":
-            # TODO: return a list, this should go in an object variable
+            logger.info("Accessing virtual instance.")
             return self._special
         return self._data[key]
 
@@ -589,7 +568,8 @@ def build_game_files_crc32(progress=None):
     """
     target_folder = os.path.join(settings["game_folder"], "res")
     scan_theses = (
-        "clothing", "outfits", "tattoos", "weapons", "setBonuses", "statusEffects", "items"
+        "clothing", "outfits", "tattoos", "weapons", "setBonuses", "statusEffects", "items",
+        # "patterns",
     )
     if progress:
         progress("", category="Game Files")

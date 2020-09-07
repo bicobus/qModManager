@@ -4,24 +4,24 @@
 
 import logging
 from abc import ABC, abstractmethod
-import enum
+from enum import IntEnum, auto, unique
 from typing import Dict, Generator, Iterable, List, Tuple, Union
 
 from qmm import bucket
-from qmm.fileutils import FILE_IGNORED, FILE_MATCHED, FILE_MISMATCHED, FILE_MISSING, file_status
+from qmm.fileutils import FileState, file_status
 
 logger = logging.getLogger(__name__)
 
 
-@enum.unique
-class ArchiveType(enum.IntEnum):
-    FILE = enum.auto()
-    VIRTUAL = enum.auto()
+@unique
+class ArchiveType(IntEnum):
+    FILE = auto()
+    VIRTUAL = auto()
 
 
 class ABCArchiveInstance(ABC):
     _conflicts: Dict[str, List[Union[str, bucket.FileMetadata]]]
-    _meta: List[Tuple[bucket.FileMetadata, int]]
+    _meta: List[Tuple[bucket.FileMetadata, FileState]]
 
     ar_type = None
 
@@ -78,7 +78,7 @@ class ABCArchiveInstance(ABC):
     @abstractmethod
     def matched(self) -> Generator[bucket.FileMetadata, None, None]:
         """Yield file metadata of matched entries of the archive."""
-        for item in filter(lambda x: x[1] == FILE_MATCHED, self._meta):
+        for item in filter(lambda x: x[1] == FileState.MATCHED, self._meta):
             yield item[0]
 
     @abstractmethod
@@ -86,7 +86,7 @@ class ABCArchiveInstance(ABC):
         """Yield file metadata of mismatched entries of the archive."""
         if not self.has_mismatched:
             return
-        for item in filter(lambda x: x[1] == FILE_MISMATCHED, self._meta):
+        for item in filter(lambda x: x[1] == FileState.MISMATCHED, self._meta):
             # File is mismatched against something else, find it and store it
             for mfile in bucket.loosefiles.values():
                 for f in filter(lambda x, i=item: x.path == i[0].path, mfile):
@@ -96,13 +96,13 @@ class ABCArchiveInstance(ABC):
     @abstractmethod
     def missing(self) -> Generator[bucket.FileMetadata, None, None]:
         """Yield file metadata of missing entries of the archive."""
-        for item in filter(lambda x: x[1] == FILE_MISSING, self._meta):
+        for item in filter(lambda x: x[1] == FileState.MISSING, self._meta):
             yield item[0]
 
     @abstractmethod
     def ignored(self) -> Iterable[bucket.FileMetadata]:
         """Yield file metadata of ignored entries of the archive."""
-        for item in filter(lambda x: x[1] == FILE_IGNORED, self._meta):
+        for item in filter(lambda x: x[1] == FileState.IGNORED, self._meta):
             yield item[0]
 
     @abstractmethod
@@ -123,13 +123,16 @@ class ABCArchiveInstance(ABC):
         for name, status in self._meta:
             yield name, status
 
-    def find(self, fmd):
+    def find(self, fmd: bucket.FileMetadata):
         """Return a FileMetadata object if managed by the archive.
 
         The comparison is done on path and crc, not origin.
 
         Args:
             fmd (FileMetadata): a FileMetadata object
+
+        Returns:
+            tuple: (FileMetadata, int)
         """
         if not isinstance(fmd, bucket.FileMetadata):
             raise TypeError(f"path must be FileMetadata, not {type(fmd)}")
@@ -142,7 +145,7 @@ class ABCArchiveInstance(ABC):
             return item
         return None
 
-    def get_status(self, file):
+    def get_status(self, file: bucket.FileMetadata) -> FileState:
         return self.find(file)[1]
 
     def _has_status(self, status):
@@ -151,41 +154,41 @@ class ABCArchiveInstance(ABC):
     @property
     def has_matched(self):
         """Return True if a file of the archive is of status :py:attr:`FILE_MATCHED`."""
-        return self._has_status(FILE_MATCHED)
+        return self._has_status(FileState.MATCHED)
 
     @property
     def all_matching(self):
         """Return `True` if all files in the archive matches on the drive."""
         no_directory = filter(lambda x: x[0].attributes != "D", self._meta)
-        return all(x[1] in (FILE_MATCHED, FILE_IGNORED) for x in no_directory)
+        return all(x[1] in (FileState.MATCHED, FileState.IGNORED) for x in no_directory)
 
     @property
     def has_mismatched(self):
         """
         Value is `True` if a file of the archive is of status :py:attr:`FILE_MISMATCHED`.
         """
-        return self._has_status(FILE_MISMATCHED)
+        return self._has_status(FileState.MISMATCHED)
 
     @property
     def has_missing(self):
         """
         Value is `True` if a file of the archive is of status :py:attr:`FILE_MISSING`.
         """
-        return self._has_status(FILE_MISSING)
+        return self._has_status(FileState.MISSING)
 
     @property
     def has_ignored(self):
         """
         Value is `True` if a file of the archive is of status :py:attr:`FILE_IGNORED`.
         """
-        return self._has_status(FILE_IGNORED)
+        return self._has_status(FileState.IGNORED)
 
     @property
     def all_ignored(self):
         """
         Value is `True` if all files of the archive are of status :py:attr:`FILE_IGNORED`.
         """
-        return all(x[1] == FILE_IGNORED or x[0].attributes == "D" for x in self._meta)
+        return all(x[1] == FileState.IGNORED or x[0].attributes == "D" for x in self._meta)
 
     @property
     def has_conflicts(self):

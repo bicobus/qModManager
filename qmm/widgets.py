@@ -9,11 +9,11 @@ from PyQt5 import QtGui, QtWidgets
 from PyQt5.QtCore import QObject, QProcess, QUrl
 from PyQt5.QtWidgets import QAction, QMenu, QTreeWidget, QTreeWidgetItem
 
-from qmm.ab.widgets import ABCListRowItem, FILESTATE_COLORS
+from qmm.ab.widgets import ABCListRowItem
+from qmm.fileutils import FileState
 from qmm.bucket import FileMetadata
 from qmm.common import command, toolsalias
-from qmm.filehandler import ArchiveInstance, LITERALS, TRANSLATED_LITERALS
-from qmm.fileutils import FILE_MATCHED, FILE_MISSING
+from qmm.filehandler import ArchiveInstance
 from qmm.ui_about import Ui_About  # pylint: disable=no-name-in-module
 
 logger = logging.getLogger(__name__)
@@ -188,9 +188,9 @@ def build_tree_from_path(item: FileMetadata, parent: QTreeWidget, folders, color
                 p = parent
             if finder:
                 fmd = finder(key)[0]
-                status = FILE_MATCHED if fmd.exists() else FILE_MISSING
+                status = FileState.MATCHED if fmd.exists() else FileState.MISSING
                 widget = ArchiveFilesTreeRow(
-                    text=_gv(folder, [TRANSLATED_LITERALS[status]]),
+                    text=_gv(folder, [str(status)]),
                     parent=p,
                     item=fmd,
                     tooltip=fmd.path,
@@ -234,8 +234,8 @@ def build_tree_widget(container: QTreeWidget, archive_instance: ArchiveInstance)
             item=item,
             parent=container,
             folders=parent_folders,
-            color=FILESTATE_COLORS[LITERALS[status]],
-            extra_column=[TRANSLATED_LITERALS[status]],
+            color=status.qcolor,
+            extra_column=[str(status)],
             finder=archive_instance.find_metadata_by_path
             if isinstance(archive_instance, ListRowVirtualItem)
             else None,
@@ -263,7 +263,7 @@ class ArchiveFilesTreeRow(QtWidgets.QTreeWidgetItem):
         parent,
         item: FileMetadata,
         tooltip: str = None,
-        color=None,
+        color: Union[QtGui.QColor, None] = None,
         icon=None,
         **extra,
     ):
@@ -277,7 +277,7 @@ class ArchiveFilesTreeRow(QtWidgets.QTreeWidgetItem):
         for idx, string in enumerate(text):
             self.setText(idx, string)
             if color:
-                self.setBackground(idx, QtGui.QColor(*color))
+                self.setBackground(idx, color)
         if tooltip:
             self.setToolTip(0, tooltip)
         if icon:

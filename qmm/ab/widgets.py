@@ -2,43 +2,14 @@
 #  Licensed under the EUPL v1.2
 #  © 2020 bicobus <bicobus@keemail.me>
 
-from enum import Enum
 from os import path
 from typing import Union
 
 from PyQt5 import QtGui, QtWidgets
 
+from qmm.fileutils import FileStateColor
 from qmm.common import timestamp_to_string
 from qmm.filehandler import ArchivesCollection
-
-#: Gradients of colors for each file of the tree widget.
-FILESTATE_COLORS = {
-    "matched": (91, 135, 33, 255),  # greenish
-    "mismatched": (132, 161, 225, 255),  # blueish
-    "missing": (237, 213, 181, 255),  # (225, 185, 132, 255),  # yellowish
-    "conflicts": (135, 33, 39, 255),  # red-ish
-    "ignored": (219, 219, 219, 255),  # gray
-}
-
-
-# TODO: Unify all FileState / FileStatus enum and literals
-#  Related to qmm/fileutils.py and qmm/filehandler.py constants
-class FileState(Enum):
-    matched = (91, 135, 33, 255)  # greenish
-    mismatched = (132, 161, 225, 255)  # blueish
-    missing = (237, 213, 181, 255)  # (225, 185, 132, 255),  # yellowish
-    conflicts = (135, 33, 39, 255)  # red-ish
-    ignored = (219, 219, 219, 255)  # gray
-
-    def __init__(self, r, g, b, a):
-        self.r = r
-        self.g = g
-        self.b = b
-        self.a = a
-
-    @property
-    def qcolor(self):
-        return QtGui.QColor(self.r, self.g, self.b, self.a)
 
 
 class ABCListRowItem(QtWidgets.QListWidgetItem):
@@ -66,15 +37,15 @@ class ABCListRowItem(QtWidgets.QListWidgetItem):
     def set_gradients(self):
         gradient = QtGui.QLinearGradient(75, 75, 150, 150)
         if self.archive_instance.has_mismatched:
-            gradient.setColorAt(0, FileState.mismatched.qcolor)
+            gradient.setColorAt(0, FileStateColor.MISMATCHED.qcolor)
         elif self.archive_instance.all_matching and not self.archive_instance.all_ignored:
-            gradient.setColorAt(0, FileState.matched.qcolor)
+            gradient.setColorAt(0, FileStateColor.MATCHED.qcolor)
         elif self.archive_instance.has_matched and self.archive_instance.has_missing:
-            gradient.setColorAt(0, FileState.missing.qcolor)
+            gradient.setColorAt(0, FileStateColor.MISSING.qcolor)
         else:
             gradient.setColorAt(0, QtGui.QColor(0, 0, 0, 0))
         if self.archive_instance.has_conflicts:
-            gradient.setColorAt(1, FileState.conflicts.qcolor)
+            gradient.setColorAt(1, FileStateColor.CONFLICTS.qcolor)
         brush = QtGui.QBrush(gradient)
         self.setBackground(brush)
 

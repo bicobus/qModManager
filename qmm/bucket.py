@@ -117,7 +117,7 @@ class FileMetadata:
             if pos == -1:  # no / present means the file is at the root
                 parts = (None, self._Path)
             else:
-                parts = (self._Path[:pos], self._Path[pos + 1 :])
+                parts = (self._Path[:pos], self._Path[pos + 1:])
         return parts
 
     def path_as_posix(self):
