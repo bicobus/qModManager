@@ -32,13 +32,13 @@ class FileState(Enum):
     IGNORED = auto()
 
     def __str__(self):
-        if self.name == self.MATCHED.name:
+        if self.name is self.MATCHED.name:
             return _("Matched")
-        elif self.name == self.MISSING.name:
+        elif self.name is self.MISSING.name:
             return _("Missing")
-        elif self.name == self.MISMATCHED.name:
+        elif self.name is self.MISMATCHED.name:
             return _("Mismatched")
-        elif self.name == self.IGNORED.name:
+        elif self.name is self.IGNORED.name:
             return _("Ignored")
 
     @property
