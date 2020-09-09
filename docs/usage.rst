@@ -17,13 +17,12 @@ interface of PyQModManager.
 
 Settings
 --------
-The software needs to know two on disk location: where the game is located and
+The software needs to know two on disk locations: where the game is located and
 a space to store the modules you've downloaded.
 
 The game location should be the folder containing the .jar or .exe of the game.
-The repository for your module should be a random *empty* folder of your choice.
-
-At the time I write these lines, the settings window is still a WiP.
+The archive repository for your module should be a random *empty* folder of your
+choice.
 
 Adding modules to be tracked by the software
 --------------------------------------------
@@ -56,28 +55,45 @@ Supported paths structure
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 A proper structure for a mod would be the following::
 
-    namespace
+    namespace/
     |-- items
     |   |-- clothing
-    |   |   `-- ItemName
+    |   |   `-- category
     |   |       |-- cloth_test.svg
     |   |       `-- cloth_test.xml
+    |   |-- items
+    |   |   `-- category
+    |   |       |-- itemName.svg
+    |   |       `-- itemName.xml
+    |   |-- patterns
+    |   |   |-- pattern_name.svg
+    |   |   `-- pattern_name.xml
     |   |-- tattoos
-    |   |   `-- ItemName
+    |   |   `-- category
     |   |       |-- tattoo_test.svg
     |   |       `-- tattoo_test.xml
     |   `-- weapons
-    |       `-- ItemName
+    |       `-- category
     |           |-- weapon_test.svg
     |           `-- weapon_test.xml
-    `-- outfits
-        `-- OutfitName
-            `-- outfit_test.xml
+    |-- outfits
+    |   `-- OutfitName
+    |       `-- outfit_test.xml
+    |-- setBonuses
+    |   `-- template.xml
+    `-- statusEffects
+        |-- set_itemName.svg
+        `-- set_itemName.xml
+
 
 The first folder must be the namespace, or colloquially the name of the modder.
 The module will be ignored if it is packaged with the initial ``/res/mods``
-folders. The software will look for the existance of the subfolders ``items``,
-``clothing``, ``weapons``, ``tattoos`` and ``outfits``.
+folders. The software will look for the existence of the sub-folders ``items``,
+``setBonuses``, ``statusEffects`` and ``outfits``.
+
+If the ``items`` folder is found, the software will then verify the existence of
+the following sub-folders: ``clothing``, ``weapons``, ``tattoos``, ``patterns``
+and ``items``.
 
 Uninstalling a module
 ---------------------
@@ -87,7 +103,7 @@ archive and select the uninstall option.
 
 Monitoring of the hard drive
 ----------------------------
-The software will monitor filesystem changes on both the game's module folder
+The software will monitor file-system changes on both the game's module folder
 and the folder you designated as repository. The software will automatically
 scan any archive dropped in your repository folder, as well as making sure
 the game's module folder remains known even if you unpack files through other
@@ -98,7 +114,7 @@ the list of your available modules. Doing so will activate a refresh button,
 located right next to the checkbox, which will allow you to manually refresh the
 internal database if you make changes to the file system.
 
-The monitoring of the filesystem is designed to be as lightweight as possible.
+The monitoring of the file-system is designed to be as lightweight as possible.
 It disable itself whenever PyQModManager becomes inactive (alt-tab or
 minimized), and reactive itself whenever the software gain focus. Gaining back
 focus will force a refresh of the database on a needed basis: if nothing has

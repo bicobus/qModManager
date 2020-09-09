@@ -1,8 +1,3 @@
-.. PyQModManager documentation master file, created by
-   sphinx-quickstart on Fri Apr 24 05:25:19 2020.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
-
 .. include:: global.rst.inc
 
 Welcome to PyQModManager's documentation!
