@@ -7,10 +7,12 @@ Version History
 Added
 ~~~~~
 * Support items pattern (mods only)
+* Descriptive text for each option of the settings window. Should help with
+  confusing options.
 
 Changed
 ~~~~~~~
-* Ignore unrecognized sub-folders under namespace/items/
+* Ignore unrecognized sub-folders under ``namespace/items/``
 * Prompt the user to restart the application if the specified settings options
   are changed.
 * Prompt the user to open the settings window if required.

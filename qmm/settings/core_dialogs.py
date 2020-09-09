@@ -26,10 +26,12 @@ The setting window has two major elements:
 """
 from PyQt5.QtCore import QSize, Qt, pyqtSignal  # , pyqtSlot
 from PyQt5.QtWidgets import (
+    QCheckBox,
     QComboBox,
     QDialog,
     QDialogButtonBox,
     QFileDialog,
+    QGridLayout,
     QHBoxLayout,
     QLabel,
     QLineEdit,
@@ -55,7 +57,38 @@ def create_button(text, callback):
     return button
 
 
+# Horizontal:
+#    | 0 | 1 | 2
+#    +---+---+---
+#  0 | L | W | W+
+#  1 | \ | H | \
+#
+# Vertical:
+#    | 0 | 1 | 2
+#    +---+---+---
+#  0 | L | \ |
+#  1 | W | H |
+#  2 | W+| \ |
+#
+def make_verbose_layout(parent, align, helper, *widgets):
+    """Generate a GridLayout, insert extra helper widget on the second row.
+
+    The helper widget is supposed to be a `QLabel`.
+    Tries to respect `align`.
+    """
+    layout = QGridLayout(parent)
+    for idx, widget in enumerate(widgets):
+        if align == Qt.Vertical:
+            layout.addWidget(widget, idx, 0)  # row, col
+        else:
+            layout.addWidget(widget, 0, idx)
+    layout.addWidget(helper, 1, 1)
+    layout.setContentsMargins(0, 0, 0, 0)
+    return layout
+
+
 def make_layout(parent, align, *widgets):
+    """Generate a box layout depending of `align`."""
     layout = QVBoxLayout(parent) if align == Qt.Vertical else QHBoxLayout(parent)
     for widget in widgets:
         layout.addWidget(widget)
@@ -69,9 +102,10 @@ class Page(QWidget):
 
     show_this_page = pyqtSignal()
 
-    def __init__(self, parent):
+    def __init__(self, parent, verbose_mode=False):
         super().__init__(parent)
         self.main = parent
+        self._verbose = bool(verbose_mode)
         self.pages = {}
 
         self.validators = {}
@@ -163,7 +197,12 @@ class Page(QWidget):
         label = QLabel(text)
         label.setWordWrap(wordwrap)
         edit = QLineEdit()
-        layout = make_layout(self, alignment, label, edit)
+        if self._verbose:
+            htedit = QLabel(tip)
+            htedit.setWordWrap(True)
+            layout = make_verbose_layout(self, alignment, htedit, label, edit)
+        else:
+            layout = make_layout(self, alignment, label, edit)
         if tip:
             edit.setToolTip(tip)
         if placeholder:
@@ -266,6 +305,13 @@ class PreferencesDialog(QDialog):
         self.apply_btn = bbox.button(QDialogButtonBox.Apply)
         self.ok_btn = bbox.button(QDialogButtonBox.Ok)
 
+        qhelp = QCheckBox(_("Enable Descriptive Help"), self)
+        self.qhelp_ckb = qhelp
+        try:
+            qhelp.setChecked(settings["ck_descriptive_text"])
+        except KeyError:
+            qhelp.setChecked(False)
+
         self.setAttribute(Qt.WA_DeleteOnClose)
         self.setWindowTitle(_("Settings"))
         self.contents_widget.setMovement(QListView.Static)
@@ -281,6 +327,7 @@ class PreferencesDialog(QDialog):
         hsplitter.setStretchFactor(1, 2)
 
         btnlayout = QHBoxLayout()
+        btnlayout.addWidget(qhelp)
         btnlayout.addStretch(1)
         btnlayout.addWidget(bbox)
 
@@ -292,6 +339,7 @@ class PreferencesDialog(QDialog):
         bbox.accepted.connect(self.accept)
         bbox.rejected.connect(self.reject)
         bbox.clicked.connect(self.button_clicked)
+        qhelp.stateChanged.connect(self.checkbox_toggled)
 
         self.contents_widget.currentRowChanged.connect(self.pages_widget.setCurrentIndex)
 
@@ -311,6 +359,26 @@ class PreferencesDialog(QDialog):
             if not page.validate():
                 return
             page.save()
+            return
+
+    def checkbox_toggled(self, checkbox):
+        """Enable descriptive help."""
+        if checkbox == Qt.Checked:
+            QMessageBox.information(
+                self,
+                _("Descriptive Text"),
+                _(
+                    "Enabling this option will tell the software to use a different build process "
+                    "for each element and embed a descriptive information alongside them.\n"
+                    "The setting window will be required to be closed then reopened after enabling "
+                    "or disabling this option."
+                ),
+                QMessageBox.Ok,
+            )
+            settings["ck_descriptive_text"] = True
+            return
+
+        settings["ck_descriptive_text"] = False
 
     def add_page(self, widget):
         widget.show_this_page.connect(

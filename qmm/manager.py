@@ -575,9 +575,13 @@ class MainWindow(QMainWindow, QEventFilter, Ui_MainWindow):
             self._settings_window = None
 
         if not self._settings_window:
+            try:
+                verbosity = settings['ck_descriptive_text']
+            except KeyError:
+                verbosity = False
             dlg = PreferencesDialog(self)
             self._settings_window = dlg
-            gpage = GeneralPage(dlg)
+            gpage = GeneralPage(dlg, verbosity)
             dlg.add_page(gpage)
 
             if self.settings_index:

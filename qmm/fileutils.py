@@ -34,11 +34,11 @@ class FileState(Enum):
     def __str__(self):
         if self.name is self.MATCHED.name:
             return _("Matched")
-        elif self.name is self.MISSING.name:
+        if self.name is self.MISSING.name:
             return _("Missing")
-        elif self.name is self.MISMATCHED.name:
+        if self.name is self.MISMATCHED.name:
             return _("Mismatched")
-        elif self.name is self.IGNORED.name:
+        if self.name is self.IGNORED.name:
             return _("Ignored")
         else:
             raise Exception(
