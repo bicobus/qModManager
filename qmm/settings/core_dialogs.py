@@ -8,20 +8,21 @@ Some of the design and code were influenced by `Spyder Ide <https://www.spyder-i
 IDE is released under MIT.
 
 The setting window has two major elements:
-1. A side bar listing the different pages
-2. A content area with the selected page
 
- +----------+---------------+
- |          |               |
- |  Pages   | Pages content |
- |  names   |               |
- |          | sections      |
- |          | contains      |
- |          | widgets       |
- |          |               |
- +----------+---------------+
- |                 Yes / No |
- +--------------------------+
+1. A side bar on the left listing the different pages
+2. A content area on the right with the selected page widgets
+
+ +------------+-----------------+
+ |   Names    |    Sections     |
+ +============+=================+
+ |  Page name | - Page widget   |
+ +------------+ - Page widget   |
+ |  Page name | - Page widget   |
+ +------------+ - Page widget   |
+ |  Page name | - Page widget   |
+ +------------+-----------------+
+ |                      Yes / No|
+ +------------------------------+
 
 """
 from PyQt5.QtCore import QSize, Qt, pyqtSignal  # , pyqtSlot
