@@ -40,10 +40,10 @@ class FileState(Enum):
             return _("Mismatched")
         if self.name is self.IGNORED.name:
             return _("Ignored")
-        else:
-            raise Exception(
-                f"String representation of the requested enum '{self.name}' does not exists.\n"
-            )
+
+        raise Exception(
+            f"String representation of the requested enum '{self.name}' does not exists.\n"
+        )
 
     @property
     def qcolor(self) -> QtGui.QColor:
