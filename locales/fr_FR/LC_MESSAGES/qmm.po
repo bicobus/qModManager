@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: qMM 1.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2020-02-15 05:39+0100\n"
-"PO-Revision-Date: 2020-02-15 05:45+0100\n"
+"POT-Creation-Date: 2020-10-02 17:49+0200\n"
+"PO-Revision-Date: 2020-10-02 18:10+0200\n"
 "Last-Translator: bicobus <bicobus@keemail.me>\n"
 "Language-Team: bicobus <bicobus@keemail.me>\n"
 "Language: fr\n"
@@ -18,39 +18,80 @@ msgstr ""
 "X-Generator: Poedit 2.3\n"
 "Plural-Forms: nplurals=2; plural=(n > 1);\n"
 
-#: qmm/manager.py:25
-msgid "Install"
-msgstr "Installer"
+#: qmm/dialogs.py:15
+msgid "An error occurred"
+msgstr "Une erreur est survenue"
 
-#: qmm/manager.py:28
-msgid "Uninstall"
-msgstr "Désinstaller"
+#: qmm/dialogs.py:25
+msgid "An warning occurred"
+msgstr "Une alerte est survenue"
 
-#: qmm/manager.py:31
-msgid "Delete"
-msgstr "Supprimer"
+#: qmm/dialogs.py:35
+msgid "Warning"
+msgstr "Attention"
 
-#: qmm/manager.py:100
-msgid "Computing data"
+#: qmm/dialogs.py:46 qmm/manager.py:244
+msgid "Information"
+msgstr "Information"
+
+#: qmm/fileutils.py:36
+msgid "Matched"
+msgstr "Présent"
+
+#: qmm/fileutils.py:38
+msgid "Missing"
+msgstr "Manquant"
+
+#: qmm/fileutils.py:40
+msgid "Mismatched"
+msgstr "Partiel"
+
+#: qmm/fileutils.py:42
+msgid "Ignored"
+msgstr "Ignoré"
+
+#: qmm/manager.py:239
+msgid ""
+"One or more parameters required for the proper usage of this application are "
+"undefined.<br>Would you like to open the Preferences window and define them "
+"now?"
 msgstr ""
+"Des paramètres requis pour la bonne utilisation de cette application ne sont "
+"pas renseignés.<br>Voulez-vous ouvrir la fenêtre de préférences maintenant?"
 
-#: qmm/manager.py:101
+#: qmm/manager.py:260
+msgid "Refreshing loose files..."
+msgstr "Actualisation des fichier en vrac"
+
+#: qmm/manager.py:267
+msgid "Refreshing managed archive..."
+msgstr "Actualisation des archives gérées..."
+
+#: qmm/manager.py:287
+msgid "Refresh done."
+msgstr "Actualisation terminée."
+
+#: qmm/manager.py:300
+msgid "Computing data"
+msgstr "Évaluation des données"
+
+#: qmm/manager.py:301
 msgid "Please wait for the software to initialize it's data."
 msgstr "Veuillez patienter pendant que le logiciel initialise les données."
 
-#: qmm/manager.py:109
+#: qmm/manager.py:309
 msgid "Conflict detection"
 msgstr "Détection des conflits"
 
-#: qmm/manager.py:112
+#: qmm/manager.py:316
 msgid "Parsing archives"
-msgstr ""
+msgstr "Analyse des archives"
 
-#: qmm/manager.py:201
+#: qmm/manager.py:457
 msgid "You must set your game folder location."
-msgstr "Vous devez définir l’emplacement du dossier de votre jeu."
+msgstr "Vous devez définir l’emplacement du dossier contenant votre jeu."
 
-#: qmm/manager.py:226
+#: qmm/manager.py:485
 msgid ""
 "This action will uninstall the mod, then move the archive to your trashbin.\n"
 "\n"
@@ -61,7 +102,7 @@ msgstr ""
 "\n"
 "Voulez-vous continuer?"
 
-#: qmm/manager.py:254
+#: qmm/manager.py:521
 #, python-brace-format
 msgid ""
 "The archive {filename} extracted with errors.\n"
@@ -71,7 +112,7 @@ msgstr ""
 "Veuillez vous référer au fichier de log {loglocation} pour plus "
 "d'information."
 
-#: qmm/manager.py:272
+#: qmm/manager.py:547
 msgid ""
 "Unable to uninstall mod: mismatched items exists on drive.\n"
 "This is most likely due to another installed mod conflicting with this mod.\n"
@@ -81,7 +122,7 @@ msgstr ""
 "Ceci est probablement le résultat venant d'un autre mod installé et en "
 "conflit avec le mod à désinstaller.\n"
 
-#: qmm/manager.py:286
+#: qmm/manager.py:564
 #, python-brace-format
 msgid ""
 "The uninstallation process failed at some point. Please report this happened "
@@ -90,11 +131,11 @@ msgstr ""
 "Échec du processus de désinstallation. Veuillez faire un rapport au "
 "développeur sans oublier d'attacher le fichier de log {logfile}."
 
-#: qmm/manager.py:342
+#: qmm/manager.py:674
 msgid "A file with the same name already exists in the repository."
 msgstr "Un fichier avec le même nom existe déjà dans le dépôt."
 
-#: qmm/manager.py:364
+#: qmm/manager.py:695
 #, python-brace-format
 msgid ""
 "The file you selected is already present in the repository. It may exists "
@@ -105,19 +146,31 @@ msgstr ""
 "un autre nom.\n"
 "Hashsum identifié: {hashsum}"
 
-#: qmm/ui_about.py:65
+#: qmm/manager.py:708
+msgid "Install"
+msgstr "Installer"
+
+#: qmm/manager.py:710
+msgid "Uninstall"
+msgstr "Désinstaller"
+
+#: qmm/manager.py:712
+msgid "Delete"
+msgstr "Supprimer"
+
+#: qmm/ui_about.py:66
 msgid "About"
 msgstr "À propos"
 
-#: qmm/ui_about.py:66
+#: qmm/ui_about.py:67
 msgid "qModManager © 2020 Bicobus"
 msgstr "qModManager © 2020 Bicobus"
 
-#: qmm/ui_about.py:67
+#: qmm/ui_about.py:68
 msgid "Authors"
 msgstr "Auteurs"
 
-#: qmm/ui_about.py:68
+#: qmm/ui_about.py:69
 msgid ""
 "qModManager is licensed under the European Union Public Licence V. 1.2\n"
 "\n"
@@ -462,11 +515,11 @@ msgid ""
 "  new EUPL version.\n"
 msgstr ""
 
-#: qmm/ui_about.py:342
+#: qmm/ui_about.py:343
 msgid "License"
 msgstr "Licence"
 
-#: qmm/ui_about.py:343
+#: qmm/ui_about.py:344
 msgid ""
 "qModManager make use of external libraries, framework and resources:\n"
 "\n"
@@ -476,187 +529,165 @@ msgid ""
 "Remix Icon - https://remixicon.com - Apache License"
 msgstr ""
 
-#: qmm/ui_about.py:348
+#: qmm/ui_about.py:349
 msgid "Credits"
 msgstr "Crédits"
 
-#: qmm/ui_mainwindow.py:250
-msgid "Use the + or - button to add or remove items from the list."
+#: qmm/ui_mainwindow.py:242
+msgid ""
+"If checked, the files present in the game's modules folder will be "
+"reanalized every time the application gain focus."
 msgstr ""
+"Si sélectionné, les fichiers présent dans le dossier de modules du jeu sera "
+"réanalysé à chaque fois que l'application devient active."
 
-#: qmm/ui_mainwindow.py:251
+#: qmm/ui_mainwindow.py:243
+msgid "Automate refresh"
+msgstr "Rafraîchissement automatisé"
+
+#: qmm/ui_mainwindow.py:244
 msgid "toolBar"
 msgstr ""
 
-#: qmm/ui_mainwindow.py:252
+#: qmm/ui_mainwindow.py:246 qmm/ui_mainwindow.py:249 qmm/ui_mainwindow.py:252
+msgid "Path"
+msgstr "Chemin"
+
+#: qmm/ui_mainwindow.py:247 qmm/ui_mainwindow.py:253
+msgid "State"
+msgstr "État"
+
+#: qmm/ui_mainwindow.py:248
 msgid "Files"
 msgstr "Fichiers"
 
-#: qmm/ui_mainwindow.py:253
-msgid "Matched"
-msgstr ""
+#: qmm/ui_mainwindow.py:250
+msgid "Source"
+msgstr "Source"
+
+#: qmm/ui_mainwindow.py:251
+msgid "Conflicts"
+msgstr "Conflits"
 
 #: qmm/ui_mainwindow.py:254
-msgid "Missing"
-msgstr ""
+msgid "Skipped"
+msgstr "Ignoré"
 
 #: qmm/ui_mainwindow.py:255
-msgid "Mismatched"
-msgstr ""
+msgid "Name"
+msgstr "Nom"
 
 #: qmm/ui_mainwindow.py:256
-msgid "Conflicts"
-msgstr ""
-
-#: qmm/ui_mainwindow.py:257
-msgid "Skipped"
-msgstr ""
-
-#: qmm/ui_mainwindow.py:258
-msgid "Name"
-msgstr ""
-
-#: qmm/ui_mainwindow.py:259
 msgid "SHA256:"
 msgstr "SHA256:"
 
-#: qmm/ui_mainwindow.py:260 qmm/ui_mainwindow.py:262
+#: qmm/ui_mainwindow.py:257 qmm/ui_mainwindow.py:259
 msgid "N/A"
 msgstr "N/A"
 
-#: qmm/ui_mainwindow.py:261
-msgid "Added the:"
-msgstr "Ajouté le:"
+#: qmm/ui_mainwindow.py:258
+msgid "Last time Modified:"
+msgstr "Modifié le:"
 
-#: qmm/ui_mainwindow.py:263
+#: qmm/ui_mainwindow.py:260
 msgid "qMM"
 msgstr "qMM"
 
-#: qmm/ui_mainwindow.py:264 qmm/ui_mainwindow.py:269
+#: qmm/ui_mainwindow.py:261 qmm/ui_mainwindow.py:266
 msgid "Help"
 msgstr "Aide"
 
-#: qmm/ui_mainwindow.py:265
+#: qmm/ui_mainwindow.py:262
 msgid "Preferences"
 msgstr "Préférences"
 
-#: qmm/ui_mainwindow.py:266
+#: qmm/ui_mainwindow.py:263
 msgid "Add archive"
 msgstr "Ajouter une archive"
 
-#: qmm/ui_mainwindow.py:267
+#: qmm/ui_mainwindow.py:264
 msgid "Quit"
 msgstr "Quitter"
 
-#: qmm/ui_mainwindow.py:268
+#: qmm/ui_mainwindow.py:265
 msgid "Remove file"
 msgstr "Retirer un fichier"
 
-#: qmm/ui_mainwindow.py:270
+#: qmm/ui_mainwindow.py:267
 msgid "Add Archive"
 msgstr "Ajouter une Archive"
 
-#: qmm/ui_mainwindow.py:271
+#: qmm/ui_mainwindow.py:268
 msgid "About qMM"
 msgstr "À propos de qMM"
 
-#: qmm/ui_mainwindow.py:272 qmm/ui_settings.py:118
+#: qmm/ui_mainwindow.py:269
 msgid "Settings"
 msgstr "Options"
 
-#: qmm/ui_mainwindow.py:273
+#: qmm/ui_mainwindow.py:270
 msgid "Install Mod"
 msgstr "Installer un Mod"
 
-#: qmm/ui_mainwindow.py:274
+#: qmm/ui_mainwindow.py:271
 msgid "Uninstall Mod"
 msgstr "Désinstaller un Mod"
 
-#: qmm/ui_mainwindow.py:275
+#: qmm/ui_mainwindow.py:272
 msgid "Help of qModManager"
-msgstr ""
+msgstr "Aide pour qModManager"
 
-#: qmm/ui_qprogress.py:40
+#: qmm/ui_qprogress.py:43
 msgid "Dialog"
-msgstr ""
+msgstr "Dialogue"
 
-#: qmm/ui_qprogress.py:41
+#: qmm/ui_qprogress.py:44
 msgid "Initializing..."
 msgstr "Initialisation..."
 
-#: qmm/ui_settings.py:119
-msgid "Validate"
-msgstr "Valider"
+#: qmm/widgets.py:70
+msgid "Open in Explorer"
+msgstr "Ouvrir dans l'Explorateur"
 
-#: qmm/ui_settings.py:120
-msgid "Path to a folder containing your collection of mods."
-msgstr "Chemin vers un dossier contenant votre collection de mods."
+#: qmm/widgets.py:74 qmm/widgets.py:79
+msgid "Open with {}"
+msgstr "Ouvrir avec {}"
 
-#: qmm/ui_settings.py:121
-msgid "Archive Repository"
-msgstr "Dépôt d'archives"
+#~ msgid "Added the:"
+#~ msgstr "Ajouté le:"
 
-#: qmm/ui_settings.py:122 qmm/ui_settings.py:125
-msgid "Browse..."
-msgstr "Naviguer ..."
+#~ msgid "Validate"
+#~ msgstr "Valider"
 
-#: qmm/ui_settings.py:123
-msgid "Path to the folder containing the jar or exe of the game."
-msgstr "Chemin vers le dossier contenant le ficher jar ou exécutable du jeu."
+#~ msgid "Path to a folder containing your collection of mods."
+#~ msgstr "Chemin vers un dossier contenant votre collection de mods."
 
-#: qmm/ui_settings.py:124
-msgid "Game Location"
-msgstr "Emplacement du Jeu"
+#~ msgid "Archive Repository"
+#~ msgstr "Dépôt d'archives"
 
-#: qmm/ui_settings.py:126
-msgid "Cancel"
-msgstr "Annuler"
+#~ msgid "Browse..."
+#~ msgstr "Naviguer ..."
 
-#: qmm/ui_settings.py:127
-msgid "It has to be the folder containing the res/ subdirectory."
-msgstr ""
+#~ msgid "Path to the folder containing the jar or exe of the game."
+#~ msgstr ""
+#~ "Chemin vers le dossier contenant le ficher jar ou exécutable du jeu."
 
-#: qmm/ui_settings.py:128
-msgid ""
-"Folder that will contain a local copy of your mods. It should be its own "
-"empty folder, containing nothing else than the game's mod archives."
-msgstr ""
-"Un dossier qui contiendra une copie locale de vos mods. Ce dossier devrait "
-"être dédié aux mods de votre jeu, sans sous dossier."
+#~ msgid "Game Location"
+#~ msgstr "Emplacement du Jeu"
 
-#: qmm/ui_settings.py:129
-msgid "Language"
-msgstr ""
+#~ msgid "Cancel"
+#~ msgstr "Annuler"
 
-#: qmm/widgets.py:100
-msgid "Please restart qMM to finalize language change."
-msgstr ""
-"Veuillez redémarrer qMM pour que le changement de langage prenne effet."
+#~ msgid ""
+#~ "Folder that will contain a local copy of your mods. It should be its own "
+#~ "empty folder, containing nothing else than the game's mod archives."
+#~ msgstr ""
+#~ "Un dossier qui contiendra une copie locale de vos mods. Ce dossier "
+#~ "devrait être dédié aux mods de votre jeu, sans sous dossier."
 
-#: qmm/widgets.py:285
-msgid "Archive's content"
-msgstr ""
+#~ msgid "Please restart qMM to finalize language change."
+#~ msgstr ""
+#~ "Veuillez redémarrer qMM pour que le changement de langage prenne effet."
 
-#: qmm/widgets.py:288
-msgid "ERR: Following file has unknown status"
-msgstr "ERR: les fichiers suivants ne sont pas reconnus"
-
-#: qmm/widgets.py:291
-msgid "Files installed"
-msgstr ""
-
-#: qmm/widgets.py:294
-msgid "Missing from the game folder"
-msgstr ""
-
-#: qmm/widgets.py:297
-msgid "Same name and different CRC or same CRC with different names"
-msgstr ""
-
-#: qmm/widgets.py:300
-msgid "Conflicting files between archives"
-msgstr ""
-
-#: qmm/widgets.py:303
-msgid "Files present in the archive but ignored"
-msgstr ""
+#~ msgid "ERR: Following file has unknown status"
+#~ msgstr "ERR: les fichiers suivants ne sont pas reconnus"
