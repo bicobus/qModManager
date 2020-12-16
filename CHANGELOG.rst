@@ -2,8 +2,17 @@
 Version History
 ===============
 
-`1.0.0-beta2`_ - ????????
+`1.0.0-beta3`_ - ????????
 -------------------------
+
+`1.0.0-beta2`_ - 16-12-20
+-------------------------
+Added
+~~~~~
+* Support for modded races
+* Support for modded colours
+* Support for modded combatMove
+* Should scan game patterns
 
 `1.0.0-beta1`_ - 09-09-20
 -------------------------
@@ -115,7 +124,8 @@ Fixed
 
 * Internal dev stuff: changes of libraries used, reworking codebase, etc
 
-.. _`1.0.0-beta2`: https://github.com/bicobus/qModManager/compare/v1.0.0-beta1...master
+.. _`1.0.0-beta3`: https://github.com/bicobus/qModManager/compare/v1.0.0-beta2...master
+.. _`1.0.0-beta2`: https://github.com/bicobus/qModManager/compare/v1.0.0-beta1...v1.0.0-beta2
 .. _`1.0.0-beta1`: https://github.com/bicobus/qModManager/compare/v1.0.0-alpha13...v1.0.0-beta1
 .. _`1.0.0-alpha13`: https://github.com/bicobus/qModManager/compare/v1.0.0-alpha12...v1.0.0-alpha13
 .. _`1.0.0-alpha12`: https://github.com/bicobus/qModManager/compare/v1.0.0-alpha11...v1.0.0-alpha12
