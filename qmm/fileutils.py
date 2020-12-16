@@ -13,11 +13,15 @@ from qmm import bucket
 
 # Mods directory structure
 # REVIEW: Should be used in function `build_game_files_crc32`. However the path
-# structure is too complex and a dedicated function or module should be written
-# in order to build paths corresponding the the game expectation.
-first_level_dir = ("items", "outfits", "setBonuses", "statusEffects")
+#  structure is too complex and a dedicated function or module should be written
+#  in order to build paths corresponding the the game expectation.
+# NOTE: race folder contains it's how set of sub-folders. Might need to be
+first_level_dir = (
+    "items", "outfits", "setBonuses", "statusEffects", "race", "colours", "combatMove"
+)
 subfolders_of = {
-    "items": ("weapons", "clothing", "tattoos", "items", "patterns")
+    "items": ("weapons", "clothing", "tattoos", "items", "patterns"),
+    "race": ("bodyParts", "coveringTypes", "subspecies")
 }
 
 

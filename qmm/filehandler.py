@@ -567,9 +567,13 @@ def build_game_files_crc32(progress=None):
             Callback to a method accepting strings as argument.
     """
     target_folder = os.path.join(settings["game_folder"], "res")
+    # NOTE: these definitively should be moved elsewhere and be mindful of
+    #  `fileutils.first_level_dir` and `fileutils.subfolder_of` as well as the
+    #  game actual folder structure. Some mod sub-folders are *not* first level
+    #  directories.
     scan_theses = (
         "clothing", "outfits", "tattoos", "weapons", "setBonuses", "statusEffects", "items",
-        # "patterns",
+        "race", "combatMove", "patterns", "colours"
     )
     if progress:
         progress("", category="Game Files")
