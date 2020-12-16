@@ -21,7 +21,7 @@ first_level_dir = (
 )
 subfolders_of = {
     "items": ("weapons", "clothing", "tattoos", "items", "patterns"),
-    "race": ("bodyParts", "coveringTypes", "subspecies")
+    "race": ("bodyParts", "coveringTypes", "subspecies"),
 }
 
 
@@ -56,6 +56,7 @@ class FileState(Enum):
 
 class FileStateColor(Enum):
     """Gradients of colors for each file of the tree widget."""
+
     MATCHED = (91, 135, 33, 255)  # greenish
     MISMATCHED = (132, 161, 225, 255)  # blueish
     MISSING = (237, 213, 181, 255)  # (225, 185, 132, 255),  # yellowish
@@ -97,8 +98,14 @@ def _bad_directory_structure(path: pathlib.Path):
         len(path.parts) >= 2
         and path.parts[1] not in first_level_dir
         or len(path.parts) >= 3
-        and path.parts[1] == "items"
-        and path.parts[2] not in subfolders_of["items"]
+        and (
+            (path.parts[1] == "items" and path.parts[2] not in subfolders_of["items"])
+            or (
+                path.parts[1] == "race"
+                and path.parts[3] not in subfolders_of["race"]
+                and path.suffix != ".xml"  # folder suffixes are empty
+            )
+        )
     ):
         return True
     return False
