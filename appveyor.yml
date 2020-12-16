@@ -6,9 +6,10 @@ branches:
   only:
     - '/v\d.\d.\d/'
     - '/v\d*\.\d*\.\d*-.*/'
+    - 'debug'
 
 # Do build on tags
-skip_non_tags: true
+# skip_non_tags: true
 skip_branch_with_pr: true
 
 # fetch repository as zip archive
@@ -24,7 +25,7 @@ skip_commits:
 environment:
   matrix:
     - PYTHON: "C:\\Python37-x64"
-      APPVEYOR_REPO_TAG: true
+#      APPVEYOR_REPO_TAG: true
 
 cache:
   - '%LOCALAPPDATA%\pip\Cache\http'
@@ -43,17 +44,6 @@ install:
   # Install dependencies
   - python -m pip install --disable-pip-version-check --upgrade pip
   - make .build/req # install pyinstaller
-
-#
-# before_test:
-#   - echo Starting Tests
-#
-# after_test:
-#   - echo Finished Tests
-#
-# test_script:
-#   - flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-#
 
 build_script:
   - make ui
@@ -84,5 +74,16 @@ deploy:
     auth_token:
       secure: 9VzstVpyoCRNGlCcc9dIfoTYLTw9LBz5QDFkKg5qUqvT8Fk8bUTnOVSg5WCO7Fg7
     on:
+      branch: master
       APPVEYOR_REPO_TAG: true
+    artifact: qModManager
+  - provider: GitHub
+    release: qModManager-debug-$(APPVEYOR_BUILD_VERSION)
+    description: "Debug development build."
+    name: Debug Builds
+    prerelease: true
+    auth_token:
+      secure: 9VzstVpyoCRNGlCcc9dIfoTYLTw9LBz5QDFkKg5qUqvT8Fk8bUTnOVSg5WCO7Fg7
+    on:
+      branch: debug
     artifact: qModManager
