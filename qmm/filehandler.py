@@ -587,7 +587,7 @@ def build_game_files_crc32(progress=None):
             except ValueError:
                 # We expect a 3 parts structure, any lower and something is wrong with the game
                 # files.
-                logger.warning("Skipping dirty file {}".format(os.path.join("res", kfile)))
+                logger.warning("Skipping dirty file %s", os.path.join("res", kfile))
                 continue
             if category in subfolders_of["items"]:
                 kfile = pathlib.PurePath(namespace, "items", category, extra)
