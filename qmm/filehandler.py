@@ -582,7 +582,13 @@ def build_game_files_crc32(progress=None):
         folder = os.path.join(target_folder, p_folder)
         for kfile, crc in _compute_files_crc32(folder, partition=("res",)):
             # normalize path: category/namespace/... -> namespace/category/...
-            category, namespace, extra = kfile.split(os.path.sep, 2)
+            try:
+                category, namespace, extra = kfile.split(os.path.sep, 2)
+            except ValueError:
+                # We expect a 3 parts structure, any lower and something is wrong with the game
+                # files.
+                logger.warning("Skipping dirty file {}".format(os.path.join("res", kfile))
+                continue
             if category in subfolders_of["items"]:
                 kfile = pathlib.PurePath(namespace, "items", category, extra)
             else:
