@@ -4,6 +4,11 @@ Version History
 
 `1.0.0-beta3`_ - ????????
 -------------------------
+Fixed
+~~~~~
+* Crash if the directory structure of the game files was too short. Structure
+  is expected to be ``category/namespace/**.xml``, the software used to crash
+  if there was a dangling file under the *category* folder.
 
 `1.0.0-beta2`_ - 16-12-20
 -------------------------
