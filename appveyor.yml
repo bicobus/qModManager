@@ -10,10 +10,6 @@ skip_commits:
     - .deepsource.toml
     - docs/*
 
-configuration:
-- Debug
-- Release
-
 for:
 -
   branches:
@@ -99,5 +95,6 @@ deploy:
       secure: 9VzstVpyoCRNGlCcc9dIfoTYLTw9LBz5QDFkKg5qUqvT8Fk8bUTnOVSg5WCO7Fg7
     on:
       #branch: debug
+      APPVEYOR_REPO_TAG: false
       configuration: Debug
     artifact: qModManager
