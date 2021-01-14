@@ -10,20 +10,36 @@ skip_commits:
     - .deepsource.toml
     - docs/*
 
-for:
 -
   branches:
     only:
       - debug
-  skip_tags: true
+      - /debug-.*/
   configuration: Debug
+  deploy:
+    - provider: GitHub
+      name: Github
+      prerelease: true
+      draft: false
+      auth_token:
+        secure: 9VzstVpyoCRNGlCcc9dIfoTYLTw9LBz5QDFkKg5qUqvT8Fk8bUTnOVSg5WCO7Fg7
+      tag: $(APPVEYOR_REPO_TAG_NAME)
+      artifact: qModManager
 -
   branches:
     only:
       - '/v\d*\.\d*\.\d*/'
       - '/v\d*\.\d*\.\d*-.*/'
-  skip_non_tags: true
   configuration: Release
+  deploy:
+    - provider: GitHub
+      release: qModManager-windows-$(APPVEYOR_REPO_COMMIT)-$(APPVEYOR_BUILD_VERSION)
+      description: "Debug development build."
+      name: Debug Builds
+      prerelease: true
+      auth_token:
+        secure: 9VzstVpyoCRNGlCcc9dIfoTYLTw9LBz5QDFkKg5qUqvT8Fk8bUTnOVSg5WCO7Fg7
+      artifact: qModManager
 
 #branches:
 # whitelist tags schemes (e.g.: 1.0.0)
@@ -34,7 +50,7 @@ for:
 
 environment:
   matrix:
-    - PYTHON: "C:\\Python38-x64"
+    - PYTHON: C:\Python38-x64
 
 cache:
   - '%LOCALAPPDATA%\pip\Cache\http'
@@ -47,12 +63,12 @@ install:
 
   # Check version and architecture of python
   - python --version
-  - python -c "import sys, platform, struct; print(sys.platform, platform.machine(),
-    struct.calcsize('P')*8)"
+  - python -c "import sys, platform, struct; print(sys.platform, platform.machine(),struct.calcsize('P')*8)"
 
   # Install dependencies
   - python -m pip install --disable-pip-version-check --upgrade pip
-  - make .build/req # install pyinstaller
+  # install build requirements (i.e. pyinstaller)
+  - make .build/req 
 
 build_script:
   - make ui
@@ -73,28 +89,3 @@ on_finish:
   - C:\cygwin\bin\find "%LOCALAPPDATA%\pip" -empty -delete
   - C:\cygwin\bin\du -hs "%LOCALAPPDATA%\pip\Cache"
 
-deploy:
-  - provider: GitHub
-    name: Github
-    prerelease: true
-    draft: false
-    auth_token:
-      secure: 9VzstVpyoCRNGlCcc9dIfoTYLTw9LBz5QDFkKg5qUqvT8Fk8bUTnOVSg5WCO7Fg7
-    on:
-      #branch: master
-      configuration: Release
-      APPVEYOR_REPO_TAG: true
-    tag: $(APPVEYOR_REPO_TAG_NAME)
-    artifact: qModManager
-  - provider: GitHub
-    release: qModManager-windows-$(APPVEYOR_REPO_COMMIT)-$(APPVEYOR_BUILD_VERSION)
-    description: "Debug development build."
-    name: Debug Builds
-    prerelease: true
-    auth_token:
-      secure: 9VzstVpyoCRNGlCcc9dIfoTYLTw9LBz5QDFkKg5qUqvT8Fk8bUTnOVSg5WCO7Fg7
-    on:
-      #branch: debug
-      APPVEYOR_REPO_TAG: false
-      configuration: Debug
-    artifact: qModManager
