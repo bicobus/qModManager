@@ -3,14 +3,15 @@ version: 2
 updates:
   - package-ecosystem: "pip"
     directory: "/"
-    schedule: "weekly"
+    schedule: 
+      interval: "weekly"
     ignore:
       - dependency-name: "PyQt5"
         versions: ["5.15"]
     reviewers:
       - "bicobus"
 
-  - package-ecosystem: "github-action"
+  - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "daily"
