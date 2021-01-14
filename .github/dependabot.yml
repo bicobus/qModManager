@@ -7,7 +7,7 @@ updates:
       interval: "weekly"
     ignore:
       - dependency-name: "pyqt5"
-        versions: ["5.15"]
+        versions: ["5.15.x"]
     reviewers:
       - "bicobus"
 
