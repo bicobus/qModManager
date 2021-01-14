@@ -1,0 +1,18 @@
+# see: https://docs.github.com/en/free-pro-team@latest/github/administering-a-repository/configuration-options-for-dependency-updates#package-ecosystem
+version: 2
+updates:
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule: "weekly"
+    ignore:
+      - dependency-name: "PyQt5"
+        versions: ["5.15"]
+    reviewers:
+      - "bicobus"
+
+  - package-ecosystem: "github-action"
+    directory: "/"
+    schedule:
+      interval: "daily"
+    reviewers:
+      - "bicobus"
