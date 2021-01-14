@@ -10,13 +10,22 @@ skip_commits:
     - .deepsource.toml
     - docs/*
 
+environment:
+  PYTHON: C:\Python38-x64
+  matrix:
+    - JOB_NAME: release
+    - JOB_NAME: debug
+
 for:
 -
   branches:
     only:
       - 'debug'
       - '/debug-.*/'
-  configuration: Debug
+  matrix:
+    only:
+      - JOB_NAME: debug
+  skip_tags: true
   deploy:
     - provider: GitHub
       name: Github
@@ -31,7 +40,10 @@ for:
     only:
       - '/v\d*\.\d*\.\d*/'
       - '/v\d*\.\d*\.\d*-.*/'
-  configuration: Release
+  matrix:
+    only:
+      JOB_NAME: release
+  skip_non_tags: true
   deploy:
     - provider: GitHub
       release: qModManager-windows-$(APPVEYOR_REPO_COMMIT)-$(APPVEYOR_BUILD_VERSION)
@@ -42,16 +54,12 @@ for:
         secure: 9VzstVpyoCRNGlCcc9dIfoTYLTw9LBz5QDFkKg5qUqvT8Fk8bUTnOVSg5WCO7Fg7
       artifact: qModManager
 
-#branches:
-# whitelist tags schemes (e.g.: 1.0.0)
-#  only:
-#    - '/v\d*\.\d*\.\d*/'
-#    - '/v\d*\.\d*\.\d*-.*/'
-#    - 'debug'
-
-environment:
-  matrix:
-    - PYTHON: C:\Python38-x64
+branches:
+  only:
+    - /v\d*\.\d*\.\d*/
+    - /v\d*\.\d*\.\d*-.*/
+    - debug
+    - /debug-.*/
 
 cache:
   - '%LOCALAPPDATA%\pip\Cache\http'
