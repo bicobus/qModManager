@@ -16,7 +16,7 @@ black = "==20.8b1"
 pydocstyle = "*"
 
 [packages]
-pyqt5 = "==5.15.1"
+pyqt5 = "==5.15.2"
 send2trash = "*"
 appdirs = "*"
 watchdog = "*"
