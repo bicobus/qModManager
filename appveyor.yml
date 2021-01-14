@@ -1,3 +1,4 @@
+# Many thanks to relsqui and their examples: https://github.com/relsqui/matrix-repro/
 version: "{branch}-{build}"
 image: Visual Studio 2019
 skip_branch_with_pr: true
@@ -14,7 +15,11 @@ environment:
   PYTHON: C:\Python38-x64
   matrix:
     - JOB_NAME: release
+      JOB_DESC: ""
+    - JOB_NAME: beta
+      JOB_DESC: ""
     - JOB_NAME: debug
+      JOB_DESC: ""
 
 for:
 -
@@ -28,27 +33,41 @@ for:
   skip_tags: true
   deploy:
     - provider: GitHub
-      name: Github
+      name: Debug Builds
+      release: qModManager-windows-$(APPVEYOR_REPO_COMMIT)-$(APPVEYOR_BUILD_VERSION)
+      description: "Unstable build, use at your own risks."
       prerelease: true
-      draft: false
       auth_token:
         secure: 9VzstVpyoCRNGlCcc9dIfoTYLTw9LBz5QDFkKg5qUqvT8Fk8bUTnOVSg5WCO7Fg7
+      artifact: qModManager
+-
+  branches:
+    only:
+      - '/v\d*\.\d*\.\d*-.*/'
+  matrix:
+    only:
+      JOB_NAME: beta
+  skip_non_tags: true
+  deploy:
+    - provider: GitHub
+      name: Beta Releases
       tag: $(APPVEYOR_REPO_TAG_NAME)
+      prerelease: true
+      auth_token:
+        secure: 9VzstVpyoCRNGlCcc9dIfoTYLTw9LBz5QDFkKg5qUqvT8Fk8bUTnOVSg5WCO7Fg7
       artifact: qModManager
 -
   branches:
     only:
       - '/v\d*\.\d*\.\d*/'
-      - '/v\d*\.\d*\.\d*-.*/'
   matrix:
     only:
       JOB_NAME: release
   skip_non_tags: true
   deploy:
     - provider: GitHub
-      release: qModManager-windows-$(APPVEYOR_REPO_COMMIT)-$(APPVEYOR_BUILD_VERSION)
-      description: "Debug development build."
-      name: Debug Builds
+      name: Stable Releases
+      tag: $(APPVEYOR_REPO_TAG_NAME)
       prerelease: true
       auth_token:
         secure: 9VzstVpyoCRNGlCcc9dIfoTYLTw9LBz5QDFkKg5qUqvT8Fk8bUTnOVSg5WCO7Fg7
@@ -60,6 +79,13 @@ branches:
     - /v\d*\.\d*\.\d*-.*/
     - debug
     - /debug-.*/
+
+init:
+  - ps: >-
+      if (($env:JOB_NAME -eq "release") -or ($env:JOB_NAME -eq "beta") -and ($env:APPVEYOR_REPO_TAG -like 'True')) {
+        Write-Host "Not a release candidate, bailing."
+        Exit-AppveyorBuild;
+      }
 
 cache:
   - '%LOCALAPPDATA%\pip\Cache\http'
@@ -80,15 +106,16 @@ install:
   - make .build/req 
 
 build_script:
+  - ps: Write-Host "Running $env:JOB_NAME job ($env:JOB_DESC)."
   - make ui
   - set PYTHONOPTIMIZE=1 && pyinstaller run.spec
 
 after_build:
   - cd dist\qModManager\
-  - 7z a ..\..\qModManager.7z . ..\..\resources\README.txt
+  - 7z a ..\..\qModManager-win64.7z . ..\..\resources\README.txt
 
 artifacts:
-  - path: qModManager.7z
+  - path: qModManager-win64.7z
     name: qModManager
 
 # clean up pip cache, might not be needed
