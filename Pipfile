@@ -16,14 +16,14 @@ black = "==20.8b1"
 pydocstyle = "*"
 
 [packages]
-pyqt5 = "~=5.15"
+pyqt5 = "==5.15.1"
 send2trash = "*"
 appdirs = "*"
 watchdog = "*"
 attrs = "*"
 
 [requires]
-python_version = "3.7"
+python_version = "3.8"
 
 [pipenv]
 allow_prereleases = false
