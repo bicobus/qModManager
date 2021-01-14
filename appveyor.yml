@@ -1,31 +1,44 @@
-version: "{branch}.{build}"
-# os: Windows
+version: "{branch}-{build}"
 image: Visual Studio 2019
-branches:
-  # whitelist tags schemes (e.g.: 1.0.0)
-  only:
-    - '/v\d.\d.\d/'
-    - '/v\d*\.\d*\.\d*-.*/'
-    - 'debug'
-
-# Do build on tags
-# skip_non_tags: true
 skip_branch_with_pr: true
-
-# fetch repository as zip archive
-# shallow_clone: true
-
-# set clone depth, clone entire history if not defined
 clone_depth: 5
+platform:
+  - x64
 
 skip_commits:
   files:
     - .deepsource.toml
+    - docs/*
+
+configuration:
+- Debug
+- Release
+
+for:
+-
+  branches:
+    only:
+      - debug
+  skip_tags: true
+  configuration: Debug
+-
+  branches:
+    only:
+      - '/v\d*\.\d*\.\d*/'
+      - '/v\d*\.\d*\.\d*-.*/'
+  skip_non_tags: true
+  configuration: Release
+
+#branches:
+# whitelist tags schemes (e.g.: 1.0.0)
+#  only:
+#    - '/v\d*\.\d*\.\d*/'
+#    - '/v\d*\.\d*\.\d*-.*/'
+#    - 'debug'
 
 environment:
   matrix:
-    - PYTHON: "C:\\Python37-x64"
-#      APPVEYOR_REPO_TAG: true
+    - PYTHON: "C:\\Python38-x64"
 
 cache:
   - '%LOCALAPPDATA%\pip\Cache\http'
@@ -50,8 +63,6 @@ build_script:
   - set PYTHONOPTIMIZE=1 && pyinstaller run.spec
 
 after_build:
-  #  - ps: move dist\run.exe run.exe
-  #  - 7z a qModManager.7z run.exe README.md LICENSE tools\ locales\
   - cd dist\qModManager\
   - 7z a ..\..\qModManager.7z . ..\..\resources\README.txt
 
@@ -74,16 +85,19 @@ deploy:
     auth_token:
       secure: 9VzstVpyoCRNGlCcc9dIfoTYLTw9LBz5QDFkKg5qUqvT8Fk8bUTnOVSg5WCO7Fg7
     on:
-      branch: master
+      #branch: master
+      configuration: Release
       APPVEYOR_REPO_TAG: true
+    tag: $(APPVEYOR_REPO_TAG_NAME)
     artifact: qModManager
   - provider: GitHub
-    release: qModManager-debug-$(APPVEYOR_BUILD_VERSION)
+    release: qModManager-windows-$(APPVEYOR_REPO_COMMIT)-$(APPVEYOR_BUILD_VERSION)
     description: "Debug development build."
     name: Debug Builds
     prerelease: true
     auth_token:
       secure: 9VzstVpyoCRNGlCcc9dIfoTYLTw9LBz5QDFkKg5qUqvT8Fk8bUTnOVSg5WCO7Fg7
     on:
-      branch: debug
+      #branch: debug
+      configuration: Debug
     artifact: qModManager
