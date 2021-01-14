@@ -10,11 +10,12 @@ skip_commits:
     - .deepsource.toml
     - docs/*
 
+for:
 -
   branches:
     only:
-      - debug
-      - /debug-.*/
+      - 'debug'
+      - '/debug-.*/'
   configuration: Debug
   deploy:
     - provider: GitHub
