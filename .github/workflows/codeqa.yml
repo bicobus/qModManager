@@ -22,7 +22,7 @@ jobs:
           path: qMM
       - uses: actions/checkout@v2
         with:
-          repository: innoxia/liliths-throne
+          repository: innoxia/liliths-throne-public
           path: lilith
           ref: dev
       - name: Cache pip
