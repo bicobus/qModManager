@@ -61,7 +61,7 @@ jobs:
       - name: Generate coverage report
         working-directory: ${{ github.workspace }}/qMM
         run: |
-          coverage run ./run.py
+          QT_DEBUG_PLUGINS=1 coverage run ./run.py
           coverage xml
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v1
