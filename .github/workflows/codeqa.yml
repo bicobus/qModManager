@@ -38,10 +38,9 @@ jobs:
         if: startsWith(matrix.os, 'ubuntu')
         working-directory: ${{ github.workspace }}/qMM
         # replace pyqt5 with latest version, workaround xcb bug
-        # libegl1-mesa libxkbcommon-x11-0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-xinerama0
         run: |
           sudo apt-get update --fix-missing
-          sudo apt-get install --fix-missing --no-install-recommends libegl1-mesa libxkbcommon-x11-0 libxcb-randr0-dev libxcb-xtest0-dev libxcb-xinerama0-dev libxcb-shape0-dev libxcb-xkb-dev libxcb-icccm4 xterm
+          sudo apt-get install --fix-missing --no-install-recommends libegl1-mesa libxkbcommon-x11-0 libxcb-randr0-dev libxcb-xtest0-dev libxcb-xinerama0-dev libxcb-shape0-dev libxcb-xkb-dev libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-render-util0 xterm
           python -m pip install --upgrade pip
           python -m pip install coverage[toml]
           sed -i 's/pyqt5==5.15.1/pyqt5==5.15.2/g' requirements.txt
