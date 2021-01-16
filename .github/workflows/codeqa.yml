@@ -34,11 +34,11 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python-version }}
-#      - name: Setup Msys2
-#        if: startsWith(matrix.os, 'windows')
-#        uses: msys2/setup-msys2@v2
-#        with:
-#          update: true
+      #- name: Setup Msys2
+      #  if: startsWith(matrix.os, 'windows')
+      #  uses: msys2/setup-msys2@v2
+      #  with:
+      #    update: true
       - name: Install Dependencies (linux)
         if: startsWith(matrix.os, 'ubuntu')
         working-directory: ${{ github.workspace }}/qMM
@@ -65,12 +65,12 @@ jobs:
       - name: Install Dependencies (windows)
         if: startsWith(matrix.os, 'windows')
         working-directory: ${{ github.workspace }}/qMM
-#        shell: msys2 {0}
+        shell: bash -l {0}
         run: |
           python -m pip install --upgrade pip
-          python -m pip install codecov[toml]
+          python -m pip install coverage[toml]
           python -m pip install -r requirements.txt
-          c:\msys64\usr\bin\make ui
+          make ui
       - name: Create test environment
         shell: bash -l {0}
         working-directory: ${{ github.workspace }}/qMM
