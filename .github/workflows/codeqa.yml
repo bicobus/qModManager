@@ -34,11 +34,6 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python-version }}
-      #- name: Setup Msys2
-      #  if: startsWith(matrix.os, 'windows')
-      #  uses: msys2/setup-msys2@v2
-      #  with:
-      #    update: true
       - name: Install Dependencies (linux)
         if: startsWith(matrix.os, 'ubuntu')
         working-directory: ${{ github.workspace }}/qMM
@@ -83,7 +78,7 @@ jobs:
           coverage xml
       - name: Generate coverage report (windows)
         if: startsWith(matrix.os, 'windows')
-        working-directory: ${{ github.workspace }}/qMM
+        working-directory: ${{ github.workspace }}\qMM
         run: |
           coverage run ./run.py
           coverage xml
@@ -91,6 +86,7 @@ jobs:
         uses: codecov/codecov-action@v1
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          files: ${{ github.workspace }}/qMM/coverage.xml
+          files: coverage.xml
+          root_dir: ${{ github.workspace }}/qMM
           env_vars: OS,PYTHON
           fail_ci_if_error: true
