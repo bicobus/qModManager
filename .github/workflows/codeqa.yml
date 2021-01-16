@@ -60,19 +60,27 @@ jobs:
       - name: Install Dependencies (windows)
         if: startsWith(matrix.os, 'windows')
         working-directory: ${{ github.workspace }}/qMM
+        shell: msys2 {0}
         run: |
           python -m pip install --upgrade pip
           python -m pip install codecov[toml]
           python -m pip install -r requirements.txt
-          C:\msys64\bin\make ui
+          make ui
       - name: Create test environment
         shell: bash -l {0}
         working-directory: ${{ github.workspace }}/qMM
         run: bash -l .github/scripts/create_testenv.sh -q=${{ github.workspace }}/qMM -l=${{ github.workspace }}/lilith -r=${{ github.workspace }}/repo
-      - name: Generate coverage report
+      - name: Generate coverage report (linux)
+        if: startsWith(matrix.os, 'ubuntu')
         working-directory: ${{ github.workspace }}/qMM
         run: |
           xvfb-run --auto-servernum coverage run ./run.py
+          coverage xml
+      - name: Generate coverage report (windows)
+        if: startsWith(matrix.os, 'windows')
+        working-directory: ${{ github.workspace }}/qMM
+        run: |
+          coverage run ./run.py
           coverage xml
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v1
