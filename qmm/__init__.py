@@ -15,6 +15,17 @@ import platform
 import logging
 
 
+def running_ci():
+    """Return True if currently running in a CI environment.
+
+    This function is used to alter the behavior of the software for specific CI runs.
+
+    Returns:
+        boolean
+    """
+    return bool(os.environ.get('QMM_CI'))
+
+
 def is_frozen():
     return bool(getattr(sys, "frozen", False))
 
@@ -38,11 +49,15 @@ def get_data_path(relpath):
 
 # Uncomment if PyQt5 floods the log file.
 # logging.getLogger("PyQt5").setLevel(logging.WARNING)
+hdlrs = [
+    logging.FileHandler(filename=os.path.join(get_base_path(), "error.log"), mode="w")
+]
+if running_ci():
+    hdlrs.append(logging.StreamHandler(sys.stdout))
 logging.basicConfig(
     level=logging.DEBUG,
     format="%(asctime)s - %(levelname)s:%(name)s:%(module)s:%(funcName)s:%(message)s",
-    filename=os.path.join(get_base_path(), "error.log"),
-    filemode="w",
+    handlers=hdlrs,
 )
 logger = logging.getLogger(__name__)
 logger.info("Base path is %s", get_base_path())

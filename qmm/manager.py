@@ -15,8 +15,8 @@ from PyQt5.QtCore import QEvent, QObject, Qt, QUrl, pyqtSignal, pyqtSlot
 from PyQt5.QtWidgets import QAction, QApplication, QFileDialog, QMainWindow, QMenu, QMessageBox
 from watchdog.observers import Observer
 
-from qmm import bucket, dialogs, filehandler, get_base_path
-from qmm.common import settings, settings_are_set, valid_suffixes, running_ci
+from qmm import bucket, dialogs, filehandler, get_base_path, running_ci
+from qmm.common import settings, settings_are_set, valid_suffixes
 from qmm.config import get_config_dir
 from qmm.fileutils import ArchiveEvents, FileStateColor
 from qmm.settings.core_dialogs import PreferencesDialog

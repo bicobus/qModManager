@@ -8,21 +8,10 @@ import subprocess
 from datetime import datetime
 from typing import List, Tuple, Union
 
-from qmm import get_data_path, is_linux, is_windows
+from qmm import get_data_path, is_linux, is_windows, running_ci
 from qmm.config import Config
 
 logger = logging.getLogger(__name__)
-
-
-def running_ci():
-    """Return True if currently running in a CI environment.
-
-    This function is used to alter the behavior of the software for specific CI runs.
-
-    Returns:
-        boolean
-    """
-    return bool(os.environ.get('QMM_CI'))
 
 
 #: instance of the Config object that governs the user's preferences. Can be imported anywhere
