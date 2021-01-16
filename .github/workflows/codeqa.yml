@@ -52,11 +52,11 @@ jobs:
             libxcb-keysyms1 \
             libxcb-render-util0 \
             qtbase5-dev
-          ldd /opt/hostedtoolcache/Python/3.8.7/x64/lib/python3.8/site-packages/PyQt5/Qt/plugins/platforms/libqxcb.so
           python -m pip install --upgrade pip
           python -m pip install coverage[toml]
           sed -i 's/pyqt5==5.15.1/pyqt5==5.15.2/g' requirements.txt
           python -m pip install -r requirements.txt
+          ldd /opt/hostedtoolcache/Python/3.8.7/x64/lib/python3.8/site-packages/PyQt5/Qt/plugins/platforms/libqxcb.so
           make ui
       - name: Install Dependencies (windows)
         if: startsWith(matrix.os, 'windows')
