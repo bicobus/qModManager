@@ -26,8 +26,8 @@ CONFIG_HOME="${HOME}/.config/qmm/"
 mkdir -p "${CONFIG_HOME}"
 cat <<EOF >"${CONFIG_HOME}/test.json"
 {
-    "local_repository": "${REPOPATH}/repo",
-    "game_folder": "${LILITHPATH}/lilith",
+    "local_repository": "${REPOPATH}",
+    "game_folder": "${LILITHPATH}",
     "language": "en_US",
     "ck_descriptive_text": false
 }
