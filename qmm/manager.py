@@ -16,7 +16,7 @@ from PyQt5.QtWidgets import QAction, QApplication, QFileDialog, QMainWindow, QMe
 from watchdog.observers import Observer
 
 from qmm import bucket, dialogs, filehandler, get_base_path
-from qmm.common import settings, settings_are_set, valid_suffixes
+from qmm.common import settings, settings_are_set, valid_suffixes, running_ci
 from qmm.config import get_config_dir
 from qmm.fileutils import ArchiveEvents, FileStateColor
 from qmm.settings.core_dialogs import PreferencesDialog
@@ -235,6 +235,9 @@ class MainWindow(QMainWindow, QEventFilter, Ui_MainWindow):
         if settings_are_set():
             self._init_mods()
         else:
+            if running_ci():
+                print("No settings files and running within CI. Abording.")
+                return
             msg = _(
                 "One or more parameters required for the proper usage of "
                 "this application are undefined.<br>"
@@ -923,6 +926,8 @@ def main():
         aef.set_top_window(mainwindow)
         mainwindow.show()
         mainwindow.post_show_setup()
+        if running_ci():
+            return app
         sys.exit(app.exec_())
     except Exception as e:  # Catchall, log then crash.
         logger.exception("Critical error occurred: %s", e)

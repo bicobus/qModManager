@@ -2,7 +2,7 @@ name: Linting
 
 on:
   push:
-    path-ignore:
+    paths-ignore:
       - '**.yml'
       - '**.toml'
     tags-ignore:
@@ -16,6 +16,7 @@ on:
 
 jobs:
   build:
+    if: "!contains(github.event.head_commit.message, '[ci skip]')"
     runs-on: ubuntu-latest
     strategy:
       matrix:
