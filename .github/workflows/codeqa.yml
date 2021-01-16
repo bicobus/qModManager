@@ -76,17 +76,21 @@ jobs:
         run: |
           xvfb-run --auto-servernum coverage run ./run.py
           coverage xml
+          ls -al
+          ls -al ..
       - name: Generate coverage report (windows)
         if: startsWith(matrix.os, 'windows')
         working-directory: ${{ github.workspace }}\qMM
+        shell: bash -l {0}
         run: |
           coverage run ./run.py
           coverage xml
+          ls -al
+          ls -al ..
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v1
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          files: coverage.xml
           root_dir: ${{ github.workspace }}/qMM
           env_vars: OS,PYTHON
           fail_ci_if_error: true
