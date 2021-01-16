@@ -22,6 +22,7 @@ branch = true
 source = ["qmm", "run.py"]
 omit = [
     "*/tests/*",
+    "docs/**"
 ]
 
 [tool.coverage.report]

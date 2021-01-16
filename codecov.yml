@@ -1,2 +1,4 @@
 fixes:
   - "qMM/::"
+ignore:
+  - "docs/**"
