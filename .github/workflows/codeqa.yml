@@ -55,7 +55,7 @@ jobs:
       - name: Create test environment
         shell: bash -l {0}
         working-directory: ${{ github.workspace }}/qMM
-        run: bash -l .github/scripts/create_testenv.sh
+        run: bash -l .github/scripts/create_testenv.sh -q=${{ github.workspace }}/qMM -l=${{ github.workspace }}/lilith -r=${{ github.workspace }}/repo
       - name: Generate coverage report
         working-directory: ${{ github.workspace }}/qMM
         run: |
