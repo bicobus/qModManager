@@ -56,7 +56,6 @@ jobs:
           python -m pip install coverage[toml]
           sed -i 's/pyqt5==5.15.1/pyqt5==5.15.2/g' requirements.txt
           python -m pip install -r requirements.txt
-          ldd /opt/hostedtoolcache/Python/3.8.7/x64/lib/python3.8/site-packages/PyQt5/Qt/plugins/platforms/libqxcb.so
           make ui
       - name: Install Dependencies (windows)
         if: startsWith(matrix.os, 'windows')
@@ -73,7 +72,7 @@ jobs:
       - name: Generate coverage report
         working-directory: ${{ github.workspace }}/qMM
         run: |
-          QT_DEBUG_PLUGINS=1 coverage run ./run.py
+          xvfb-run --auto-servernum coverage run ./run.py
           coverage xml
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v1
