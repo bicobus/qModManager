@@ -37,11 +37,13 @@ jobs:
       - name: Install Dependencies (linux)
         if: startsWith(matrix.os, 'ubuntu')
         working-directory: ${{ github.workspace }}/qMM
+        # replace pyqt5 with latest version, workaround xcb bug
         run: |
           sudo apt-get update
           sudo apt-get install --fix-missing --no-install-recommends libegl1-mesa libxkbcommon-x11-0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-xinerama0
           python -m pip install --upgrade pip
-          python -m pip install codecov[toml]
+          python -m pip install coverage[toml]
+          sed -i 's/pyqt5==5.15.1/pyqt5==5.15.2/g' requirements.txt
           python -m pip install -r requirements.txt
           make ui
       - name: Install Dependencies (windows)
@@ -59,7 +61,6 @@ jobs:
       - name: Generate coverage report
         working-directory: ${{ github.workspace }}/qMM
         run: |
-          cd ${{ github.workspace }}/qMM
           coverage run ./run.py
           coverage xml
       - name: Upload coverage to Codecov
