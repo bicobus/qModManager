@@ -47,8 +47,8 @@ def get_data_path(relpath):
     return path
 
 
-# Uncomment if PyQt5 floods the log file.
-# logging.getLogger("PyQt5").setLevel(logging.WARNING)
+# Uncomment if PyQt6 floods the log file.
+# logging.getLogger("PyQt6").setLevel(logging.WARNING)
 hdlrs = [
     logging.FileHandler(filename=os.path.join(get_base_path(), "error.log"), mode="w")
 ]

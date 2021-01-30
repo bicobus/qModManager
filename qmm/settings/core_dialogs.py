@@ -25,8 +25,8 @@ The setting window has two major elements:
  +------------------------------+
 
 """
-from PyQt5.QtCore import QSize, Qt, pyqtSignal  # , pyqtSlot
-from PyQt5.QtWidgets import (
+from PyQt6.QtCore import QSize, Qt, pyqtSignal  # , pyqtSlot
+from PyQt6.QtWidgets import (
     QCheckBox,
     QComboBox,
     QDialog,

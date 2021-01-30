@@ -2,8 +2,8 @@
 # Licensed under the EUPL v1.2
 # © 2020 bicobus <bicobus@keemail.me>
 """Contains a bunch of helper function to display Qt's dialogs."""
-from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QMessageBox, QDialog
+from PyQt6.QtCore import Qt
+from PyQt6.QtWidgets import QMessageBox, QDialog
 
 from qmm.ui_qprogress import Ui_Dialog  # pylint: disable=no-name-in-module
 
@@ -57,13 +57,13 @@ def _do_message(mobject, informative=None, detailed=None, title=None):
     if title:
         mobject.setWindowTitle(title)
 
-    return mobject.exec_()
+    return mobject.exec()
 
 
 class SplashProgress(QDialog, Ui_Dialog):
     def __init__(self, parent, title, message):
         super().__init__(parent=parent)
-        from PyQt5.QtWidgets import qApp  # noqa
+        from PyQt6.QtWidgets import QApplication as qApp  # noqa
 
         self.qapp = qApp
         self.setupUi(self)

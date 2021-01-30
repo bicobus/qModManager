@@ -10,9 +10,9 @@ from collections import deque
 from typing import Tuple, Union
 
 import watchdog.events
-from PyQt5 import QtGui
-from PyQt5.QtCore import QEvent, QObject, Qt, QUrl, pyqtSignal, pyqtSlot
-from PyQt5.QtWidgets import QAction, QApplication, QFileDialog, QMainWindow, QMenu, QMessageBox
+from PyQt6 import QtGui
+from PyQt6.QtCore import QEvent, QObject, Qt, QUrl, pyqtSignal, pyqtSlot
+from PyQt6.QtWidgets import QApplication, QFileDialog, QMainWindow, QMenu, QMessageBox
 from watchdog.observers import Observer
 
 from qmm import bucket, dialogs, filehandler, get_base_path, running_ci
@@ -175,10 +175,10 @@ class QEventFilter:
 
     def eventFilter(self, o, e):  # noqa
         if o.objectName() in self._objects:
-            if e.type() == QEvent.DragEnter:
+            if e.type() == QEvent.Type.DragEnter:
                 e.acceptProposedAction()
                 return True
-            if e.type() == QEvent.Drop:
+            if e.type() == QEvent.Type.Drop:
                 return self._on_drop_action(e)
         # return false ignores the event and allow further propagation
         return False
@@ -366,7 +366,7 @@ class MainWindow(QMainWindow, QEventFilter, Ui_MainWindow):
 
         Args:
             name (str): Filename of the archive to find, matches content of the
-                :py:meth:`ListRowItem <PyQt5.QtWidgets.QListWidgetItem.text>`
+                :py:meth:`ListRowItem <PyQt6.QtWidgets.QListWidgetItem.text>`
                 text method.
 
         Returns:
@@ -465,7 +465,7 @@ class MainWindow(QMainWindow, QEventFilter, Ui_MainWindow):
         qfd.setNameFilters(filters)
         qfd.selectNameFilter(filters[0])
         qfd.fileSelected.connect(self._on_action_open_done)
-        qfd.exec_()
+        qfd.exec()
 
     def _get_selected_item(self, default: ListRowItem = None) -> ListRowItem:
         items = self.listWidget.selectedItems()
@@ -708,11 +708,15 @@ class MainWindow(QMainWindow, QEventFilter, Ui_MainWindow):
         if isinstance(item, ListRowVirtualItem):
             return
 
-        install = QAction(QtGui.QIcon(QtGui.QPixmap(":/icons/file-install.svg")), _("Install"),)
-        uninstall = QAction(
+        install = QtGui.QAction(
+            QtGui.QIcon(QtGui.QPixmap(":/icons/file-install.svg")), _("Install"),
+        )
+        uninstall = QtGui.QAction(
             QtGui.QIcon(QtGui.QPixmap(":/icons/file-uninstall.svg")), _("Uninstall"),
         )
-        delete = QAction(QtGui.QIcon(QtGui.QPixmap(":/icons/trash.svg")), _("Delete"),)
+        delete = QtGui.QAction(
+            QtGui.QIcon(QtGui.QPixmap(":/icons/trash.svg")), _("Delete"),
+        )
         if item.archive_instance.has_matched:
             install.setDisabled(True)
             uninstall.triggered.connect(lambda: self._do_uninstall_selected_mod(item))
@@ -724,7 +728,7 @@ class MainWindow(QMainWindow, QEventFilter, Ui_MainWindow):
         menu.addAction(install)
         menu.addAction(uninstall)
         menu.addAction(delete)
-        menu.exec_(self.listWidget.mapToGlobal(position))
+        menu.exec(self.listWidget.mapToGlobal(position))
 
     #########################
     # Drag & Drop overrides #
@@ -816,8 +820,8 @@ class QAppEventFilter(QObject):
     application becomes active.
 
     The detection of activity needs to be done at the Session Manager, namely
-    :py:class:`PyQt5:QApplication` (:py:class:`PyQt5.QtGui.QGuiApplication`
-    or :py:class:`PyQt5.QtCore.QCoreApplication`). That object handles every
+    :py:class:`PyQt6:QApplication` (:py:class:`PyQt6.QtGui.QGuiApplication`
+    or :py:class:`PyQt6.QtCore.QCoreApplication`). That object handles every
     window and widgets of the application. Each of those window and widgets
     could become inactive regardless of the status of the whole application.
     Inactivity could be defined as whenever the application loose focus
@@ -841,7 +845,7 @@ class QAppEventFilter(QObject):
         self._previous_state = True
         # Whitelisting event to avoid unnecessary eventFilter calls
         self.accepted_types = [
-            QEvent.ApplicationStateChange,
+            QEvent.Type.ApplicationStateChange,
         ]
 
     def set_top_window(self, window: MainWindow):
@@ -876,7 +880,7 @@ class QAppEventFilter(QObject):
             return False
         if not self._mainwindow or not self._mainwindow.autorefresh_checkbox.isChecked():
             return False
-        if isinstance(o, QApplication) and e.type() == QEvent.ApplicationStateChange:
+        if isinstance(o, QApplication) and e.type() == QEvent.Type.ApplicationStateChange:
             if o.applicationState() == Qt.ApplicationActive:
                 if self._is_first_activity:
                     self._is_first_activity = False
@@ -928,7 +932,7 @@ def main():
         mainwindow.post_show_setup()
         if running_ci():
             return app
-        sys.exit(app.exec_())
+        sys.exit(app.exec())
     except Exception as e:  # Catchall, log then crash.
         logger.exception("Critical error occurred: %s", e)
         raise RuntimeError("Unrecoverable error.") from e

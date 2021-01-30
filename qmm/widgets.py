@@ -5,9 +5,9 @@
 import logging
 from typing import Iterable, List, Union
 
-from PyQt5 import QtGui, QtWidgets
-from PyQt5.QtCore import QObject, QProcess, QUrl
-from PyQt5.QtWidgets import QAction, QMenu, QTreeWidget, QTreeWidgetItem
+from PyQt6 import QtGui, QtWidgets
+from PyQt6.QtCore import QObject, QProcess, QUrl
+from PyQt6.QtWidgets import QMenu, QTreeWidget, QTreeWidgetItem
 
 from qmm.ab.widgets import ABCListRowItem
 from qmm.fileutils import FileState
@@ -66,15 +66,15 @@ class TreeWidgetMenu(QObject):
             return
 
         menu = QMenu()
-        open_dir = QAction(
+        open_dir = GtGui.QAction(
             QtGui.QIcon(QtGui.QPixmap(":/icons/folder-open.svg")), _("Open in Explorer"), menu,
         )
-        open_svg = QAction(
+        open_svg = GtGui.QAction(
             QtGui.QIcon(QtGui.QPixmap(":/icons/image-edit.svg")),
             _("Open with {}").format(self.svgtext),
             menu,
         )
-        open_xml = QAction(
+        open_xml = GtGui.QAction(
             QtGui.QIcon(QtGui.QPixmap(":/icons/file-edit.svg")),
             _("Open with {}").format(self.xmltext),
             menu,
@@ -115,7 +115,7 @@ class TreeWidgetMenu(QObject):
         menu.addAction(open_dir)
         menu.addAction(open_svg)
         menu.addAction(open_xml)
-        action = menu.exec_(self.treewidget.mapToGlobal(position))
+        action = menu.exec(self.treewidget.mapToGlobal(position))
         logger.debug("TREEMENU: action triggered '%s'", action)
         logger.debug("TREEMENU: widget row: %s", widget_row)
 
@@ -149,7 +149,7 @@ def _path_from_list(path, length):
 
 
 def build_tree_from_path(item: FileMetadata, parent: QTreeWidget, folders, color=None, **kwargs):
-    """Generate a set of related :func:`PyQt5.QtWidgets.QTreeWidgetItem` based
+    """Generate a set of related :func:`PyQt6.QtWidgets.QTreeWidgetItem` based
     on a file path.
 
     If *extra_column* is specified, it must be a list containing text that will

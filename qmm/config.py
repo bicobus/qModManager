@@ -10,7 +10,7 @@ import shutil
 import tempfile
 from collections.abc import MutableMapping
 
-from PyQt5.QtCore import QTimer
+from PyQt6.QtCore import QTimer
 import appdirs
 logger = logging.getLogger(__name__)
 dirs = appdirs.AppDirs(appname="qmm", appauthor=False)

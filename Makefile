@@ -1,8 +1,8 @@
 .DELETE_ON_ERROR:
 POMERGE ?= 0
 RCC := $(shell command -v pyrcc5 2>/dev/null)
-UIC := $(shell command -v pyuic5 2>/dev/null)
-UICFLAGS = --from-imports
+UIC := $(shell command -v pyuic6 2>/dev/null)
+UICFLAGS = # --from-imports
 LDIR = qmm
 PUI=${LDIR}/icons_rc.py\
 	${LDIR}/ui_mainwindow.py\

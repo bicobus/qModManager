@@ -5,7 +5,7 @@
 from os import path
 from typing import Union
 
-from PyQt5 import QtGui, QtWidgets
+from PyQt6 import QtGui, QtWidgets
 
 from qmm.fileutils import FileStateColor
 from qmm.common import timestamp_to_string

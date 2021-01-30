@@ -7,7 +7,7 @@ import pathlib
 from enum import Enum, auto
 from functools import lru_cache
 
-from PyQt5 import QtGui
+from PyQt6 import QtGui
 
 from qmm import bucket
 
