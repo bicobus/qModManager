@@ -55,7 +55,7 @@ jobs:
             libxcb-keysyms1 \
             libxcb-render-util0 \
             qtbase5-dev
-          python -m pip install --upgrade pip
+          python -m pip install --upgrade pip wheel setuptools
           python -m pip install coverage[toml]
           sed -i 's/pyqt5==5.15.1/pyqt5==5.15.2/g' requirements.txt
           python -m pip install -r requirements.txt
