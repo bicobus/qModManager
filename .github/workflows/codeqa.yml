@@ -2,10 +2,10 @@ name: Code QA
 on:
   push:
     branches-ignore:
-      - 'dependabot/*'
+      - 'dependabot/**'
       - 'debug'
-      - 'debug/*'
-      - 'ci/*'
+      - 'debug/**'
+      - 'ci/**'
 
 jobs:
   CodeCov:
