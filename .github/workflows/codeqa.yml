@@ -6,6 +6,8 @@ on:
       - 'debug'
       - 'debug/**'
       - 'ci/**'
+    paths-ignore:
+      - '.github/**'
 
 jobs:
   CodeCov:
