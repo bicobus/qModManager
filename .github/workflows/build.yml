@@ -48,9 +48,9 @@ jobs:
           set PYTHONOPTIMIZE=1 && pyinstaller run.spec
       - name: Packaging
         run: |
-          cd dist\qModManager\
-          cp ..\..\CHANGELOG.rst CHANGELOG.txt
-          7z a ..\..\qModManager-win64-${GITHUB_REF##*/}.7z . ..\..\resources\README.txt
+          cd dist/qModManager/
+          cp ../../CHANGELOG.rst CHANGELOG.txt
+          7z a ../../qModManager-win64-${GITHUB_REF##*/}.7z . ../../resources/README.txt
       - name: Release (beta|debug)
         if: ${{ steps.release_type.outputs.RELEASE_TYPE != 'release' }}
         uses: ncipollo/release-action@v1.8.6
