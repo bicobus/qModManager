@@ -34,7 +34,7 @@ fail_under = 0
 
 [tool.black]
 line-length = 98
-target-version = ['py37']
+target-version = ['py38']
 #check = true
 
 [tool.isort]
