@@ -2,9 +2,9 @@
 Version History
 ===============
 
-`1.0.0-beta4`_ - ????????
+`1.0.0-beta4`_ - 11-07-21
 -------------------------
-Nothing yet
+* No changes, new release to have the build working.
 
 `1.0.0-beta3`_ - 10-07-21
 -------------------------
@@ -136,7 +136,7 @@ Fixed
 
 * Internal dev stuff: changes of libraries used, reworking codebase, etc
 
-.. _`1.0.0-beta4`: https://github.com/bicobus/qModManager/compare/v1.0.0-beta3...master
+.. _`1.0.0-beta4`: https://github.com/bicobus/qModManager/compare/v1.0.0-beta2...v1.0.0-beta4
 .. _`1.0.0-beta3`: https://github.com/bicobus/qModManager/compare/v1.0.0-beta2...v1.0.0-beta3
 .. _`1.0.0-beta2`: https://github.com/bicobus/qModManager/compare/v1.0.0-beta1...v1.0.0-beta2
 .. _`1.0.0-beta1`: https://github.com/bicobus/qModManager/compare/v1.0.0-alpha13...v1.0.0-beta1
