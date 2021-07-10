@@ -3,11 +3,11 @@ name: Build
 on:
   push:
     branches:
-      - 'debug*'
+      - debug*
     tags:
-      - 'v*'
+      - v*
     paths-ignore:
-      - 'docs/**'
+      - docs/**
 
 jobs:
   build:
