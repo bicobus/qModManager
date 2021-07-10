@@ -102,6 +102,7 @@ def _bad_directory_structure(path: pathlib.Path):
             (path.parts[1] == "items" and path.parts[2] not in subfolders_of["items"])
             or (
                 path.parts[1] == "race"
+                and len(path.parts) > 3
                 and path.parts[3] not in subfolders_of["race"]
                 and path.suffix != ".xml"  # folder suffixes are empty
             )
