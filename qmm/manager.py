@@ -930,7 +930,7 @@ def main():
             return app
         sys.exit(app.exec_())
     except Exception as e:  # Catchall, log then crash.
-        logger.exception("Critical error occurred: %s", e)
+        logger.exception("Critical error occurred: %s", e, exc_info=True)
         raise RuntimeError("Unrecoverable error.") from e
     finally:
         logger.info("Application shutdown complete.")
