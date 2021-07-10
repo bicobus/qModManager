@@ -547,7 +547,8 @@ def _compute_files_crc32(
         # archive. To do so we need to remove anything that is before, and
         # including the "partition" folder.
         # ...blah/res/mods/namespace/category/ -> namespace/category/
-        path = root.partition(os.path.join(*partition) + os.path.sep)[2]
+        sanitized_root = root.split(settings["game_folder"])[1]
+        path = sanitized_root.partition(os.path.join(*partition) + os.path.sep)[2]
 
         for file in files:
             kfile = pathlib.PurePath(path, file)
