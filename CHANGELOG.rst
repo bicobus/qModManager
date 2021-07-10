@@ -2,13 +2,16 @@
 Version History
 ===============
 
-`1.0.0-beta3`_ - ????????
+`1.0.0-beta3`_ - 10-07-21
 -------------------------
 Fixed
 ~~~~~
 * Crash if the directory structure of the game files was too short. Structure
   is expected to be ``category/namespace/**.xml``, the software used to crash
   if there was a dangling file under the *category* folder.
+* Crash when parsing race mods file structures.
+* Possible issue if users had their game within a path containing folders ending
+  with res/
 
 `1.0.0-beta2`_ - 16-12-20
 -------------------------
@@ -129,7 +132,7 @@ Fixed
 
 * Internal dev stuff: changes of libraries used, reworking codebase, etc
 
-.. _`1.0.0-beta3`: https://github.com/bicobus/qModManager/compare/v1.0.0-beta2...master
+.. _`1.0.0-beta3`: https://github.com/bicobus/qModManager/compare/v1.0.0-beta2...v1.0.0-beta3
 .. _`1.0.0-beta2`: https://github.com/bicobus/qModManager/compare/v1.0.0-beta1...v1.0.0-beta2
 .. _`1.0.0-beta1`: https://github.com/bicobus/qModManager/compare/v1.0.0-alpha13...v1.0.0-beta1
 .. _`1.0.0-alpha13`: https://github.com/bicobus/qModManager/compare/v1.0.0-alpha12...v1.0.0-alpha13
