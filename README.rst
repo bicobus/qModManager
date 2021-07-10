@@ -1,8 +1,5 @@
-.. image:: https://static.deepsource.io/deepsource-badge-light-mini.svg
-    :target: https://deepsource.io/gh/bicobus/qModManager/?ref=repository-badge
-
-.. image:: https://ci.appveyor.com/api/projects/status/hn7a0oa12qhg62ds?svg=true
-    :target: https://ci.appveyor.com/project/bicobus/qmodmanager
+.. image:: https://github.com/bicobus/qModManager/actions/workflows/build.yml/badge.svg
+    :target: https://github.com/bicobus/qModManager/actions/workflows/build.yml
 
 .. image:: https://readthedocs.org/projects/qmodmanager/badge/?version=latest
     :target: https://qmodmanager.readthedocs.io/en/latest/?badge=latest
