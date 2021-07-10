@@ -23,13 +23,14 @@ jobs:
         id: release_type
         run: |
           REF="${GITHUB_REF##*/}"
-          if [[ $REF =~ "v"([0-9]\.)+[0-9] ]]; then
-            echo ::set-output name=RELEASE_TYPE::release
-          elif [[ $REF =~ "v"([0-9]\.)+[0-9]"-beta" ]]; then
+          if [[ $REF =~ "v"([0-9]\.)+[0-9]"-beta" ]]; then
             echo ::set-output name=RELEASE_TYPE::beta
+          elif [[ $REF =~ "v"([0-9]\.)+[0-9]$ ]]; then
+            echo ::set-output name=RELEASE_TYPE::release
           elif [[ $REF =~ "debug"("-".*)? ]]; then
             echo ::set-output name=RELEASE_TYPE::debug
           fi
+          echo ::set-output name=VERSION::$REF
       - uses: actions/checkout@v2.3.4
       - uses: actions/cache@v2.1.6
         with:
@@ -55,12 +56,12 @@ jobs:
         if: ${{ steps.release_type.outputs.RELEASE_TYPE != 'release' }}
         uses: ncipollo/release-action@v1.8.6
         with:
-          artifacts: qModManager-win64-${GITHUB_REF##*/}.7z
+          artifacts: qModManager-win64-${{ steps.release_type.outputs.VERSION }}.7z
           prerelease: True
           token: ${{ secrets.GITHUB_TOKEN}}
       - name: Release (stable)
         if: ${{ steps.release_type.outputs.RELEASE_TYPE == 'release' }}
         uses: ncipollo/release-action@v1.8.6
         with:
-          artifacts: qModManager-win64-${GITHUB_REF##*/}.7z
+          artifacts: qModManager-win64-${{ steps.release_type.outputs.VERSION }}.7z
           token: ${{ secrets.GITHUB_TOKEN }}
