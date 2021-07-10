@@ -75,10 +75,10 @@ for:
 
 branches:
   only:
-    - /v\d*\.\d*\.\d*/
-    - /v\d*\.\d*\.\d*-.*/
+    - /v\d+\.\d+\.\d+/
+    - /v\d+\.\d+\.\d+-.+/
     - debug
-    - /debug-.*/
+    - /debug-.+/
 
 init:
   - ps: >-
