@@ -25,8 +25,8 @@ for:
 -
   branches:
     only:
-      - 'debug'
-      - '/debug-.*/'
+      - debug
+      - /debug-.*/
   matrix:
     only:
       - JOB_NAME: debug
@@ -43,7 +43,7 @@ for:
 -
   branches:
     only:
-      - '/v\d*\.\d*\.\d*-.*/'
+      - /v\d+\.\d+\.\d+-.+/
   matrix:
     only:
       JOB_NAME: beta
@@ -59,7 +59,7 @@ for:
 -
   branches:
     only:
-      - '/v\d*\.\d*\.\d*/'
+      - /v\d+\.\d+\.\d+/
   matrix:
     only:
       JOB_NAME: release
