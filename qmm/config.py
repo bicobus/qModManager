@@ -121,13 +121,15 @@ class Config(MutableMapping):
         logger.debug("Loading information from settings file: %s", filename)
         data = self._get_data_from_file(filename)
         for key, val in data.items():
-            if key in self._validators:
-                validator = self._validators.get(key)
-                if val and validator(val):
-                    value = val
-                else:
+            validator = self._validators.get(key)
+            if val and validator:
+                try:
+                    v = validator(val)
+                except ValueError:
                     logger.error("Invalid value %s loaded from user configuration.", val)
                     value = None
+                else:
+                    value = v.data
             else:
                 value = val
             self._data[key] = value

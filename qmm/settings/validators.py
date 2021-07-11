@@ -2,6 +2,7 @@
 #  Licensed under the EUPL v1.2
 #  © 2020 bicobus <bicobus@keemail.me>
 import os.path as osp
+from pathlib import Path
 
 import attr
 
@@ -20,7 +21,7 @@ def make_html_list(elements):
 class IsDirValidator:
     """Validate a setting entry as an existing directory."""
 
-    data: str = attr.ib()
+    data: str = attr.ib(converter=Path)
 
     @data.validator
     def validate(self, a, v):

@@ -10,6 +10,7 @@ from typing import List, Tuple, Union
 
 from qmm import get_data_path, is_linux, is_windows, running_ci
 from qmm.config import Config
+from qmm.settings.validators import IsDirValidator
 
 logger = logging.getLogger(__name__)
 
@@ -24,8 +25,8 @@ settings = Config(
         "language": "system"
     },
     on_load_validators={
-        "local_repository": os.path.isdir,
-        "game_folder": os.path.isdir,
+        "local_repository": IsDirValidator,
+        "game_folder": IsDirValidator,
     },
 )
 
