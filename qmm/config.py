@@ -20,6 +20,12 @@ class SettingsNotSetError(Exception):
     pass
 
 
+def sanitize_value_for_json(value):
+    if isinstance(value, os.PathLike):
+        return str(value)
+    return value
+
+
 def get_config_dir(filename=None, extra_directories=None) -> str:
     """Return the full path of the user config dir.
 
@@ -145,6 +151,12 @@ class Config(MutableMapping):
         if self._save_timer:
             self._save_timer = False
 
+    def _get_data_for_json(self):
+        d = {}
+        for k, v in self._data.items():
+            d.setdefault(k, sanitize_value_for_json(v))
+        return d
+
     def save(self, filename=None):
         if not filename:
             filename = self._filename
@@ -162,7 +174,7 @@ class Config(MutableMapping):
         try:
             with tempfile.NamedTemporaryFile(delete=False) as fp:
                 filename_tmp = fp.name
-                jdump = json.dumps(self._data, indent=4).encode("utf-8")
+                jdump = json.dumps(self._get_data_for_json(), indent=4).encode("utf-8")
                 if self._compress:
                     jdump = gzip.compress(jdump)
                 fp.write(jdump)
