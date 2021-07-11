@@ -125,8 +125,8 @@ class Config(MutableMapping):
             if val and validator:
                 try:
                     v = validator(val)
-                except ValueError:
-                    logger.error("Invalid value %s loaded from user configuration.", val)
+                except ValueError as e:
+                    logger.error("%s: %s", e.args[0], val)
                     value = None
                 else:
                     value = v.data

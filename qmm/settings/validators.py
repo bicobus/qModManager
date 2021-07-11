@@ -26,7 +26,10 @@ class IsDirValidator:
     @data.validator
     def validate(self, a, v):
         if v and not osp.isdir(v):
-            raise ValueError(_("Invalid directory path"))
+            try:
+                raise ValueError(_("Invalid directory path"))
+            except NameError:  # settings and gettext not initialized yet
+                raise ValueError("Invalid directory path")
 
 
 @attr.s(frozen=True)
