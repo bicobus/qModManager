@@ -2,9 +2,11 @@
 Version History
 ===============
 
-`1.0.0-beta6`_ - ????????
+`1.0.0-beta6`_ - 11-07-21
 -------------------------
-* Nothing yet.
+Fixed
+~~~~~
+* Crash when opening the Settings window introduced by previous version.
 
 `1.0.0-beta5`_ - 11-07-21
 -------------------------
@@ -147,7 +149,7 @@ Fixed
 
 * Internal dev stuff: changes of libraries used, reworking codebase, etc
 
-.. _`1.0.0-beta6`: https://github.com/bicobus/qModManager/compare/v1.0.0-beta5...master
+.. _`1.0.0-beta6`: https://github.com/bicobus/qModManager/compare/v1.0.0-beta5...v1.0.0-beta6
 .. _`1.0.0-beta5`: https://github.com/bicobus/qModManager/compare/v1.0.0-beta4...v1.0.0-beta5
 .. _`1.0.0-beta4`: https://github.com/bicobus/qModManager/compare/v1.0.0-beta2...v1.0.0-beta4
 .. _`1.0.0-beta3`: https://github.com/bicobus/qModManager/compare/v1.0.0-beta2...v1.0.0-beta3
