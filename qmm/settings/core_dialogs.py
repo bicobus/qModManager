@@ -134,7 +134,7 @@ class Page(QWidget):
                 text = settings[confkey]
             except KeyError:
                 text = ""
-            widget.setText(text)
+            widget.setText(str(text))
 
         for combobox, confkey in self.comboboxes.items():
             try:
