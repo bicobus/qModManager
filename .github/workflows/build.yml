@@ -31,7 +31,7 @@ jobs:
             echo ::set-output name=RELEASE_TYPE::debug
           fi
           echo ::set-output name=VERSION::$REF
-      - uses: actions/checkout@v2.3.4
+      - uses: actions/checkout@v2.3.5
       - uses: actions/cache@v2.1.6
         with:
           path: ~\AppData\Local\pip\Cache
