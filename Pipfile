@@ -17,7 +17,7 @@ pydocstyle = "*"
 coverage = {extras = ["toml"], version = "*"}
 
 [packages]
-pyqt5 = "==5.15.1"
+pyqt5 = "==5.15.5"
 send2trash = "*"
 appdirs = "*"
 watchdog = "*"
