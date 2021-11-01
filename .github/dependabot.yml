@@ -7,13 +7,8 @@ updates:
       interval: "weekly"
     ignore:
       - dependency-name: "pyqt5"
-        versions: ["5.15.x"]
-    reviewers:
-      - "bicobus"
 
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "daily"
-    reviewers:
-      - "bicobus"
