@@ -297,6 +297,13 @@ class ArchiveInstance(ABCArchiveInstance):
     def conflicts(self):
         yield from super().conflicts()
 
+    def known_conflictors(self):
+        conflictors = set()
+        for archives in self._conflicts.values():
+            # combine sets
+            conflictors = conflictors | set(archives) - {self._archive_name}
+        return conflictors
+
     def uninstall_info(self):
         for item in chain(self.matched(), self.folders()):
             if item not in self.ignored():

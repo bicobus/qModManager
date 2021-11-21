@@ -16,6 +16,7 @@ from PyQt5.QtWidgets import QAction, QApplication, QFileDialog, QMainWindow, QMe
 from watchdog.observers import Observer
 
 from qmm import bucket, dialogs, filehandler, get_base_path, running_ci
+from qmm.bucket import archives_with_conflicts
 from qmm.common import settings, settings_are_set, valid_suffixes
 from qmm.config import get_config_dir
 from qmm.fileutils import ArchiveEvents, FileStateColor
@@ -492,7 +493,7 @@ class MainWindow(QMainWindow, QEventFilter, Ui_MainWindow):
             return
 
         logger.info("Deletion of archive %s", item.filename)
-        if item.has_matched:
+        if item.archive_instance.has_matched:
             ret = self._do_uninstall_selected_mod()
             if not ret:
                 return
@@ -505,31 +506,62 @@ class MainWindow(QMainWindow, QEventFilter, Ui_MainWindow):
         del item
 
     @pyqtSlot(name="on_actionInstall_Mod_triggered")
-    def _do_install_selected_mod(self, menu_item=None):
+    def _do_install_selected_mod(self, widgetslist=None):
         """Method to install an archive's files to the game location."""
-        item = self._get_selected_item(menu_item)
-        if not item:
-            logger.error("Triggered _do_install_selected_mod without a selection")
-            return
-        if isinstance(item, ListRowVirtualItem):
-            logger.error("Unable to install a virtual package.")
-            return
-
+        if not widgetslist:  # called from a non-contextual call
+            widgetslist = self.listWidget.selectedItems()
+            if not widgetslist:
+                logger.error("_do_install_selected_mod called without selection.")
+                return
+        if isinstance(widgetslist, ListRowItem):
+            widgetslist = [widgetslist]
         self._do_enable_autorefresh(False)
-        logger.info("Installing file %s", item.filename)
-        files = filehandler.install_archive(item.filename, item.archive_instance.install_info())
+        names = [item.filename for item in widgetslist]
+        skipped, conflictors = [], []
+        for item in widgetslist:
+            if item.archive_instance.all_matching:
+                continue
+            if item.archive_instance.has_matched:
+                skipped.append(item.filename)
+                continue
+            if any(name in item.archive_instance.known_conflictors() for name in names):
+                conflictors.append(item.filename)
+                continue
+            logger.info("Installing file %s", item.filename)
+            files = filehandler.install_archive(item.filename, item.archive_instance.install_info())
+            if not files:
+                dialogs.q_warning(_(
+                    "The archive {filename} extracted with errors.\n"
+                    "Please refer to {loglocation} for more information."
+                ).format(
+                    filename=item.filename, loglocation=os.path.join(get_base_path(), "error.log")
+                ))
+        if skipped:
+            dialogs.q_information(
+                _(
+                    "Some archives couldn't be installed during the process. "
+                    "Some of the files in those archives are already present "
+                    "on the disk."
+                ),
+                detailed="\n".join(skipped)
+            )
+
+        if conflictors:
+            dialogs.q_information(
+                _(
+                    "Some archives have conflicting files with each others and "
+                    "couldn't be installed alongside each other. You should "
+                    "selectively install one or manually resolve the "
+                    "problematic files."
+                ),
+                detailed="\n".join(conflictors)
+            )
+
         self._do_enable_autorefresh(True)
-        if not files:
-            dialogs.q_warning(_(
-                "The archive {filename} extracted with errors.\n"
-                "Please refer to {loglocation} for more information."
-            ).format(
-                filename=item.filename, loglocation=os.path.join(get_base_path(), "error.log")
-            ))
-        else:
-            filehandler.generate_conflicts_between_archives(self.managed_archives)
-            self.refresh_list_item_state()
-            self.on_selection_change()
+
+        filehandler.generate_conflicts_between_archives(self.managed_archives)
+        self.refresh_list_item_state()
+        self.on_selection_change()
 
     @pyqtSlot(name="on_actionUninstall_Mod_triggered")
     def _do_uninstall_selected_mod(self, menu_item=None):
@@ -704,22 +736,35 @@ class MainWindow(QMainWindow, QEventFilter, Ui_MainWindow):
     # Context Menu overrides #
     ##########################
     def _do_menu_actions(self, position):
-        item = self.listWidget.item(self.listWidget.indexAt(position).row())
-        if isinstance(item, ListRowVirtualItem):
+        items = [
+            item
+            for item in filter(
+                lambda x: not isinstance(x, ListRowVirtualItem), self.listWidget.selectedItems()
+            )
+        ]
+        if not items:  # Nothing to do here.
             return
 
-        install = QAction(QtGui.QIcon(QtGui.QPixmap(":/icons/file-install.svg")), _("Install"),)
-        uninstall = QAction(
-            QtGui.QIcon(QtGui.QPixmap(":/icons/file-uninstall.svg")), _("Uninstall"),
+        install = QAction(
+            QtGui.QIcon(QtGui.QPixmap(":/icons/file-install.svg")),
+            _("Install"),
         )
-        delete = QAction(QtGui.QIcon(QtGui.QPixmap(":/icons/trash.svg")), _("Delete"),)
-        if item.archive_instance.has_matched:
-            install.setDisabled(True)
-            uninstall.triggered.connect(lambda: self._do_uninstall_selected_mod(item))
+        uninstall = QAction(
+            QtGui.QIcon(QtGui.QPixmap(":/icons/file-uninstall.svg")),
+            _("Uninstall"),
+        )
+        delete = QAction(
+            QtGui.QIcon(QtGui.QPixmap(":/icons/trash.svg")),
+            _("Delete"),
+        )
+        # if there is a partial match, don't allow install
+        install.triggered.connect(lambda: self._do_install_selected_mod(items))
+        if any(item.archive_instance.has_matched for item in items):
+            # install.setDisabled(True)
+            uninstall.triggered.connect(lambda: self._do_uninstall_selected_mod(items))
         else:
-            install.triggered.connect(lambda: self._do_install_selected_mod(item))
             uninstall.setDisabled(True)
-        delete.triggered.connect(lambda: self._do_delete_selected_file(item))
+        delete.triggered.connect(lambda: self._do_delete_selected_file(items))
         menu = QMenu()
         menu.addAction(install)
         menu.addAction(uninstall)

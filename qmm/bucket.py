@@ -256,6 +256,13 @@ def as_conflict(key: str, value):
         conflicts[key].append(value)
 
 
+def archives_with_conflicts():
+    arlist = set()
+    for archives in conflicts.values():
+        arlist = arlist.union(set(archives))
+    return tuple(arlist)
+
+
 def as_gamefile(crc: Crc32, value: Union[pathlib.Path, pathlib.PurePath]):
     """Add to the gamefiles a path indexed to its target CRC32."""
     if crc in gamefiles.keys():
