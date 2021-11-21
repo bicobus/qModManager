@@ -8,6 +8,7 @@ import re
 import shutil
 import subprocess
 from hashlib import sha256
+from itertools import chain
 from tempfile import TemporaryDirectory
 from typing import (
     Dict,
@@ -68,7 +69,7 @@ def build_cmd(filepath, *ext, extract=True, output=None, **extra):
 
     ext.extend(["-scsUTF-8", "-sccUTF-8"])
     if extra.get("exclude_list"):
-        ext.append(extra["exclude_list"])
+        ext.extend(extra["exclude_list"])
     if output:
         ext.append(f"-o{output}")
 
@@ -89,7 +90,7 @@ def extract7z(
         "-ba",
         "-bb1",
         output=output_path.absolute(),
-        excluded_list=exclude_list,
+        exclude_list=exclude_list,
     )
 
     logger.debug("Running %s", cmd)
@@ -297,7 +298,9 @@ class ArchiveInstance(ABCArchiveInstance):
         yield from super().conflicts()
 
     def uninstall_info(self):
-        return list(self.matched()) + list(self.folders())
+        for item in chain(self.matched(), self.folders()):
+            if item not in self.ignored():
+                yield item
 
     def install_info(self):
         """Return a several lists useful to the installation process.
@@ -624,7 +627,7 @@ def _filter_list_on_exclude(archives_list, list_to_exclude) -> Tuple[str, Archiv
 
 
 def file_in_other_archives(
-    file: bucket.FileMetadata, archives: ArchivesCollection, ignore: List
+    file: bucket.FileMetadata, archives: ArchivesCollection, ignore: Union[List, None]
 ) -> List:
     """Search for existence of file in other archives.
 
