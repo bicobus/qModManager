@@ -36,7 +36,10 @@ def get_base_path():
     elif "sphinx" in sys.modules:
         r = os.path.abspath("..")
     elif __file__:
-        r = os.path.dirname(os.path.abspath(sys.argv[0]))
+        if not sys.argv[0] == 'run.py':
+            r = os.path.join(os.path.dirname(__file__), '..')
+        else:
+            r = os.path.dirname(os.path.abspath(sys.argv[0]))
     else:
         raise Exception("Unable to find application's path.")
     return r
