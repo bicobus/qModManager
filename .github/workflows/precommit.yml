@@ -23,7 +23,7 @@ jobs:
         python-version: ["3.8"]
 
     steps:
-      - uses: actions/checkout@v2.3.5
+      - uses: actions/checkout@v2.4.0
       - name: Cache pre-commit envs
         uses: actions/cache@v2.1.6
         env:
