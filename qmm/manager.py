@@ -16,7 +16,6 @@ from PyQt5.QtWidgets import QAction, QApplication, QFileDialog, QMainWindow, QMe
 from watchdog.observers import Observer
 
 from qmm import bucket, dialogs, filehandler, get_base_path, running_ci
-from qmm.bucket import archives_with_conflicts
 from qmm.common import settings, settings_are_set, valid_suffixes
 from qmm.config import get_config_dir
 from qmm.fileutils import ArchiveEvents, FileStateColor
@@ -564,43 +563,56 @@ class MainWindow(QMainWindow, QEventFilter, Ui_MainWindow):
         self.on_selection_change()
 
     @pyqtSlot(name="on_actionUninstall_Mod_triggered")
-    def _do_uninstall_selected_mod(self, menu_item=None):
+    def _do_uninstall_selected_mod(self, widgetslist=None):
         """Delete all of the archive matched files from the filesystem.
 
-        Stops if any mismatched item is found.
+        Will not process archives with known mismatch.
         """
-        item = self._get_selected_item(menu_item)
-        if not item:
-            logger.error("triggered without item to process")
-            return False
-        if isinstance(item, ListRowVirtualItem):
-            logger.error("Unable to uninstall an illegal package.")
-            return False
+        if not widgetslist:  # called from a non-contextual triggers
+            widgetslist = self.listWidget.selectedItems()
+            if not widgetslist:
+                logger.error("_do_uninstall_selected_mod called without selection.")
+                return
+        if isinstance(widgetslist, ListRowItem):
+            widgetslist = [widgetslist]
 
-        if item.archive_instance.has_mismatched:
-            dialogs.q_information(_(
-                "Unable to uninstall mod: mismatched items exists on drive.\n"
-                "This is most likely due to another installed mod conflicting "
-                "with this mod.\n"
-            ))
-            return False
-
+        mismatched = []
+        failure = False
         self._do_enable_autorefresh(False)
-        logger.info("Uninstalling files from archive %s", item.filename)
-        uninstall_status = filehandler.uninstall_files(item.archive_instance.uninstall_info())
+        for item in widgetslist:
+            if item.archive_instance.has_mismatched:
+                mismatched.append(item.filename)
+                continue
+            logger.info("Uninstalling files from archive %s", item.filename)
+            uninstall_status = filehandler.uninstall_files(item.archive_instance.uninstall_info())
+            if not uninstall_status:
+                failure = True
         self._do_enable_autorefresh(True)
-        if uninstall_status:
-            filehandler.generate_conflicts_between_archives(self.managed_archives)
-            self.refresh_list_item_state()
-            self.on_selection_change()
-            return True
+        if mismatched:
+            dialogs.q_information(
+                _(
+                    "Some module couldn't be uninstalled, some of their files are mismatched.\n"
+                    "This is most likely due to another installed mod conflicting "
+                    "or changes occurred on the drive outside of the control of this software."
+                ),
+                detailed="\n".join(mismatched)
+            )
+        # NOTE: This is time consuming. Best show a popup to inform that the
+        #       software is currently working.
+        filehandler.generate_conflicts_between_archives(self.managed_archives)
+        self.refresh_list_item_state()
+        self.on_selection_change()
 
-        dialogs.q_warning(_(
-            "The uninstallation process failed at some point. Please report "
-            "this happened to the developper alongside with the error file "
-            "{logfile}."
-        ).format(logfile=get_config_dir("error.log")))
-        return False
+        if failure:
+            dialogs.q_warning(
+                _(
+                    "The uninstallation process failed at some point. Please report "
+                    "this happened to the developper alongside with the error file "
+                    "{logfile}."
+                ).format(logfile=get_config_dir("error.log"))
+            )
+            return False
+        return True
 
     @pyqtSlot(name="on_actionSettings_triggered")
     def do_settings(self):
