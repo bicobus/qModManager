@@ -30,15 +30,11 @@ jobs:
           repository: innoxia/liliths-throne-public
           path: lilith
           ref: dev
-      - name: Cache pip
-        uses: actions/cache@v2.1.6
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-cachepip-${{ hashFiles('qMM/requirements.txt') }}
       - name: Setup Python
         uses: actions/setup-python@v2.3.0
         with:
           python-version: ${{ matrix.python-version }}
+          cache: 'pip'
       - name: Install Dependencies (linux)
         if: startsWith(matrix.os, 'ubuntu')
         working-directory: ${{ github.workspace }}/qMM
