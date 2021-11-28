@@ -517,8 +517,18 @@ class MainWindow(QMainWindow, QEventFilter, Ui_MainWindow):
         self._do_enable_autorefresh(False)
         names = [item.filename for item in widgetslist]
         skipped, conflictors = [], []
+        changes = False
+
+        p_dialog = dialogs.SplashProgress(
+            parent=None,
+            title=_("Installing modules"),
+            message=_("Please wait for the software to initialize it's data."),
+        )
+        p_dialog.show()
+
         for item in widgetslist:
-            if item.archive_instance.all_matching:
+            p_dialog.progress("Processing {}".format(item.filename))
+            if item.archive_instance.all_matching or item.archive_instance.empty:
                 continue
             if item.archive_instance.has_matched:
                 skipped.append(item.filename)
@@ -535,6 +545,24 @@ class MainWindow(QMainWindow, QEventFilter, Ui_MainWindow):
                 ).format(
                     filename=item.filename, loglocation=os.path.join(get_base_path(), "error.log")
                 ))
+            else:
+                changes = True
+
+        self._do_enable_autorefresh(True)
+
+        if changes:
+            p_dialog.progress("Recomputing conflicts...")
+            filehandler.generate_conflicts_between_archives(self.managed_archives)
+            self.refresh_list_item_state()
+        else:
+            dialogs.q_information(
+                "You tried to install an archive, but the state of your game "
+                "res/mods/ folder hasn't changed. This would indicate that your "
+                "archive contains no recognized file able to be installed."
+            )
+            logger.warning("Tried to install something, but no changes were made on the drive.")
+        p_dialog.done(1)
+
         if skipped:
             dialogs.q_information(
                 _(
@@ -555,11 +583,6 @@ class MainWindow(QMainWindow, QEventFilter, Ui_MainWindow):
                 ),
                 detailed="\n".join(conflictors)
             )
-
-        self._do_enable_autorefresh(True)
-
-        filehandler.generate_conflicts_between_archives(self.managed_archives)
-        self.refresh_list_item_state()
         self.on_selection_change()
 
     @pyqtSlot(name="on_actionUninstall_Mod_triggered")
@@ -751,7 +774,8 @@ class MainWindow(QMainWindow, QEventFilter, Ui_MainWindow):
         items = [
             item
             for item in filter(
-                lambda x: not isinstance(x, ListRowVirtualItem), self.listWidget.selectedItems()
+                lambda x: not isinstance(x, ListRowVirtualItem) and not x.archive_instance.empty,
+                self.listWidget.selectedItems()
             )
         ]
         if not items:  # Nothing to do here.

@@ -194,3 +194,15 @@ class ABCArchiveInstance(ABC):
     def has_conflicts(self):
         """Value is `True` if conflicts exists for this archive."""
         return bool(self._conflicts)
+
+    @property
+    def empty(self):
+        """A boolean if wether the archive contains anything useful.
+
+        list7z will return an empty list if none of the files present in the
+        archive are valid. That could happen for a variety of reasons, like an
+        archive containing only folders or empty files. In those cases, the
+        FileState for the entries won't be set and the software won't know
+        what to ignore.
+        """
+        return False if self._file_list else True
