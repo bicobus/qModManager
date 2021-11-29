@@ -126,7 +126,9 @@ def _bad_directory_structure(path: pathlib.Path):
 
 @lru_cache(maxsize=None)
 def _bad_suffix(suffix):
-    return bool(suffix not in (".xml", ".svg"))
+    # FIXME: PNGs are only warranted within maps subfolders. We don't support per folder
+    # suffixes though.
+    return bool(suffix not in (".xml", ".svg", ".png"))
 
 
 def file_status(file: bucket.FileMetadata) -> FileState:
