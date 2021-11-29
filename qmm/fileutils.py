@@ -28,6 +28,7 @@ first_level_dir = (
     "encounters",
     "sex",
     "maps",
+    "txt",
 )
 
 subfolders_of = {
