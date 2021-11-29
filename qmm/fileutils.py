@@ -17,11 +17,23 @@ from qmm import bucket
 #  in order to build paths corresponding the the game expectation.
 # NOTE: race folder contains it's how set of sub-folders. Might need to be
 first_level_dir = (
-    "items", "outfits", "setBonuses", "statusEffects", "race", "colours", "combatMove"
+    "items",
+    "outfits",
+    "setBonuses",
+    "statusEffects",
+    "race",
+    "colours",
+    "combatMove",
+    "dialogue",
+    "encounters",
+    "sex",
+    "maps",
 )
+
 subfolders_of = {
     "items": ("weapons", "clothing", "tattoos", "items", "patterns"),
     "race": ("bodyParts", "coveringTypes", "subspecies"),
+    "sex": ("managers", "actions"),
 }
 
 
