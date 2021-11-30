@@ -493,6 +493,9 @@ class MainWindow(QMainWindow, QEventFilter, Ui_MainWindow):
             _(
                 "This action will uninstall the mod, then move the archive to your "
                 "trashbin.\n\nDo you want to continue?"
+            ),
+            detailed="Files to be removed:\n * {}".format(
+                "\n * ".join([item.filename for item in items])
             )
         )
         if not ret:
