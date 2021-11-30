@@ -15,6 +15,7 @@ sphinx-qt-documentation = "*"
 black = "==21.11b1"
 pydocstyle = "*"
 coverage = {extras = ["toml"], version = "*"}
+pyqt5-stubs = "*"
 
 [packages]
 pyqt5 = "==5.15.6"

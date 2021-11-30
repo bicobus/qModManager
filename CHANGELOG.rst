@@ -2,6 +2,26 @@
 Version History
 ===============
 
+`1.0.0-beta7`_ - 30-11-21
+-------------------------
+Fixes
+~~~~~
+* A typo would allow files that shouldn't be installed to be installed none the
+  less.
+
+Added
+~~~~~
+* Support for new mod location:
+  * Dialogue, flags and nodes (`namespace/dialogue/*`)
+  * Encounters (`namespace/encounters/*`)
+  * Sex actions and managers (`namespace/sex/{managers,actions}/*`)
+  * Maps (`namespace/maps/*`)
+  * txt folder necessary for the encounter files. (`namespace/txt/*`)
+* Allow PNG files to be installed, as they are required for maps.
+* Allow users to install, uninstall or remove several mods in one action. Use
+  the shift key or the control key to add or remove mods to your selection.
+
+
 `1.0.0-beta6`_ - 11-07-21
 -------------------------
 Fixed
@@ -136,7 +156,7 @@ Fixed
 ---------------
 
 * Send archives to the trashbin instead of a full removal from the hard drive.
-* Foundations for the internationalisation (l10n) of the software through
+* Foundations for the internationalization (l10n) of the software through
   gettext
 * A Watchdog to monitor both the module's repository and the game's module path
 
@@ -149,6 +169,8 @@ Fixed
 
 * Internal dev stuff: changes of libraries used, reworking codebase, etc
 
+
+.. _`1.0.0-beta7`: https://github.com/bicobus/qModManager/compare/v1.0.0-beta6...v1.0.0-beta7
 .. _`1.0.0-beta6`: https://github.com/bicobus/qModManager/compare/v1.0.0-beta5...v1.0.0-beta6
 .. _`1.0.0-beta5`: https://github.com/bicobus/qModManager/compare/v1.0.0-beta4...v1.0.0-beta5
 .. _`1.0.0-beta4`: https://github.com/bicobus/qModManager/compare/v1.0.0-beta2...v1.0.0-beta4

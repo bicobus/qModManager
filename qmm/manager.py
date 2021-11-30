@@ -467,108 +467,182 @@ class MainWindow(QMainWindow, QEventFilter, Ui_MainWindow):
         qfd.fileSelected.connect(self._on_action_open_done)
         qfd.exec_()
 
-    def _get_selected_item(self, default: ListRowItem = None) -> ListRowItem:
-        items = self.listWidget.selectedItems()
-        if not items or default in items:
-            return default
-        return items[0]
-
     @pyqtSlot(name="on_actionRemove_file_triggered")
-    def _do_delete_selected_file(self, menu_item=None):
+    def _do_delete_selected_file(self, widgetslist=None):
         """Method to remove an archive file."""
-        item = self._get_selected_item(menu_item)
-        if not item:
-            logger.error("Triggered _do_delete_selected_file without a selection")
-            return
-        if isinstance(item, ListRowVirtualItem):
-            logger.error("Virtual packages cannot be removed.")
+        if not widgetslist:  # called from a non-contextual call
+            widgetslist = self.listWidget.selectedItems()
+            if not widgetslist:
+                logger.error("_do_install_selected_mod called without selection.")
+                return
+        if isinstance(widgetslist, ListRowItem):
+            widgetslist = [widgetslist]
+
+        items = [
+            item for item in filter(
+                lambda x: not isinstance(x, ListRowVirtualItem) and not x.archive_instance.has_matched,
+                widgetslist
+            )
+        ]
+
+        if not items:
+            logger.error("Triggered _do_delete_selected_file but couldn't process anything.")
             return
 
-        ret = dialogs.q_warning_yes_no(_(
-            "This action will uninstall the mod, then move the archive to your "
-            "trashbin.\n\nDo you want to continue?"
-        ))
+        ret = dialogs.q_warning_yes_no(
+            _(
+                "This action will uninstall the mod, then move the archive to your "
+                "trashbin.\n\nDo you want to continue?"
+            ),
+            detailed="Files to be removed:\n * {}".format(
+                "\n * ".join([item.filename for item in items])
+            )
+        )
         if not ret:
             return
 
-        logger.info("Deletion of archive %s", item.filename)
-        if item.has_matched:
-            ret = self._do_uninstall_selected_mod()
-            if not ret:
-                return
-        # Tell watchdog to ignore the file we are about to remove
-        self.fswatch_ignore.emit(item.filename, watchdog.events.EVENT_TYPE_DELETED)
-        filehandler.delete_archive(item.filename)
-        self._remove_row(item.filename, self.listWidget.row(item))
-        # Clear the ignore flag for the file
-        self.fswatch_clear.emit(item.filename, watchdog.events.EVENT_TYPE_DELETED)
-        del item
+        for item in items:
+            logger.info("Deletion of archive %s", item.filename)
+            # Tell watchdog to ignore the file we are about to remove
+            self.fswatch_ignore.emit(item.filename, watchdog.events.EVENT_TYPE_DELETED)
+            filehandler.delete_archive(item.filename)
+            self._remove_row(item.filename, self.listWidget.row(item))
+            # Clear the ignore flag for the file
+            self.fswatch_clear.emit(item.filename, watchdog.events.EVENT_TYPE_DELETED)
+            del item
 
     @pyqtSlot(name="on_actionInstall_Mod_triggered")
-    def _do_install_selected_mod(self, menu_item=None):
+    def _do_install_selected_mod(self, widgetslist=None):
         """Method to install an archive's files to the game location."""
-        item = self._get_selected_item(menu_item)
-        if not item:
-            logger.error("Triggered _do_install_selected_mod without a selection")
-            return
-        if isinstance(item, ListRowVirtualItem):
-            logger.error("Unable to install a virtual package.")
-            return
-
+        if not widgetslist:  # called from a non-contextual call
+            widgetslist = self.listWidget.selectedItems()
+            if not widgetslist:
+                logger.error("_do_install_selected_mod called without selection.")
+                return
+        if isinstance(widgetslist, ListRowItem):
+            widgetslist = [widgetslist]
         self._do_enable_autorefresh(False)
-        logger.info("Installing file %s", item.filename)
-        files = filehandler.install_archive(item.filename, item.archive_instance.install_info())
+        names = [item.filename for item in widgetslist]
+        skipped, conflictors = [], []
+        changes = False
+
+        p_dialog = dialogs.SplashProgress(
+            parent=None,
+            title=_("Installing modules"),
+            message=_("Please wait for the software to initialize it's data."),
+        )
+        p_dialog.show()
+
+        for item in widgetslist:
+            p_dialog.progress("Processing {}".format(item.filename))
+            if item.archive_instance.all_matching or item.archive_instance.empty:
+                continue
+            if item.archive_instance.has_matched:
+                skipped.append(item.filename)
+                continue
+            if any(name in item.archive_instance.known_conflictors() for name in names):
+                conflictors.append(item.filename)
+                continue
+            logger.info("Installing file %s", item.filename)
+            files = filehandler.install_archive(item.filename, item.archive_instance.install_info())
+            if not files:
+                dialogs.q_warning(_(
+                    "The archive {filename} extracted with errors.\n"
+                    "Please refer to {loglocation} for more information."
+                ).format(
+                    filename=item.filename, loglocation=os.path.join(get_base_path(), "error.log")
+                ))
+            else:
+                changes = True
+
         self._do_enable_autorefresh(True)
-        if not files:
-            dialogs.q_warning(_(
-                "The archive {filename} extracted with errors.\n"
-                "Please refer to {loglocation} for more information."
-            ).format(
-                filename=item.filename, loglocation=os.path.join(get_base_path(), "error.log")
-            ))
-        else:
+
+        if changes:
+            p_dialog.progress("Recomputing conflicts...")
             filehandler.generate_conflicts_between_archives(self.managed_archives)
             self.refresh_list_item_state()
-            self.on_selection_change()
+        else:
+            dialogs.q_information(
+                "You tried to install an archive, but the state of your game "
+                "res/mods/ folder hasn't changed. This would indicate that your "
+                "archive contains no recognized file able to be installed."
+            )
+            logger.warning("Tried to install something, but no changes were made on the drive.")
+        p_dialog.done(1)
+
+        if skipped:
+            dialogs.q_information(
+                _(
+                    "Some archives couldn't be installed during the process. "
+                    "Some of the files in those archives are already present "
+                    "on the disk."
+                ),
+                detailed="\n".join(skipped)
+            )
+
+        if conflictors:
+            dialogs.q_information(
+                _(
+                    "Some archives have conflicting files with each others and "
+                    "couldn't be installed alongside each other. You should "
+                    "selectively install one or manually resolve the "
+                    "problematic files."
+                ),
+                detailed="\n".join(conflictors)
+            )
+        self.on_selection_change()
 
     @pyqtSlot(name="on_actionUninstall_Mod_triggered")
-    def _do_uninstall_selected_mod(self, menu_item=None):
+    def _do_uninstall_selected_mod(self, widgetslist=None):
         """Delete all of the archive matched files from the filesystem.
 
-        Stops if any mismatched item is found.
+        Will not process archives with known mismatch.
         """
-        item = self._get_selected_item(menu_item)
-        if not item:
-            logger.error("triggered without item to process")
-            return False
-        if isinstance(item, ListRowVirtualItem):
-            logger.error("Unable to uninstall an illegal package.")
-            return False
+        if not widgetslist:  # called from a non-contextual triggers
+            widgetslist = self.listWidget.selectedItems()
+            if not widgetslist:
+                logger.error("_do_uninstall_selected_mod called without selection.")
+                return
+        if isinstance(widgetslist, ListRowItem):
+            widgetslist = [widgetslist]
 
-        if item.archive_instance.has_mismatched:
-            dialogs.q_information(_(
-                "Unable to uninstall mod: mismatched items exists on drive.\n"
-                "This is most likely due to another installed mod conflicting "
-                "with this mod.\n"
-            ))
-            return False
-
+        mismatched = []
+        failure = False
         self._do_enable_autorefresh(False)
-        logger.info("Uninstalling files from archive %s", item.filename)
-        uninstall_status = filehandler.uninstall_files(item.archive_instance.uninstall_info())
+        for item in widgetslist:
+            if item.archive_instance.has_mismatched:
+                mismatched.append(item.filename)
+                continue
+            logger.info("Uninstalling files from archive %s", item.filename)
+            uninstall_status = filehandler.uninstall_files(item.archive_instance.uninstall_info())
+            if not uninstall_status:
+                failure = True
         self._do_enable_autorefresh(True)
-        if uninstall_status:
-            filehandler.generate_conflicts_between_archives(self.managed_archives)
-            self.refresh_list_item_state()
-            self.on_selection_change()
-            return True
+        if mismatched:
+            dialogs.q_information(
+                _(
+                    "Some module couldn't be uninstalled, some of their files are mismatched.\n"
+                    "This is most likely due to another installed mod conflicting "
+                    "or changes occurred on the drive outside of the control of this software."
+                ),
+                detailed="\n".join(mismatched)
+            )
+        # NOTE: This is time consuming. Best show a popup to inform that the
+        #       software is currently working.
+        filehandler.generate_conflicts_between_archives(self.managed_archives)
+        self.refresh_list_item_state()
+        self.on_selection_change()
 
-        dialogs.q_warning(_(
-            "The uninstallation process failed at some point. Please report "
-            "this happened to the developper alongside with the error file "
-            "{logfile}."
-        ).format(logfile=get_config_dir("error.log")))
-        return False
+        if failure:
+            dialogs.q_warning(
+                _(
+                    "The uninstallation process failed at some point. Please report "
+                    "this happened to the developper alongside with the error file "
+                    "{logfile}."
+                ).format(logfile=get_config_dir("error.log"))
+            )
+            return False
+        return True
 
     @pyqtSlot(name="on_actionSettings_triggered")
     def do_settings(self):
@@ -704,22 +778,36 @@ class MainWindow(QMainWindow, QEventFilter, Ui_MainWindow):
     # Context Menu overrides #
     ##########################
     def _do_menu_actions(self, position):
-        item = self.listWidget.item(self.listWidget.indexAt(position).row())
-        if isinstance(item, ListRowVirtualItem):
+        items = [
+            item
+            for item in filter(
+                lambda x: not isinstance(x, ListRowVirtualItem) and not x.archive_instance.empty,
+                self.listWidget.selectedItems()
+            )
+        ]
+        if not items:  # Nothing to do here.
             return
 
-        install = QAction(QtGui.QIcon(QtGui.QPixmap(":/icons/file-install.svg")), _("Install"),)
-        uninstall = QAction(
-            QtGui.QIcon(QtGui.QPixmap(":/icons/file-uninstall.svg")), _("Uninstall"),
+        install = QAction(
+            QtGui.QIcon(QtGui.QPixmap(":/icons/file-install.svg")),
+            _("Install"),
         )
-        delete = QAction(QtGui.QIcon(QtGui.QPixmap(":/icons/trash.svg")), _("Delete"),)
-        if item.archive_instance.has_matched:
-            install.setDisabled(True)
-            uninstall.triggered.connect(lambda: self._do_uninstall_selected_mod(item))
+        uninstall = QAction(
+            QtGui.QIcon(QtGui.QPixmap(":/icons/file-uninstall.svg")),
+            _("Uninstall"),
+        )
+        delete = QAction(
+            QtGui.QIcon(QtGui.QPixmap(":/icons/trash.svg")),
+            _("Delete"),
+        )
+        # if there is a partial match, don't allow install
+        install.triggered.connect(lambda: self._do_install_selected_mod(items))
+        if any(item.archive_instance.has_matched for item in items):
+            # install.setDisabled(True)
+            uninstall.triggered.connect(lambda: self._do_uninstall_selected_mod(items))
         else:
-            install.triggered.connect(lambda: self._do_install_selected_mod(item))
             uninstall.setDisabled(True)
-        delete.triggered.connect(lambda: self._do_delete_selected_file(item))
+        delete.triggered.connect(lambda: self._do_delete_selected_file(items))
         menu = QMenu()
         menu.addAction(install)
         menu.addAction(uninstall)

@@ -187,7 +187,10 @@ def list7z(file_path: Union[str, pathlib.Path], progress=None) -> List[bucket.Fi
                     tmp_data[fdg.lower()] = file_data.group(2).strip()
                 if fdg == "CRC":
                     if "D" not in tmp_data["attributes"]:
-                        tmp_data[fdg.lower()] = int(tmp_data[fdg.lower()], 16)
+                        try:
+                            tmp_data[fdg.lower()] = int(fdg.lower(), 16)
+                        except ValueError:
+                            tmp_data[fdg.lower()] = 0
                     f_list.append(bucket.FileMetadata(**tmp_data))
 
     return_code = proc.wait()
@@ -202,7 +205,7 @@ def list7z(file_path: Union[str, pathlib.Path], progress=None) -> List[bucket.Fi
     return f_list
 
 
-def sha256hash(filename: Union[IO, str]) -> Union[str, None]:
+def sha256hash(filename: Union[IO, str, os.PathLike]) -> Union[str, None]:
     """Return the 256 hash of the managed archive.
 
     Args:
@@ -296,6 +299,13 @@ class ArchiveInstance(ABCArchiveInstance):
 
     def conflicts(self):
         yield from super().conflicts()
+
+    def known_conflictors(self):
+        conflictors = set()
+        for archives in self._conflicts.values():
+            # combine sets
+            conflictors = conflictors | set(archives) - {self._archive_name}
+        return conflictors
 
     def uninstall_info(self):
         for item in chain(self.matched(), self.folders()):

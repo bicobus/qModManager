@@ -97,6 +97,9 @@
          <property name="defaultDropAction">
           <enum>Qt::LinkAction</enum>
          </property>
+         <property name="selectionMode">
+          <enum>QAbstractItemView::ExtendedSelection</enum>
+         </property>
          <property name="resizeMode">
           <enum>QListView::Adjust</enum>
          </property>
