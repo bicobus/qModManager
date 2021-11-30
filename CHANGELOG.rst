@@ -22,7 +22,7 @@ Added
   * Maps (``namespace/maps/*``)
   * txt folder necessary for the encounter files. (``namespace/txt/*``)
 
-  * Allow PNG files to be installed, as they are required for maps.
+* Allow PNG files to be installed, as they are required for maps.
 * Allow users to install, uninstall or remove several mods in one action. Use
   the shift key or the control key to add or remove mods to your selection.
 
