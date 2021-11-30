@@ -467,42 +467,49 @@ class MainWindow(QMainWindow, QEventFilter, Ui_MainWindow):
         qfd.fileSelected.connect(self._on_action_open_done)
         qfd.exec_()
 
-    def _get_selected_item(self, default: ListRowItem = None) -> ListRowItem:
-        items = self.listWidget.selectedItems()
-        if not items or default in items:
-            return default
-        return items[0]
-
     @pyqtSlot(name="on_actionRemove_file_triggered")
-    def _do_delete_selected_file(self, menu_item=None):
+    def _do_delete_selected_file(self, widgetslist=None):
         """Method to remove an archive file."""
-        item = self._get_selected_item(menu_item)
-        if not item:
-            logger.error("Triggered _do_delete_selected_file without a selection")
-            return
-        if isinstance(item, ListRowVirtualItem):
-            logger.error("Virtual packages cannot be removed.")
+        if not widgetslist:  # called from a non-contextual call
+            widgetslist = self.listWidget.selectedItems()
+            if not widgetslist:
+                logger.error("_do_install_selected_mod called without selection.")
+                return
+        if isinstance(widgetslist, ListRowItem):
+            widgetslist = [widgetslist]
+
+        items = [
+            item for item in filter(
+                lambda x: not isinstance(x, ListRowVirtualItem) and not x.archive_instance.has_matched,
+                widgetslist
+            )
+        ]
+
+        if not items:
+            logger.error("Triggered _do_delete_selected_file but couldn't process anything.")
             return
 
-        ret = dialogs.q_warning_yes_no(_(
-            "This action will uninstall the mod, then move the archive to your "
-            "trashbin.\n\nDo you want to continue?"
-        ))
+        ret = dialogs.q_warning_yes_no(
+            _(
+                "This action will uninstall the mod, then move the archive to your "
+                "trashbin.\n\nDo you want to continue?"
+            ),
+            detailed="Files to be removed:\n * {}".format(
+                "\n * ".join([item.filename for item in items])
+            )
+        )
         if not ret:
             return
 
-        logger.info("Deletion of archive %s", item.filename)
-        if item.archive_instance.has_matched:
-            ret = self._do_uninstall_selected_mod()
-            if not ret:
-                return
-        # Tell watchdog to ignore the file we are about to remove
-        self.fswatch_ignore.emit(item.filename, watchdog.events.EVENT_TYPE_DELETED)
-        filehandler.delete_archive(item.filename)
-        self._remove_row(item.filename, self.listWidget.row(item))
-        # Clear the ignore flag for the file
-        self.fswatch_clear.emit(item.filename, watchdog.events.EVENT_TYPE_DELETED)
-        del item
+        for item in items:
+            logger.info("Deletion of archive %s", item.filename)
+            # Tell watchdog to ignore the file we are about to remove
+            self.fswatch_ignore.emit(item.filename, watchdog.events.EVENT_TYPE_DELETED)
+            filehandler.delete_archive(item.filename)
+            self._remove_row(item.filename, self.listWidget.row(item))
+            # Clear the ignore flag for the file
+            self.fswatch_clear.emit(item.filename, watchdog.events.EVENT_TYPE_DELETED)
+            del item
 
     @pyqtSlot(name="on_actionInstall_Mod_triggered")
     def _do_install_selected_mod(self, widgetslist=None):
