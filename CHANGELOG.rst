@@ -2,6 +2,9 @@
 Version History
 ===============
 
+`1.0.0-beta9`_ - ????????
+-------------------------
+
 `1.0.0-beta8`_ - 01-12-21
 -------------------------
 Fixes
@@ -178,6 +181,7 @@ Fixed
 
 * Internal dev stuff: changes of libraries used, reworking codebase, etc
 
+.. _`1.0.0-beta8`: https://github.com/bicobus/qModManager/compare/v1.0.0-beta8...development
 .. _`1.0.0-beta8`: https://github.com/bicobus/qModManager/compare/v1.0.0-beta7...v1.0.0-beta8
 .. _`1.0.0-beta7`: https://github.com/bicobus/qModManager/compare/v1.0.0-beta6...v1.0.0-beta7
 .. _`1.0.0-beta6`: https://github.com/bicobus/qModManager/compare/v1.0.0-beta5...v1.0.0-beta6
