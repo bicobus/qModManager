@@ -188,7 +188,7 @@ def list7z(file_path: Union[str, pathlib.Path], progress=None) -> List[bucket.Fi
                 if fdg == "CRC":
                     if "D" not in tmp_data["attributes"]:
                         try:
-                            tmp_data[fdg.lower()] = int(fdg.lower(), 16)
+                            tmp_data[fdg.lower()] = int(file_data.group(2), 16)
                         except ValueError:
                             tmp_data[fdg.lower()] = 0
                     f_list.append(bucket.FileMetadata(**tmp_data))
