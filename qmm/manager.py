@@ -12,7 +12,15 @@ from typing import Tuple, Union
 import watchdog.events
 from PyQt5 import QtGui
 from PyQt5.QtCore import QEvent, QObject, Qt, QUrl, pyqtSignal, pyqtSlot
-from PyQt5.QtWidgets import QAction, QApplication, QFileDialog, QMainWindow, QMenu, QMessageBox
+from PyQt5.QtWidgets import (
+    QAction,
+    QApplication,
+    QFileDialog,
+    QMainWindow,
+    QMenu,
+    QMessageBox,
+    QProgressDialog,
+)
 from watchdog.observers import Observer
 
 from qmm import bucket, dialogs, filehandler, get_base_path, running_ci
@@ -501,12 +509,19 @@ class MainWindow(QMainWindow, QEventFilter, Ui_MainWindow):
         if not ret:
             return
 
+        maximum = len(items)
+        pd = QProgressDialog(_("Moving files to the trashbin..."), "", 0, maximum)
+        pd.setAutoClose(True)
+        steps = pd.minimum()
+        pd.setValue(steps)
         for item in items:
             logger.info("Deletion of archive %s", item.filename)
             # Tell watchdog to ignore the file we are about to remove
             self.fswatch_ignore.emit(item.filename, watchdog.events.EVENT_TYPE_DELETED)
             filehandler.delete_archive(item.filename)
             self._remove_row(item.filename, self.listWidget.row(item))
+            steps += 1
+            pd.setValue(steps)
             # Clear the ignore flag for the file
             self.fswatch_clear.emit(item.filename, watchdog.events.EVENT_TYPE_DELETED)
             del item
@@ -558,8 +573,8 @@ class MainWindow(QMainWindow, QEventFilter, Ui_MainWindow):
         self._do_enable_autorefresh(True)
 
         if changes:
-            p_dialog.progress("Recomputing conflicts...")
-            filehandler.generate_conflicts_between_archives(self.managed_archives)
+            p_dialog.category.setText(_("Recomputing conflicts:"))
+            filehandler.generate_conflicts_between_archives(self.managed_archives, p_dialog.progress)
             self.refresh_list_item_state()
         else:
             dialogs.q_information(
@@ -594,7 +609,7 @@ class MainWindow(QMainWindow, QEventFilter, Ui_MainWindow):
 
     @pyqtSlot(name="on_actionUninstall_Mod_triggered")
     def _do_uninstall_selected_mod(self, widgetslist=None):
-        """Delete all of the archive matched files from the filesystem.
+        """Delete all the archive matched files from the filesystem.
 
         Will not process archives with known mismatch.
         """
@@ -606,6 +621,11 @@ class MainWindow(QMainWindow, QEventFilter, Ui_MainWindow):
         if isinstance(widgetslist, ListRowItem):
             widgetslist = [widgetslist]
 
+        pd = QProgressDialog("Uninstalling mods...", "", 0, 100, parent=self)
+        pd.setAutoClose(True)
+        pd.setWindowModality(Qt.WindowModal)
+        pd.setValue(pd.minimum())
+        step = int(100 / len(widgetslist))  # increase progress by `step`
         mismatched = []
         failure = False
         self._do_enable_autorefresh(False)
@@ -614,9 +634,15 @@ class MainWindow(QMainWindow, QEventFilter, Ui_MainWindow):
                 mismatched.append(item.filename)
                 continue
             logger.info("Uninstalling files from archive %s", item.filename)
-            uninstall_status = filehandler.uninstall_files(item.archive_instance.uninstall_info())
+            uninstall_status = filehandler.uninstall_files(
+                item.archive_instance.uninstall_info(),
+                pd,
+                step
+            )
             if not uninstall_status:
                 failure = True
+        pd.reset()
+
         self._do_enable_autorefresh(True)
         if mismatched:
             dialogs.q_information(
@@ -627,11 +653,18 @@ class MainWindow(QMainWindow, QEventFilter, Ui_MainWindow):
                 ),
                 detailed="\n".join(mismatched)
             )
-        # NOTE: This is time consuming. Best show a popup to inform that the
-        #       software is currently working.
-        filehandler.generate_conflicts_between_archives(self.managed_archives)
+
+        sp = dialogs.SplashProgress(
+            parent=None,
+            title=_("Computing data"),
+            message=_("Please wait for the software to initialize it's data."),
+        )
+        sp.show()
+        sp.category.setText(_("Conflict detection:"))
+        filehandler.generate_conflicts_between_archives(self.managed_archives, progress=sp.progress)
         self.refresh_list_item_state()
         self.on_selection_change()
+        sp.done(1)
 
         if failure:
             dialogs.q_warning(

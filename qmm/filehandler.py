@@ -28,7 +28,7 @@ from qmm import bucket, is_windows
 from qmm.ab.archives import ABCArchiveInstance, ArchiveType
 from qmm.common import bundled_tools_path, settings, settings_are_set, valid_suffixes
 from qmm.config import SettingsNotSetError
-from qmm.fileutils import ArchiveEvents, ignore_patterns, subfolders_of
+from qmm.fileutils import ArchiveEvents, FileState, ignore_patterns, subfolders_of
 
 logger = logging.getLogger(__name__)
 
@@ -232,7 +232,6 @@ class VirtualArchiveInstance(ABCArchiveInstance):
 
     def __init__(self, file_list):
         super().__init__(archive_name=b"\x00", file_list=file_list)
-        print("done")
 
     def reset_conflicts(self):
         logger.debug("reset conflicts called on virtual")
@@ -309,6 +308,7 @@ class ArchiveInstance(ABCArchiveInstance):
 
     def uninstall_info(self):
         for item in chain(self.matched(), self.folders()):
+            # XXX: check shouldn't be needed, ignored and matched are exclusive
             if item not in self.ignored():
                 yield item
 
@@ -783,12 +783,17 @@ def install_archive(
     return files
 
 
-def uninstall_files(file_list: List[bucket.FileMetadata]):
+def uninstall_files(file_list: List[bucket.FileMetadata], progress, maximum):
     """Removes a list of files and directory from the filesystem.
 
     Args:
-        file_list (list[FileMetadata]): A list of
-            :obj:`FileMetadata <qmm.bucket.FileMetadata>` objects.
+        file_list (list[FileMetadata]): FileMetadata objects are required in
+            order extract necessary information pertaining to the archive we
+            want to uninstall.
+        progress (:class:`PyQt5.QtWidgets.QProgressDialog`): Used to granually
+            inform the user about the uninstallation progress.
+        maximum (int): Maximum amount of steps allocated for the archive. Pertain
+            to the ``progress`` widget.
 
     Returns:
         bool: :py:data:`True` on success, :py:data:`False` if an error occurred
@@ -799,15 +804,20 @@ def uninstall_files(file_list: List[bucket.FileMetadata]):
         facility.
     """
     dlist = []
+    file_list = list(file_list)  # generators don't have len
     success = True
+    step = maximum / len(file_list)
+    steps = progress.value()
     for item in file_list:
-        assert isinstance(item, bucket.FileMetadata)
         file = item.pathobj
         logger.debug("Trying to delete file: %s", file)
         if not file.is_dir():
             try:
                 file.unlink()
                 bucket.remove_item_from_loosefiles(item)
+                steps += step
+                if steps >= 1 and int(steps) > progress.value():
+                    progress.setValue(int(steps))
             except OSError as e:
                 if e.errno == 39:  # Folder non-empty
                     logger.warning(e.strerror)
