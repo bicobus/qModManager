@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #  Licensed under the EUPL v1.2
-#  © 2019-2020 bicobus <bicobus@keemail.me>
+#  © 2019-2021 bicobus <bicobus@keemail.me>
 """Buckets of dicts with a set of helpers function.
 
 This module serves has a stand-in database, any function or method it contain

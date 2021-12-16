@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# © 2021 bicobus <bicobus@keemail.me>
+# © 2020-2021 bicobus <bicobus@keemail.me>
 
 VERSION_MAJOR = 1
 VERSION_MINOR = 0

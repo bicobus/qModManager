@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # Licensed under the EUPL v1.2
-# © 2020 bicobus <bicobus@keemail.me>
+# © 2020-2021 bicobus <bicobus@keemail.me>
 """Contains a bunch of helper function to display Qt's dialogs."""
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QMessageBox, QDialog

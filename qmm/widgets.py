@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #  Licensed under the EUPL v1.2
-#  © 2019-2020 bicobus <bicobus@keemail.me>
+#  © 2019-2021 bicobus <bicobus@keemail.me>
 """Contains various Qt Widgets used internally by the application."""
 import logging
 from typing import Iterable, List, Union

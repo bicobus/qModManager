@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # Licensed under the EUPL v1.2
-# © 2019 bicobus <bicobus@keemail.me>
+# © 2019-2021 bicobus <bicobus@keemail.me>
 __author__ = "Bicobus"
 __credits__ = ["bicobus"]
 __license__ = "EUPL V1.2"
