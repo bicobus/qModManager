@@ -28,7 +28,8 @@ from qmm import bucket, is_windows
 from qmm.ab.archives import ABCArchiveInstance, ArchiveType
 from qmm.common import bundled_tools_path, settings, settings_are_set, valid_suffixes
 from qmm.config import SettingsNotSetError
-from qmm.fileutils import ArchiveEvents, FileState, ignore_patterns, subfolders_of
+from qmm.fileutils import ArchiveEvents, ignore_patterns
+from qmm.gamestruct.liliththrone import GAME_FOLDERS, MODS_FOLDER, TARGET_FOLDER, path_game2mod
 
 logger = logging.getLogger(__name__)
 
@@ -510,22 +511,20 @@ def _ignored_part_in_path(path):
     return False
 
 
-def get_mod_folder(with_file: str = None, prepend_modpath=False) -> pathlib.Path:
+def get_mod_folder(with_file: str = None) -> pathlib.Path:
     """Return the path to the game folder.
 
     Args:
         with_file: append 'with_file' to the path
-        prepend_modpath: if True, adds the module path before 'with_file'
 
     Returns:
         PathLike structure representing the game folder.
     """
-    path = [settings["game_folder"]]
-    if prepend_modpath:
-        path.extend(["res", "mods"])
     if with_file:
-        path.append(with_file)
-    return pathlib.Path(*path)
+        path = pathlib.Path(MODS_FOLDER.format(settings["game_folder"]), with_file)
+    else:
+        path = pathlib.Path(MODS_FOLDER.format(settings["game_folder"]))
+    return path
 
 
 def _crc32(filename: Union[IO, str, os.PathLike]) -> Union[bucket.Crc32, None]:
@@ -581,33 +580,18 @@ def build_game_files_crc32(progress=None):
         progress (:meth:`~.dialogs.SplashProgress.progress`):
             Callback to a method accepting strings as argument.
     """
-    target_folder = os.path.join(settings["game_folder"], "res")
-    # NOTE: these definitively should be moved elsewhere and be mindful of
-    #  `fileutils.first_level_dir` and `fileutils.subfolder_of` as well as the
-    #  game actual folder structure. Some mod sub-folders are *not* first level
-    #  directories.
-    scan_theses = (
-        "clothing", "outfits", "tattoos", "weapons", "setBonuses", "statusEffects", "items",
-        "race", "combatMove", "patterns", "colours"
-    )
+    target_folder = TARGET_FOLDER.format(settings["game_folder"])
     if progress:
         progress("", category="Game Files")
 
-    for p_folder in scan_theses:
+    for p_folder in GAME_FOLDERS:
         folder = os.path.join(target_folder, p_folder)
         for kfile, crc in _compute_files_crc32(folder, partition=("res",)):
             # normalize path: category/namespace/... -> namespace/category/...
-            try:
-                category, namespace, extra = kfile.split(os.path.sep, 2)
-            except ValueError:
-                # We expect a 3 parts structure, any lower and something is wrong with the game
-                # files.
+            kfile = path_game2mod(kfile)
+            if not kfile:
                 logger.warning("Skipping dirty file %s", os.path.join("res", kfile))
                 continue
-            if category in subfolders_of["items"]:
-                kfile = pathlib.PurePath(namespace, "items", category, extra)
-            else:
-                kfile = pathlib.PurePath(namespace, category, extra)
             if progress:
                 progress(f"Computing {kfile}...")
             bucket.as_gamefile(crc, kfile)
@@ -623,7 +607,7 @@ def build_loose_files_crc32(progress=None):
     """
     if progress:
         progress("", category="Loose Files")
-    mod_folder = get_mod_folder(prepend_modpath=True)
+    mod_folder = get_mod_folder()
     for kfile, crc in _compute_files_crc32(mod_folder):
         if progress:
             progress(f"Computing {kfile}...")
@@ -763,7 +747,7 @@ def install_archive(
                 if src.is_dir():
                     logger.debug("IGNORED %s", src.as_posix())
                     continue
-                dst = get_mod_folder(myfile.path, prepend_modpath=True)
+                dst = get_mod_folder(myfile.path)
                 os.makedirs(os.path.dirname(dst), mode=0o750, exist_ok=True)
                 shutil.copy2(src, dst)
                 ccrc = _crc32(dst)

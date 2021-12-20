@@ -486,12 +486,13 @@ class MainWindow(QMainWindow, QEventFilter, Ui_MainWindow):
         if isinstance(widgetslist, ListRowItem):
             widgetslist = [widgetslist]
 
-        items = [
-            item for item in filter(
-                lambda x: not isinstance(x, ListRowVirtualItem) and not x.archive_instance.has_matched,
+        items = list(
+            filter(
+                lambda x: not isinstance(x, ListRowVirtualItem)
+                and not x.archive_instance.has_matched,
                 widgetslist
             )
-        ]
+        )
 
         if not items:
             logger.error("Triggered _do_delete_selected_file but couldn't process anything.")
@@ -559,14 +560,19 @@ class MainWindow(QMainWindow, QEventFilter, Ui_MainWindow):
                 conflictors.append(item.filename)
                 continue
             logger.info("Installing file %s", item.filename)
-            files = filehandler.install_archive(item.filename, item.archive_instance.install_info())
+            files = filehandler.install_archive(
+                item.filename, item.archive_instance.install_info()
+            )
             if not files:
-                dialogs.q_warning(_(
-                    "The archive {filename} extracted with errors.\n"
-                    "Please refer to {loglocation} for more information."
-                ).format(
-                    filename=item.filename, loglocation=os.path.join(get_base_path(), "error.log")
-                ))
+                dialogs.q_warning(
+                    _(
+                        "The archive {filename} extracted with errors.\n"
+                        "Please refer to {loglocation} for more information."
+                    ).format(
+                        filename=item.filename,
+                        loglocation=os.path.join(get_base_path(), "error.log")
+                    )
+                )
             else:
                 changes = True
 
@@ -574,7 +580,9 @@ class MainWindow(QMainWindow, QEventFilter, Ui_MainWindow):
 
         if changes:
             p_dialog.category.setText(_("Recomputing conflicts:"))
-            filehandler.generate_conflicts_between_archives(self.managed_archives, p_dialog.progress)
+            filehandler.generate_conflicts_between_archives(
+                self.managed_archives, p_dialog.progress
+            )
             self.refresh_list_item_state()
         else:
             dialogs.q_information(
@@ -756,7 +764,7 @@ class MainWindow(QMainWindow, QEventFilter, Ui_MainWindow):
                 raise UnknownContext("Handler is NoneType, must be otherwise.")
             self._wd_watchers[WatchDogSchedules.MODULES] = self._observer.schedule(
                 event_handler=self._mod_handler,
-                path=str(filehandler.get_mod_folder(prepend_modpath=True)),
+                path=str(filehandler.get_mod_folder()),
                 recursive=True,
             )
         else:
@@ -811,13 +819,12 @@ class MainWindow(QMainWindow, QEventFilter, Ui_MainWindow):
     # Context Menu overrides #
     ##########################
     def _do_menu_actions(self, position):
-        items = [
-            item
-            for item in filter(
+        items = list(
+            filter(
                 lambda x: not isinstance(x, ListRowVirtualItem) and not x.archive_instance.empty,
                 self.listWidget.selectedItems()
             )
-        ]
+        )
         if not items:  # Nothing to do here.
             return
 
@@ -1038,6 +1045,8 @@ def main():
     signal.signal(signal.SIGINT, signal.SIG_DFL)
 
     logger.info("Starting application")
+    if running_ci():
+        logger.info("Running is CI mode...")
     try:
         app = QApplication(sys.argv)
         QtGui.QFontDatabase.addApplicationFont(":/unifont.ttf")  # noqa

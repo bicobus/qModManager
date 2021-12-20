@@ -38,6 +38,9 @@ def get_locale():
             language = locale.getdefaultlocale()[0]
         except ValueError:
             language = DEFAULT_LANGUAGE
+        finally:
+            if not language:
+                language = DEFAULT_LANGUAGE
         language = normalize_locale(language)
 
         for lang in list_available_languages():

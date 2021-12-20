@@ -5,37 +5,13 @@
 import enum
 import pathlib
 from enum import Enum, auto
-from functools import lru_cache
 
 from PyQt5 import QtGui
 
 from qmm import bucket
+from qmm.gamestruct import GameStructure, liliththrone
 
-# Mods directory structure
-# REVIEW: Should be used in function `build_game_files_crc32`. However the path
-#  structure is too complex and a dedicated function or module should be written
-#  in order to build paths corresponding the the game expectation.
-# NOTE: race folder contains it's how set of sub-folders. Might need to be
-first_level_dir = (
-    "items",
-    "outfits",
-    "setBonuses",
-    "statusEffects",
-    "race",
-    "colours",
-    "combatMove",
-    "dialogue",
-    "encounters",
-    "sex",
-    "maps",
-    "txt",
-)
-
-subfolders_of = {
-    "items": ("weapons", "clothing", "tattoos", "items", "patterns"),
-    "race": ("bodyParts", "coveringTypes", "subspecies"),
-    "sex": ("managers", "actions"),
-}
+game_structure = GameStructure(liliththrone.validators)
 
 
 class FileState(Enum):
@@ -105,45 +81,14 @@ def ignore_patterns(seven_flag=False):
     return ".DS_Store", "__MACOSX", "Thumbs.db"
 
 
-@lru_cache(maxsize=None)
-def _bad_directory_structure(path: pathlib.Path):
-    if (
-        len(path.parts) >= 2
-        and path.parts[1] not in first_level_dir
-        or len(path.parts) >= 3
-        and (
-            (path.parts[1] == "items" and path.parts[2] not in subfolders_of["items"])
-            or (
-                path.parts[1] == "race"
-                and len(path.parts) > 3
-                and path.parts[3] not in subfolders_of["race"]
-                and path.suffix != ".xml"  # folder suffixes are empty
-            )
-        )
-    ):
-        return True
-    return False
-
-
-@lru_cache(maxsize=None)
-def _bad_suffix(suffix):
-    # FIXME: PNGs are only warranted within maps subfolders. We don't support per folder
-    # suffixes though.
-    return bool(suffix not in (".xml", ".svg", ".png"))
-
-
 def file_status(file: bucket.FileMetadata) -> FileState:
-    if (
-        file.pathobj.name in ignore_patterns()
-        or _bad_directory_structure(file.path_as_posix())
-        or (file.pathobj.suffix and _bad_suffix(file.pathobj.suffix))
+    if file.pathobj.name in ignore_patterns() or (
+        len(pathlib.Path(file.path).parts) >= 2
+        and not game_structure.validate(str(file.path_as_posix()))
     ):
         return FileState.IGNORED
-    if (
-        file.is_dir()
-        and bucket.file_path_in_loosefiles(file)
-        or bucket.file_crc_in_loosefiles(file)
-        and bucket.file_path_in_loosefiles(file)
+    if bucket.file_path_in_loosefiles(file) and (
+        file.is_dir() or bucket.file_crc_in_loosefiles(file)
     ):
         return FileState.MATCHED
     if bucket.file_path_in_loosefiles(file) and not bucket.file_crc_in_loosefiles(file):

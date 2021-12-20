@@ -120,9 +120,19 @@ class FileMetadata:
                 parts = (self._Path[:pos], self._Path[pos + 1:])
         return parts
 
-    def path_as_posix(self):
-        """Return 'pathlib.PurePosixPath' with self._Path as value."""
-        return pathlib.PurePosixPath(self._Path)
+    def path_as_posix(self) -> str:
+        """Return a posixified path for the current file.
+
+        The software expect folder separator to be POSIX compatible, which means
+        we need to convert windows backslash to regular slash.
+
+        If the path is a folder, append a terminating slash (/) to it.
+        """
+        return (
+            "{0}/".format(str(pathlib.PurePosixPath(self._Path)))
+            if self.is_dir()
+            else str(pathlib.PurePosixPath(self._Path))
+        )
 
     @property
     def crc(self):
@@ -269,11 +279,12 @@ def as_gamefile(crc: Crc32, value: Union[pathlib.Path, pathlib.PurePath]):
         logger.warning(
             "Duplicate file found, crc matches for\n-> %s\n-> %s", gamefiles[crc], value
         )
-        return
+        return False
     value = FileMetadata(
         crc=crc, path=value, modified=None, attributes=None, isfrom=TYPE_GAMEFILE
     )
     gamefiles.setdefault(crc, value)
+    return True
 
 
 def as_loosefile(crc: Crc32, filepath: pathlib.Path):
