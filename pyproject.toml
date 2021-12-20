@@ -1,21 +1,9 @@
-[project]
-name = "PyQMM"
-version = "1.0.0-beta3"
-description = "A simple Qt based mod manager for Lilith's Throne."
-authors = [
-    "bicobus <bicobus@keemail.me>"
-]
-license = "EUPLv1.2"
-readme = "resources/README.txt"
-python = "^3.7"
-homepage = "https://github.com/bicobus/qModManager/"
-repository = "https://github.com/bicobus/qModManager/"
-documentation = "https://qmodmanager.readthedocs.io/"
-
-keywords = ["Qt", "modding"]
-
 [build-system]
-requires = ["setuptools", "wheel"]  # PEP 508 specs
+requires = [  # PEP 508 specs
+    "setuptools >= 40.9.0",
+    "wheel"
+]
+build-backend = "setuptools.build_meta"
 
 [tool.coverage.run]
 branch = true
@@ -31,6 +19,10 @@ exclude_lines = [
     "if __name__ == .__main__.:"
 ]
 fail_under = 0
+
+[tool.pytest.ini_options]
+testpaths = ['tests']
+addopts = ""
 
 [tool.black]
 line-length = 98

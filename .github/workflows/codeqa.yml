@@ -38,7 +38,6 @@ jobs:
       - name: Install Dependencies (linux)
         if: startsWith(matrix.os, 'ubuntu')
         working-directory: ${{ github.workspace }}/qMM
-        # replace pyqt5 with latest version, workaround xcb bug
         run: |
           sudo apt-get update --fix-missing
           sudo apt-get install --fix-missing --no-install-recommends libegl1-mesa \
@@ -54,8 +53,7 @@ jobs:
             libxcb-render-util0 \
             qtbase5-dev
           python -m pip install --upgrade pip wheel setuptools
-          python -m pip install coverage[toml]
-          sed -i 's/pyqt5==5.15.1/pyqt5==5.15.2/g' requirements.txt
+          python -m pip install coverage[toml] pytest pytest-cov
           python -m pip install -r requirements.txt
           make ui
       - name: Install Dependencies (windows)
@@ -64,7 +62,7 @@ jobs:
         shell: bash -l {0}
         run: |
           python -m pip install --upgrade pip wheel setuptools
-          python -m pip install coverage[toml]
+          python -m pip install coverage[toml] pytest pytest-cov
           python -m pip install -r requirements.txt
           make ui
       - name: Create test environment
@@ -75,7 +73,7 @@ jobs:
         if: startsWith(matrix.os, 'ubuntu')
         working-directory: ${{ github.workspace }}/qMM
         run: |
-          xvfb-run --auto-servernum coverage run ./run.py
+          xvfb-run --auto-servernum pytest --cov=qmm
           coverage xml
           ls -al
           ls -al ..
@@ -84,7 +82,7 @@ jobs:
         working-directory: ${{ github.workspace }}\qMM
         shell: bash -l {0}
         run: |
-          coverage run ./run.py
+          pytest --cov=qmm
           coverage xml
           ls -al
           ls -al ..
