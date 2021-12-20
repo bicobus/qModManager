@@ -4,6 +4,19 @@ Version History
 
 `1.0.0-beta9`_ - ????????
 -------------------------
+The complexity of mods supported by Lilith Throne made it apparent that the
+current way of verifying mods' file structure is lacking. This version introduce
+somewhat of a major change in how mods structure are verified. It is much more
+modular and precise.
+
+Changed
+~~~~~~~
+* (internals) Path verification is now strictly matching with what Lilith's
+  Throne expects to see.
+
+Added
+~~~~~
+* Progress information when user uninstall and delete mods
 
 `1.0.0-beta8`_ - 01-12-21
 -------------------------
