@@ -5,18 +5,15 @@ verify_ssl = true
 
 [dev-packages]
 "flake8" = "*"
-pyinstaller = "~=4.3"
+pyinstaller = "~=4.7"
 pylint = "*"
 "flake8-bugbear" = "*"
 "flake8-comprehensions" = "*"
-sphinx = "==4.2.0"
 pytest = "~=6.2"
-sphinx-qt-documentation = "*"
-black = "==21.11b1"
+black = "==21.12b0"
 pydocstyle = "*"
 coverage = {extras = ["toml"], version = "*"}
 pyqt5-stubs = "*"
-tox = "*"
 pytest-cov = "*"
 
 [packages]
