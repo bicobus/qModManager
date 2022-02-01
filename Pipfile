@@ -5,7 +5,7 @@ verify_ssl = true
 
 [dev-packages]
 "flake8" = "*"
-pyinstaller = "~=4.7"
+pyinstaller = "~=4.8"
 pylint = "*"
 "flake8-bugbear" = "*"
 "flake8-comprehensions" = "*"
