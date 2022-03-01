@@ -9,7 +9,7 @@ pyinstaller = "~=4.7"
 pylint = "*"
 "flake8-bugbear" = "*"
 "flake8-comprehensions" = "*"
-pytest = "~=6.2"
+pytest = "~=7.0"
 black = "==21.12b0"
 pydocstyle = "*"
 coverage = {extras = ["toml"], version = "*"}
