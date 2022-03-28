@@ -31,7 +31,7 @@ jobs:
             echo ::set-output name=RELEASE_TYPE::debug
           fi
           echo ::set-output name=VERSION::$REF
-      - uses: actions/checkout@v2.4.0
+      - uses: actions/checkout@v3
       - uses: actions/setup-python@v2.3.1
         with:
           python-version: ${{ env.PYTHON }}
