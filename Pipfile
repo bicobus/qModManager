@@ -17,7 +17,7 @@ pyqt5-stubs = "*"
 pytest-cov = "*"
 
 [packages]
-pyqt5 = "==5.15.6"
+pyqt5 = "==5.15.7"
 send2trash = "*"
 appdirs = "*"
 watchdog = "*"
