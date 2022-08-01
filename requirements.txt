@@ -1,6 +1,6 @@
 -i https://pypi.org/simple
 appdirs==1.4.4
-attrs==21.4.0
+attrs==22.1.0
 pyqt5==5.15.6
 pyqt5-qt5==5.15.2
 pyqt5-sip==12.10.1
