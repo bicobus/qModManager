@@ -1,13 +1,6 @@
 # see: https://docs.github.com/en/free-pro-team@latest/github/administering-a-repository/configuration-options-for-dependency-updates#package-ecosystem
 version: 2
 updates:
-  - package-ecosystem: "pip"
-    directory: "/"
-    schedule: 
-      interval: "monthly"
-    ignore:
-      - dependency-name: "sphinx"
-
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
