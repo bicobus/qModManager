@@ -328,7 +328,7 @@ class MapsValidator:
 
 
 _txtr = _MatchReValidator(
-    re.compile(r"^[^/]+/txt/(?:[^/]+/(?:[^/]+\.xml)?$|$)")
+    re.compile(r"^[^/]+/txt/(?:[^/]+/(?:[^/]+\.xml)?$|[^/]+\.xml$|$)")
 )
 
 

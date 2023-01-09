@@ -197,6 +197,7 @@ def maps_nonvalid(request):
         "AceXp/txt/dominion/angel_office.xml",
         "AceXp/txt/submission/",
         "AceXp/txt/",
+        "namespace/txt/file.xml",
     ]
 )
 def txt(request):
