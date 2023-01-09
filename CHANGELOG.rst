@@ -2,8 +2,14 @@
 Version History
 ===============
 
-`1.0.0-beta10`_ - ????????
+`1.0.0-beta11`_ - ????????
 --------------------------
+
+`1.0.0-beta10`_ - 09-01-23
+--------------------------
+Fixes
+~~~~~
+* xml files present directly under ``namespace/txt/`` weren't considered.
 
 `1.0.0-beta9`_ - 26-12-21
 -------------------------
@@ -197,7 +203,9 @@ Fixed
 
 * Internal dev stuff: changes of libraries used, reworking codebase, etc
 
-.. _`1.0.0-beta10`: https://github.com/bicobus/qModManager/compare/v1.0.0-beta9...development
+
+.. _`1.0.0-beta11`: https://github.com/bicobus/qModManager/compare/v1.0.0-beta10...development
+.. _`1.0.0-beta10`: https://github.com/bicobus/qModManager/compare/v1.0.0-beta9...v1.0.0-beta10
 .. _`1.0.0-beta9`: https://github.com/bicobus/qModManager/compare/v1.0.0-beta8...v1.0.0-beta9
 .. _`1.0.0-beta8`: https://github.com/bicobus/qModManager/compare/v1.0.0-beta7...v1.0.0-beta8
 .. _`1.0.0-beta7`: https://github.com/bicobus/qModManager/compare/v1.0.0-beta6...v1.0.0-beta7
