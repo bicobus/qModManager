@@ -10,7 +10,7 @@ pylint = "*"
 "flake8-bugbear" = "*"
 "flake8-comprehensions" = "*"
 pytest = "~=7.1"
-black = "==22.8.0"
+black = "==24.3.0"
 pydocstyle = "*"
 coverage = {extras = ["toml"], version = "*"}
 pyqt5-stubs = "*"
