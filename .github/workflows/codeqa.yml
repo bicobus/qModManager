@@ -87,7 +87,7 @@ jobs:
           ls -al
           ls -al ..
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4.1.0
+        uses: codecov/codecov-action@v4.3.0
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           root_dir: ${{ github.workspace }}/qMM
