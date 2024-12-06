@@ -21,6 +21,7 @@ from tests.fixtures import (
     sex,
     statuseffects,
     txt,
+    characters,
 )
 
 
@@ -85,3 +86,7 @@ def test_validator_maps_nonvalid(maps_nonvalid):
 
 def test_validator_txt(txt):
     assert liliththrone.TxtValidator(txt)
+
+
+def test_validator_characters(characters):
+    assert liliththrone.CharactersValidator(characters)

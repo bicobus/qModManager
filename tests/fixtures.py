@@ -163,7 +163,7 @@ def encounters(request):
     "namespace/sex/actions/some_file.xml",
     "namespace/sex/managers/somefolder/",
     "namespace/sex/managers/somefolder/file.xml",
-    "namespace/sex/managers/some/folder/"
+    "namespace/sex/managers/some/folder/",
     "namespace/sex/managers/some/folder/file.xml",
 ])
 def sex(request):
