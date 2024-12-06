@@ -4,6 +4,10 @@ Version History
 
 `1.0.0-beta11`_ - ????????
 --------------------------
+Fixes
+~~~~~
+* Add support for characters as mod location
+* support subfolders for the sex actions and managers
 
 `1.0.0-beta10`_ - 09-01-23
 --------------------------
