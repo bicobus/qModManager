@@ -2,9 +2,9 @@
 Version History
 ===============
 
-`1.0.2`_ - ???????
+`1.0.2`_ - 6-12-24
 --------------------------
-WIP
+Build script and CI schenanigans
 
 `1.0.1`_ - 6-12-24
 --------------------------
@@ -223,7 +223,7 @@ Fixed
 * Internal dev stuff: changes of libraries used, reworking codebase, etc
 
 
-.. _`1.0.2`: https://github.com/bicobus/qModManager/compare/v1.0.1...development
+.. _`1.0.2`: https://github.com/bicobus/qModManager/compare/v1.0.1...v1.0.2
 .. _`1.0.1`: https://github.com/bicobus/qModManager/compare/v1.0.0...v1.0.1
 .. _`1.0.0`: https://github.com/bicobus/qModManager/compare/v1.0.0-beta11...v1.0.0
 .. _`1.0.0-beta10`: https://github.com/bicobus/qModManager/compare/v1.0.0-beta9...v1.0.0-beta10
