@@ -1,8 +1,7 @@
 -i https://pypi.org/simple
 appdirs==1.4.4
-attrs==21.4.0
-pyqt5==5.15.6
-pyqt5-qt5==5.15.2
-pyqt5-sip==12.10.1
-send2trash==1.8.0
-watchdog==2.1.9
+attrs==24.2.0; python_version >= '3.7'
+black==24.10.0; python_version >= '3.9'
+pyqt5==5.15.11; python_version >= '3.8'
+send2trash==1.8.3; python_version >= '2.7' and python_version not in '3.0, 3.1, 3.2, 3.3, 3.4, 3.5'
+watchdog==6.0.0; python_version >= '3.9'
