@@ -72,11 +72,6 @@ If you opted for the simple pip install, simply execute run.py.
     ~$ python run.py
 
 
-Known issues
-------------
-The software is currently being rewritten, as such no known limitation exists.
-This might change once we get out of alpha.
-
 Hacking
 -------
 If you want to hack around, you only require the dependencies listed in the
