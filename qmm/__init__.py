@@ -4,10 +4,10 @@
 __author__ = "Bicobus"
 __credits__ = ["bicobus"]
 __license__ = "EUPL V1.2"
-__version__ = "1.0"
+__version__ = "1.0.1"
 __maintainer__ = "bicobus"
 __email__ = "bicobus@keemail.me"
-__status__ = "alpha"
+__status__ = "stable"
 
 import os
 import sys
@@ -30,7 +30,7 @@ def is_frozen():
     return bool(getattr(sys, "frozen", False))
 
 
-def get_base_path():
+def get_base_path() -> str:
     if getattr(sys, "frozen", False):
         r = os.path.dirname(sys.executable)
     elif "sphinx" in sys.modules:
@@ -46,8 +46,11 @@ def get_base_path():
 
 
 def get_data_path(relpath):
-    path = os.path.join(get_base_path(), relpath)
-    return path
+    path: list[str] = [get_base_path()]
+    if is_frozen():
+        path.append("_internal")
+    path.append(relpath)
+    return os.path.join(*path)
 
 
 # Uncomment if PyQt5 floods the log file.

@@ -2,6 +2,12 @@
 Version History
 ===============
 
+`1.0.1`_ - 6-12-24
+--------------------------
+Fixes
+~~~~~
+* Workaround build issue from pyinstaller
+
 `1.0.0`_ - 6-12-24
 --------------------------
 Fixes
@@ -213,7 +219,8 @@ Fixed
 * Internal dev stuff: changes of libraries used, reworking codebase, etc
 
 
-.. _`1.0.1`: https://github.com/bicobus/qModManager/compare/v1.0.0...development
+.. _`1.0.2`: https://github.com/bicobus/qModManager/compare/v1.0.1...development
+.. _`1.0.1`: https://github.com/bicobus/qModManager/compare/v1.0.0...v1.0.1
 .. _`1.0.0`: https://github.com/bicobus/qModManager/compare/v1.0.0-beta11...v1.0.0
 .. _`1.0.0-beta10`: https://github.com/bicobus/qModManager/compare/v1.0.0-beta9...v1.0.0-beta10
 .. _`1.0.0-beta9`: https://github.com/bicobus/qModManager/compare/v1.0.0-beta8...v1.0.0-beta9
