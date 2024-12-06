@@ -21,6 +21,7 @@ from PyQt5.QtWidgets import (
     QMessageBox,
     QProgressDialog,
 )
+from watchdog.events import FileCreatedEvent, FileDeletedEvent, FileModifiedEvent, FileMovedEvent
 from watchdog.observers import Observer
 
 from qmm import bucket, dialogs, filehandler, get_base_path, running_ci
@@ -57,10 +58,10 @@ class WatchDogSchedules(enum.Enum):
 
 
 class QmmWdEventHandler:
-    sgn_moved = pyqtSignal([tuple])
-    sgn_created = pyqtSignal([tuple])
-    sgn_deleted = pyqtSignal([tuple])
-    sgn_modified = pyqtSignal([tuple])
+    sgn_moved = pyqtSignal(FileMovedEvent)
+    sgn_created = pyqtSignal(FileCreatedEvent)
+    sgn_deleted = pyqtSignal(FileDeletedEvent)
+    sgn_modified = pyqtSignal(FileModifiedEvent)
 
     def __init__(self, moved_cb, created_cb, deleted_cb, modified_cb):
         super().__init__()
@@ -110,25 +111,25 @@ class GameModEventHandler(
     def on_moved(self, event):  # rename events
         if not self._active:
             return
-        self.sgn_moved.emit(event.key)
+        self.sgn_moved.emit(event)
 
     def on_created(self, event):
         if not self._active:
             return
         self._was_created.append(event.src_path)
-        self.sgn_created.emit(event.key)
+        self.sgn_created.emit(event)
 
     def on_deleted(self, event):
         if not self._active:
             return
-        self.sgn_deleted.emit(event.key)
+        self.sgn_deleted.emit(event)
 
     def on_modified(self, event):
         if not self._active:
             return
         if event.src_path in self._was_created:
             self._was_created.remove(event.src_path)
-        self.sgn_modified.emit(event.key)
+        self.sgn_modified.emit(event)
 
 
 class ArchiveAddedEventHandler(
@@ -154,12 +155,12 @@ class ArchiveAddedEventHandler(
         if event.is_directory or not self._active:
             return
         self._accept.append(event.src_path)
-        self.sgn_created.emit(event.key)
+        self.sgn_created.emit(event)
 
     def on_deleted(self, event):
         if event.is_directory or not self._active:
             return
-        self.sgn_deleted.emit(event.key)
+        self.sgn_deleted.emit(event)
 
     def on_modified(self, event):
         if not self._active:
@@ -168,7 +169,7 @@ class ArchiveAddedEventHandler(
         # beforehand.
         if event.src_path in self._accept:
             self._accept.remove(event.src_path)
-            self.sgn_modified.emit(event.key)
+            self.sgn_modified.emit(event)
 
 
 class QEventFilter:
@@ -898,12 +899,12 @@ class MainWindow(QMainWindow, QEventFilter, Ui_MainWindow):
         self.managed_archives.rename_archive(src_path, dest_path)
 
     def _on_fs_modified(self, e):
-        filename = e[1]
+        filename = e.src_path
         logger.info("New archive detected in the repository folder: %s", filename)
         self._on_action_open_done(filename, archive=pathlib.Path(filename).name)
 
     def _on_fs_deleted(self, e):
-        item = pathlib.Path(e[1])
+        item = pathlib.Path(e.src_path)
         logger.debug("WATCHDOG: file deleted on file system: %s", item)
         rows = self.listWidget.findItems(item.name, Qt.MatchExactly)
         if not rows:
