@@ -17,7 +17,7 @@ jobs:
       run:
         shell: bash
     env:
-      PYTHON: "3.8"
+      PYTHON: "3.12"
     steps:
       - name: Define Release Type
         id: release_type

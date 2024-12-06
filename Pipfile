@@ -5,26 +5,27 @@ verify_ssl = true
 
 [dev-packages]
 "flake8" = "*"
-pyinstaller = "~=5.4"
+pyinstaller = "*"
 pylint = "*"
 "flake8-bugbear" = "*"
 "flake8-comprehensions" = "*"
-pytest = "~=7.1"
-black = "==24.3.0"
+pytest = "==8.*"
+black = "==24.*"
 pydocstyle = "*"
 coverage = {extras = ["toml"], version = "*"}
 pyqt5-stubs = "*"
 pytest-cov = "*"
 
 [packages]
-pyqt5 = "==5.15.6"
+pyqt5 = "==5.15.11"
 send2trash = "*"
 appdirs = "*"
 watchdog = "*"
 attrs = "*"
+black = "*"
 
 [requires]
-python_version = "3.8"
+python_version = "3.12"
 
 [pipenv]
 allow_prereleases = false
