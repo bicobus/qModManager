@@ -361,5 +361,5 @@ class CharactersValidator:
         return "characters"
 
     @staticmethod
-    def secundary():
+    def secondary():
         return None
