@@ -275,7 +275,7 @@ class EncountersValidator:
 
 
 _sexr = _MatchReValidator(
-    re.compile(r"^[^/]+/sex/(?:(?:managers|actions)/(?:[^/]+\.xml)?$|$)")
+    re.compile(r"^[^/]+/sex/(?:(?:managers|actions)/(?:[^/]+/){0,5}(?:[^/]+\.xml)?$|$)")
 )
 
 
@@ -343,4 +343,23 @@ class TxtValidator:
 
     @staticmethod
     def secondary():
+        return None
+
+
+_chararctersr = _MatchReValidator(
+    re.compile(r"^[^/]+/characters/(?:[^/]+/){0,5}(?:[^/]+\.xml$|$)")
+)
+
+
+@as_validator
+@attr.s(frozen=True)
+class CharactersValidator:
+    data = attr.ib(validator=_chararctersr.match)
+
+    @staticmethod
+    def primary():
+        return "characters"
+
+    @staticmethod
+    def secundary():
         return None

@@ -161,6 +161,10 @@ def encounters(request):
     "namespace/sex/actions/",
     "namespace/sex/managers/some_file.xml",
     "namespace/sex/actions/some_file.xml",
+    "namespace/sex/managers/somefolder/",
+    "namespace/sex/managers/somefolder/file.xml",
+    "namespace/sex/managers/some/folder/"
+    "namespace/sex/managers/some/folder/file.xml",
 ])
 def sex(request):
     return request.param
@@ -201,4 +205,15 @@ def maps_nonvalid(request):
     ]
 )
 def txt(request):
+    return request.param
+
+@pytest.fixture(
+    params=[
+        "namespace/characters/",
+        "namespace/characters/file.xml",
+        "namespace/characters/folder/",
+        "namespace/characters/folder/file.xml",
+    ]
+)
+def characters(request):
     return request.param
