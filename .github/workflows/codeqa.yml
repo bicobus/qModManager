@@ -40,7 +40,7 @@ jobs:
         working-directory: ${{ github.workspace }}/qMM
         run: |
           sudo apt-get update --fix-missing
-          sudo apt-get install --fix-missing --no-install-recommends libegl1-mesa \
+          sudo apt-get install --fix-missing --no-install-recommends libegl1 \
             libxkbcommon-x11-0 \
             libxcb-randr0-dev \
             libxcb-xtest0-dev \
