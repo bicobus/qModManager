@@ -20,7 +20,10 @@ LANGUAGE_CODES = [
 LANGUAGE_ALIASES = {
     'en': 'en_US',
     'fr': 'fr_FR',
-    'fr_BE': 'fr_FR'
+    'fr_BE': 'fr_FR',
+    'zh_HK': 'zh',
+    'zh_TW': 'zh',
+    'zh_CN': 'zh',
 }
 # fmt: on
 
@@ -59,7 +62,8 @@ def get_locale():
 
 def list_available_languages():
     locale_path = get_data_path("locales")
-    langs = [d for d in os.listdir(locale_path) if os.path.isdir(os.path.join(locale_path, d))]
+    langs = [d for d in os.listdir(locale_path) if os.path.isdir(
+        os.path.join(locale_path, d))]
     langs.append(DEFAULT_LANGUAGE)
 
     for lang in langs:
@@ -79,7 +83,8 @@ def list_available_languages():
 def set_gettext(install=True):
     lang = get_locale()
     locale_dir = get_data_path("locales")
-    trans = gettext.translation("qmm", localedir=locale_dir, languages=[lang], fallback=True)
+    trans = gettext.translation(
+        "qmm", localedir=locale_dir, languages=[lang], fallback=True)
     if install:
         trans.install()
     return trans.gettext

@@ -1,0 +1,372 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR bicobus
+# This file is distributed under the same license as the qMM package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: qMM 1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2020-10-02 17:49+0200\n"
+"PO-Revision-Date: 2024-12-31 09:25+0800\n"
+"Last-Translator: Paul-16098\n"
+"Language-Team: Paul-16098\n"
+"Language: zh\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: Poedit 2.3\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+
+#: qmm/dialogs.py:15
+msgid "An error occurred"
+msgstr "發生錯誤"
+
+#: qmm/dialogs.py:25
+msgid "An warning occurred"
+msgstr "發生警告"
+
+#: qmm/dialogs.py:35
+msgid "Warning"
+msgstr "警告"
+
+#: qmm/dialogs.py:46 qmm/manager.py:244
+msgid "Information"
+msgstr "信息"
+
+#: qmm/fileutils.py:36
+msgid "Matched"
+msgstr "匹配"
+
+#: qmm/fileutils.py:38
+msgid "Missing"
+msgstr "缺失"
+
+#: qmm/fileutils.py:40
+msgid "Mismatched"
+msgstr "不匹配"
+
+#: qmm/fileutils.py:42
+msgid "Ignored"
+msgstr "忽略"
+
+#: qmm/manager.py:239
+msgid ""
+"One or more parameters required for the proper usage of this application are "
+"undefined.<br>Would you like to open the Preferences window and define them "
+"now?"
+msgstr ""
+"使用此應用程序所需的一個或多個參數未定義。<br>您是否要打開首選項窗口並立即定義它們？"
+
+#: qmm/manager.py:260
+msgid "Refreshing loose files..."
+msgstr "正在刷新散亂文件..."
+
+#: qmm/manager.py:267
+msgid "Refreshing managed archive..."
+msgstr "正在刷新管理的存檔..."
+
+#: qmm/manager.py:287
+msgid "Refresh done."
+msgstr "刷新完成。"
+
+#: qmm/manager.py:300
+msgid "Computing data"
+msgstr "計算數據"
+
+#: qmm/manager.py:301
+msgid "Please wait for the software to initialize it's data."
+msgstr "請等待軟件初始化數據。"
+
+#: qmm/manager.py:309
+msgid "Conflict detection"
+msgstr "衝突檢測"
+
+#: qmm/manager.py:316
+msgid "Parsing archives"
+msgstr "解析存檔"
+
+#: qmm/manager.py:457
+msgid "You must set your game folder location."
+msgstr "您必須設置遊戲文件夾位置。"
+
+#: qmm/manager.py:485
+msgid ""
+"This action will uninstall the mod, then move the archive to your trashbin.\n"
+"\n"
+"Do you want to continue?"
+msgstr ""
+"此操作將卸載模組，然後將存檔移動到垃圾桶。\n"
+"\n"
+"您要繼續嗎？"
+
+#: qmm/manager.py:521
+#, python-brace-format
+msgid ""
+"The archive {filename} extracted with errors.\n"
+"Please refer to {loglocation} for more information."
+msgstr ""
+"存檔 {filename} 提取時出錯。\n"
+"請參閱 {loglocation} 以獲取更多信息。"
+
+#: qmm/manager.py:547
+msgid ""
+"Unable to uninstall mod: mismatched items exists on drive.\n"
+"This is most likely due to another installed mod conflicting with this mod.\n"
+msgstr ""
+"無法卸載模組：驅動器上存在不匹配的項目。\n"
+"這很可能是由於另一個已安裝的模組與此模組衝突。\n"
+
+#: qmm/manager.py:564
+#, python-brace-format
+msgid ""
+"The uninstallation process failed at some point. Please report this happened "
+"to the developper alongside with the error file {logfile}."
+msgstr ""
+"卸載過程在某些時候失敗。請將此情況報告給開發人員，並附上錯誤文件 {logfile}。"
+
+#: qmm/manager.py:674
+msgid "A file with the same name already exists in the repository."
+msgstr "存儲庫中已存在同名文件。"
+
+#: qmm/manager.py:695
+#, python-brace-format
+msgid ""
+"The file you selected is already present in the repository. It may exists "
+"under a different name.\n"
+"Hashsum matched: {hashsum}"
+msgstr ""
+"您選擇的文件已存在於存儲庫中。它可能以不同的名稱存在。\n"
+"哈希值匹配：{hashsum}"
+
+#: qmm/manager.py:708
+msgid "Install"
+msgstr "安裝"
+
+#: qmm/manager.py:710
+msgid "Uninstall"
+msgstr "卸載"
+
+#: qmm/manager.py:712
+msgid "Delete"
+msgstr "刪除"
+
+#: qmm/ui_about.py:66
+msgid "About"
+msgstr "關於"
+
+#: qmm/ui_about.py:67
+msgid "qModManager © 2020 Bicobus"
+msgstr "qModManager © 2020 Bicobus"
+
+#: qmm/ui_about.py:68
+msgid "Authors"
+msgstr "作者"
+
+#: qmm/ui_about.py:69
+msgid ""
+"qModManager is licensed under the European Union Public Licence V. 1.2\n"
+"\n"
+"EUPL © the European Union 2007, 2016\n"
+"\n"
+"This European Union Public Licence (the ‘EUPL’) applies to the Work (as\n"
+"defined below) which is provided under the terms of this Licence. Any use "
+"of\n"
+"the Work, other than as authorised under this Licence is prohibited (to the\n"
+"extent such use is covered by a right of the copyright holder of the Work).\n"
+"\n"
+"The Work is provided under the terms of this Licence when the Licensor (as\n"
+"defined below) has placed the following notice immediately following the\n"
+"copyright notice for the Work: “Licensed under the EUPL”, or has expressed "
+"by\n"
+"any other means his willingness to license under the EUPL.\n"
+msgstr ""
+"qModManager 根據歐盟公共許可證 V. 1.2 授權\n"
+"\n"
+"EUPL © 歐盟 2007, 2016\n"
+"\n"
+"本歐盟公共許可證（‘EUPL’）適用於根據本許可證條款提供的作品（如下所定義）。任何未經本許可證授權的使用均被禁止（在此類使用受作品版權持有人權利保護的範圍內）。\n"
+"\n"
+"當許可方（如下所定義）在作品的版權聲明後立即放置以下聲明：“根據 EUPL 授權”或以任何其他方式表達其願意根據 EUPL 授權時，作品即根據本許可證條款提供。\n"
+
+#: qmm/ui_about.py:343
+msgid "License"
+msgstr "許可證"
+
+#: qmm/ui_about.py:344
+msgid ""
+"qModManager make use of external libraries, framework and resources:\n"
+"\n"
+"PyQt5 - Copyright © 2019 Riverbank Computing Limited "
+"<info@riverbankcomputing.com> - GPLv3\n"
+"pyxdg - Thomas Kluyver, Heinrich Wendel, Sergey Kuleshov - GPLv2\n"
+"Remix Icon - https://remixicon.com - Apache License"
+msgstr ""
+"qModManager 使用外部庫、框架和資源：\n"
+"\n"
+"PyQt5 - 版權所有 © 2019 Riverbank Computing Limited "
+"<info@riverbankcomputing.com> - GPLv3\n"
+"pyxdg - Thomas Kluyver, Heinrich Wendel, Sergey Kuleshov - GPLv2\n"
+"Remix Icon - https://remixicon.com - Apache 許可證"
+
+#: qmm/ui_about.py:349
+msgid "Credits"
+msgstr "鳴謝"
+
+#: qmm/ui_mainwindow.py:242
+msgid ""
+"If checked, the files present in the game's modules folder will be "
+"reanalized every time the application gain focus."
+msgstr ""
+"如果選中，遊戲模塊文件夾中的文件將在每次應用程序獲得焦點時重新分析。"
+
+#: qmm/ui_mainwindow.py:243
+msgid "Automate refresh"
+msgstr "自動刷新"
+
+#: qmm/ui_mainwindow.py:244
+msgid "toolBar"
+msgstr "工具欄"
+
+#: qmm/ui_mainwindow.py:246 qmm/ui_mainwindow.py:249 qmm/ui_mainwindow.py:252
+msgid "Path"
+msgstr "路徑"
+
+#: qmm/ui_mainwindow.py:247 qmm/ui_mainwindow.py:253
+msgid "State"
+msgstr "狀態"
+
+#: qmm/ui_mainwindow.py:248
+msgid "Files"
+msgstr "文件"
+
+#: qmm/ui_mainwindow.py:250
+msgid "Source"
+msgstr "來源"
+
+#: qmm/ui_mainwindow.py:251
+msgid "Conflicts"
+msgstr "衝突"
+
+#: qmm/ui_mainwindow.py:254
+msgid "Skipped"
+msgstr "跳過"
+
+#: qmm/ui_mainwindow.py:255
+msgid "Name"
+msgstr "名稱"
+
+#: qmm/ui_mainwindow.py:256
+msgid "SHA256:"
+msgstr "SHA256:"
+
+#: qmm/ui_mainwindow.py:257 qmm/ui_mainwindow.py:259
+msgid "N/A"
+msgstr "不適用"
+
+#: qmm/ui_mainwindow.py:258
+msgid "Last time Modified:"
+msgstr "最後修改時間："
+
+#: qmm/ui_mainwindow.py:260
+msgid "qMM"
+msgstr "qMM"
+
+#: qmm/ui_mainwindow.py:261 qmm/ui_mainwindow.py:266
+msgid "Help"
+msgstr "幫助"
+
+#: qmm/ui_mainwindow.py:262
+msgid "Preferences"
+msgstr "首選項"
+
+#: qmm/ui_mainwindow.py:263
+msgid "Add archive"
+msgstr "添加存檔"
+
+#: qmm/ui_mainwindow.py:264
+msgid "Quit"
+msgstr "退出"
+
+#: qmm/ui_mainwindow.py:265
+msgid "Remove file"
+msgstr "移除文件"
+
+#: qmm/ui_mainwindow.py:267
+msgid "Add Archive"
+msgstr "添加存檔"
+
+#: qmm/ui_mainwindow.py:268
+msgid "About qMM"
+msgstr "關於 qMM"
+
+#: qmm/ui_mainwindow.py:269
+msgid "Settings"
+msgstr "設置"
+
+#: qmm/ui_mainwindow.py:270
+msgid "Install Mod"
+msgstr "安裝模組"
+
+#: qmm/ui_mainwindow.py:271
+msgid "Uninstall Mod"
+msgstr "卸載模組"
+
+#: qmm/ui_mainwindow.py:272
+msgid "Help of qModManager"
+msgstr "qModManager 幫助"
+
+#: qmm/ui_qprogress.py:43
+msgid "Dialog"
+msgstr "對話框"
+
+#: qmm/ui_qprogress.py:44
+msgid "Initializing..."
+msgstr "初始化..."
+
+#: qmm/widgets.py:70
+msgid "Open in Explorer"
+msgstr "在資源管理器中打開"
+
+#: qmm/widgets.py:74 qmm/widgets.py:79
+msgid "Open with {}"
+msgstr "用 {} 打開"
+
+#~ msgid "Added the:"
+#~ msgstr "Ajouté le:"
+
+#~ msgid "Validate"
+#~ msgstr "Valider"
+
+#~ msgid "Path to a folder containing your collection of mods."
+#~ msgstr "Chemin vers un dossier contenant votre collection de mods."
+
+#~ msgid "Archive Repository"
+#~ msgstr "Dépôt d'archives"
+
+#~ msgid "Browse..."
+#~ msgstr "Naviguer ..."
+
+#~ msgid "Path to the folder containing the jar or exe of the game."
+#~ msgstr ""
+#~ "Chemin vers le dossier contenant le ficher jar ou exécutable du jeu."
+
+#~ msgid "Game Location"
+#~ msgstr "Emplacement du Jeu"
+
+#~ msgid "Cancel"
+#~ msgstr "Annuler"
+
+#~ msgid ""
+#~ "Folder that will contain a local copy of your mods. It should be its own "
+#~ "empty folder, containing nothing else than the game's mod archives."
+#~ msgstr ""
+#~ "Un dossier qui contiendra une copie locale de vos mods. Ce dossier "
+#~ "devrait être dédié aux mods de votre jeu, sans sous dossier."
+
+#~ msgid "Please restart qMM to finalize language change."
+#~ msgstr ""
+#~ "Veuillez redémarrer qMM pour que le changement de langage prenne effet."
+
+#~ msgid "ERR: Following file has unknown status"
+#~ msgstr "ERR: les fichiers suivants ne sont pas reconnus"
