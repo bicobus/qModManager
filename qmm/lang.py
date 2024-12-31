@@ -16,7 +16,7 @@ DEFAULT_LANGUAGE = "en_US"
 LANGUAGE_CODES = [
     ('English (United States)', 'en_US'),
     ('Français', 'fr_FR'),
-    ('中文','zh')
+    ('中文', 'zh')
 ]
 LANGUAGE_ALIASES = {
     'en': 'en_US',
