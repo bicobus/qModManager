@@ -15,7 +15,8 @@ DEFAULT_LANGUAGE = "en_US"
 # fmt: off
 LANGUAGE_CODES = [
     ('English (United States)', 'en_US'),
-    ('Français', 'fr_FR')
+    ('Français', 'fr_FR'),
+    ('中文','zh')
 ]
 LANGUAGE_ALIASES = {
     'en': 'en_US',
