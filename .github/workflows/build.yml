@@ -42,7 +42,7 @@ jobs:
           pip install pyinstaller
       - name: Building
         run: |
-          make ui
+          make all
           set PYTHONOPTIMIZE=1 && pyinstaller run.spec
       - name: Packaging
         run: |
