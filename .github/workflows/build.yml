@@ -53,7 +53,7 @@ jobs:
           7z a ../../qModManager-win64-${GITHUB_REF##*/}.7z . ../../resources/README.txt
       - name: Release (debug)
         if: ${{ steps.release_type.outputs.RELEASE_TYPE == 'debug' }}
-        uses: ncipollo/release-action@v1.18.0
+        uses: ncipollo/release-action@v1.20.0
         with:
           artifacts: qModManager-win64-${{ steps.release_type.outputs.VERSION }}.7z
           prerelease: True
@@ -63,14 +63,14 @@ jobs:
             This is a debug build to help development.
       - name: Release (beta|debug)
         if: ${{ steps.release_type.outputs.RELEASE_TYPE == 'beta' }}
-        uses: ncipollo/release-action@v1.18.0
+        uses: ncipollo/release-action@v1.20.0
         with:
           artifacts: qModManager-win64-${{ steps.release_type.outputs.VERSION }}.7z
           prerelease: True
           token: ${{ secrets.GITHUB_TOKEN}}
       - name: Release (stable)
         if: ${{ steps.release_type.outputs.RELEASE_TYPE == 'release' }}
-        uses: ncipollo/release-action@v1.18.0
+        uses: ncipollo/release-action@v1.20.0
         with:
           artifacts: qModManager-win64-${{ steps.release_type.outputs.VERSION }}.7z
           token: ${{ secrets.GITHUB_TOKEN }}
