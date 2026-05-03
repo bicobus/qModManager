@@ -1,9 +1,37 @@
+[project]
+name = ""
+version = "0.0.1"
+requires-python = ">=3.13,<3.14"
+dependencies = [
+    "pyqt5==5.15.11",
+    "send2trash",
+    "appdirs",
+    "watchdog",
+    "attrs",
+    "black",
+]
+
 [build-system]
 requires = [  # PEP 508 specs
     "setuptools >= 40.9.0",
     "wheel"
 ]
 build-backend = "setuptools.build_meta"
+
+[dependency-groups]
+dev = [
+    "flake8",
+    "pyinstaller",
+    "pylint",
+    "flake8-bugbear",
+    "flake8-comprehensions",
+    "pytest",
+    "black",
+    "pydocstyle",
+    "coverage[toml]",
+    "pyqt5-stubs",
+    "pytest-cov",
+]
 
 [tool.coverage.run]
 branch = true
@@ -12,6 +40,14 @@ omit = [
     "*/tests/*",
     "docs/**"
 ]
+
+[tool.uv]
+package = false
+default-groups = "all"
+
+[[tool.uv.index]]
+name = "pypi"
+url = "https://pypi.org/simple"
 
 [tool.coverage.report]
 exclude_lines = [
