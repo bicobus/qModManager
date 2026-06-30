@@ -25,10 +25,10 @@ jobs:
       PYTHON: "3.12"
       QMM_CI: true
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           path: qMM
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           repository: innoxia/liliths-throne-public
           path: lilith
